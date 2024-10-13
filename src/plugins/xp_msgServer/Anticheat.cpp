@@ -1605,31 +1605,13 @@ __declspec(naked) int __fastcall GetGFFListLength(void* puVar, void* Unused, voi
 
 ///////////////////////
 
-#define FUNC_Load2DATable				0x0051acb0
-#define FUNC_Load2DATablePart2			0x0051b4d0
 #define FUNC_2daColumnNameToRowOffset	0x0051a290
 #define FUNC_2DAGetString				0x0051a2e0
 #define FUNC_2DAGetInt					0x0051a5f0
 
 #define FUNC_GetClientName				0x00571380
 
-__declspec(naked) void __fastcall Load2DATable_intern(void* p2DATable,  void* Unused, char* lowerTableName)
-{
-	__asm
-	{
-		mov		edx, FUNC_Load2DATable;
-		jmp		edx;
-	}
-}
-
-__declspec(naked) void __fastcall Load2DATableP2_intern(void* p2DATable)
-{
-	__asm
-	{
-		mov		edx, FUNC_Load2DATablePart2;
-		jmp		edx;
-	}
-}
+#define FUNC_Check2DACache				0x0054aa40
 
 __declspec(naked) int __fastcall Get2DAColumnOffset(uint32_t* p2DATable,  void* Unused, const char* columnName)
 {
@@ -1640,6 +1622,45 @@ __declspec(naked) int __fastcall Get2DAColumnOffset(uint32_t* p2DATable,  void* 
 	}
 }
 
+
+std::string Get2DAString(uint32_t* p2DATable, int iRow, int iColumnOffset)
+{
+	std::string sResult = "";
+	if ((-1 < iRow) && (iRow < *(int*)((int)p2DATable + 0x40)) && (-1 < iColumnOffset) && (iColumnOffset < *(int*)((int)p2DATable + 0x44)))
+	{
+
+		NWN::CExoString* resultExoString = (NWN::CExoString*)(*(int*)(*(int*)((int)p2DATable + 0x3c) + iRow * 4) + iColumnOffset * 8);
+
+		if (resultExoString != 0 && resultExoString->m_nBufferLength != 0 && resultExoString->m_sString != 0)
+		{
+			sResult = ExoStringToString(resultExoString);
+		}
+	}
+
+	return sResult;
+}
+
+bool Get2DAInt(uint32_t* p2DATable, int iRow, int iColumnOffset, int* iValue)
+{
+	std::string stringRes = Get2DAString(p2DATable, iRow, iColumnOffset);
+
+	if (stringRes == "")
+	{
+		try
+        {
+			int iNumber = std::stoi(stringRes);
+			*iValue = iNumber;
+			return true;
+
+		} catch (const std::exception& e) {
+			return false;
+        }
+	}
+
+	return false;
+}
+
+/*
 __declspec(naked) int __fastcall Get2DAString(uint32_t* p2DATable,  void* Unused, int iRow, int iColumnOffset, NWN::CExoString* result)
 {
 	__asm
@@ -1657,23 +1678,7 @@ __declspec(naked) int __fastcall Get2DAInt(uint32_t* p2DATable,  void* Unused, i
 		jmp		edx;
 	}
 }
-
-
-uint32_t Load2DATable(uint32_t* p2DATable, NWN::CExoString* cTable)
-{
-	char lowerTableName[32];
-
-	for (int i = 0; i < 32 && i < cTable->m_nBufferLength; i++)
-	{
-		lowerTableName[i] = (char)tolower(cTable->m_sString[i]);
-	}
-
-
-	Load2DATable_intern(p2DATable, NULL, lowerTableName);
-	Load2DATableP2_intern(p2DATable);
-
-	return p2DATable[16];
-}
+*/
 
 __declspec(naked) NWN::CExoString* __fastcall GetClientName(void* pContext)
 {
@@ -1683,6 +1688,133 @@ __declspec(naked) NWN::CExoString* __fastcall GetClientName(void* pContext)
 		jmp		edx;
 	}
 }
+
+__declspec(naked) uint32_t __fastcall Check2daCache(uint32_t ptrTable, void* Unused, NWN::CExoString* sTableName)
+{
+	__asm
+	{
+		mov		edx, FUNC_Check2DACache;
+		jmp		edx;
+	}
+}
+
+
+
+/********************************************************************/
+
+#define FUNC_2DASetupSEPTIMsgServ		0x00686d42
+#define FUNC_2DASetupRetSEPTIMsgServ	0x00686def
+
+
+__declspec(naked) int __fastcall Prepare2DA_intern(NWN::CExoString* sNameTable, void* UNUSED)
+{
+	__asm 
+	{
+		push ecx
+		PUSH EBX
+		push edx
+		push ebp
+		push esi
+		push edi
+		sub esp, 0x60
+
+
+		LEA EAX, [ESP + 0xC]
+
+		mov edx, [ecx]
+		mov [eax], edx
+
+		mov edx, [ecx + 4] 
+		mov [eax + 4], edx
+
+
+		//MOV [EAX], [ECX]
+		//MOV [EAX+4], [ECX+4]
+
+		mov		edx, FUNC_2DASetupSEPTIMsgServ;
+		jmp		edx;
+	}
+}
+
+__declspec(naked) int __fastcall Prepare2DARet_intern(NWN::CExoString* sNameTable, void* UNUSED)
+{
+	__asm
+	{
+		//Remove the whole space on esp immediatly
+		ADD ESP, 0x60
+
+		//Save ptr on p2DATable
+		//Count.. All the register (5*4) + 4
+		CMP EBX, 0
+		JNE Prepare2DAMsgServKeepESI
+		MOV ESI, 0
+
+Prepare2DAMsgServKeepESI:
+		MOV EAX, ESI
+
+		//Restore everything
+		POP EDI
+		POP ESI
+		POP EBP
+		POP EDX
+		POP EBX
+		POP ECX
+
+		RET
+	}
+}
+
+Patch _tempPatch2DAmsgServ[] =
+{
+	//List of TempPatch for Setup2DA table
+	Patch((DWORD)FUNC_2DASetupRetSEPTIMsgServ, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(FUNC_2DASetupRetSEPTIMsgServ+1, (relativefunc)Prepare2DARet_intern),
+};
+
+Patch *tempPatch2DAmsgServ = _tempPatch2DAmsgServ;
+
+uint32_t Preparation2DA(NWN::CExoString* cTable)
+{
+	char lowerTableName[32];
+
+	for (int i = 0; i < 32 && i < cTable->m_nBufferLength; i++)
+	{
+		lowerTableName[i] = (char)tolower(cTable->m_sString[i]);
+	}
+	
+	NWN::CExoString lowerTable;
+
+	lowerTable.m_sString = lowerTableName;
+	lowerTable.m_nBufferLength = cTable->m_nBufferLength;
+
+	//Patch stuff here
+	
+	uint32_t* tempPtr = *(uint32_t**)OFFS_g_pAppManager;
+	uint32_t value = tempPtr[1];
+
+	uint32_t p2DATable = Check2daCache(value, NULL, &lowerTable);
+
+	if (p2DATable != 0)
+	{
+		return p2DATable;
+	}
+
+	//Patch the function
+	tempPatch2DAmsgServ[0].Apply();
+	tempPatch2DAmsgServ[1].Apply();
+
+
+	//Call it
+	p2DATable = Prepare2DA_intern(&lowerTable, NULL);
+
+	//Unpatch here
+	tempPatch2DAmsgServ[0].Remove();
+	tempPatch2DAmsgServ[1].Remove();
+
+
+	return p2DATable;
+}
+/********************************************************************/
 
 
 //Septi, time to be smart. Dont do a too complicated function for this please
@@ -2114,177 +2246,188 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 		{
 			uSchool = GetGFFByte(puVar, NULL, newPtr2, "School", aiStack110, 0);
 		}
+
 		//Test PreReqTable
+		if(myClass->m_PreReqTable.m_nBufferLength != 0)
 		{
-			uint32_t pTable[20];
-			int iRowNumber = Load2DATable(pTable, &(myClass->m_PreReqTable));
 
-			int iReqTypeOffset = Get2DAColumnOffset(pTable, NULL, "ReqType");
-			int iReqParam1Offset = Get2DAColumnOffset(pTable, NULL, "ReqParam1");
-			int iReqParam2Offset = Get2DAColumnOffset(pTable, NULL, "ReqParam2");
 
-			bool bArcOrDiv = false;
-			bool bArcOrDivOk = false;
+			uint32_t* pTable;
 
-			for (int i = 0; i < iRowNumber; i++)
+
+
+			pTable = (uint32_t*)Preparation2DA(&(myClass->m_PreReqTable));
+
+			if (pTable != NULL)
 			{
-				NWN::CExoString restrictType;
-				int iRes = Get2DAString(pTable, NULL, i, iReqTypeOffset, &restrictType);
-				if (iRes != 0)
+				int iRowNumber = pTable[16];
+
+				int iReqTypeOffset = Get2DAColumnOffset(pTable, NULL, "ReqType");
+				int iReqParam1Offset = Get2DAColumnOffset(pTable, NULL, "ReqParam1");
+				int iReqParam2Offset = Get2DAColumnOffset(pTable, NULL, "ReqParam2");
+
+				bool bArcOrDiv = false;
+				bool bArcOrDivOk = false;
+
+				for (int i = 0; i < iRowNumber; i++)
 				{
-					//Need to test
-					std::string sRestrictType = ExoStringToString(&restrictType);
-
-					//During creation, you don't have any feat, spells, magic school, or class.
-					if (sRestrictType == "FEAT" || sRestrictType == "FEATOR" || sRestrictType == "FEATOR2" ||
-						sRestrictType == "CLASSOR" || sRestrictType == "SPELLOR" || sRestrictType == "SPECIALIST")
+					std::string sRestrictType = Get2DAString(pTable, i, iReqTypeOffset);
+					bool bRes = false;
+					if (sRestrictType != "")
 					{
-						//For now, without more details, no real need to call it more than one time
-						if (!bPreReqErrorFound) 
+						//Need to test
+
+						//During creation, you don't have any feat, spells, magic school, or class.
+						if (sRestrictType == "FEAT" || sRestrictType == "FEATOR" || sRestrictType == "FEATOR2" ||
+							sRestrictType == "CLASSOR" || sRestrictType == "SPELLOR" || sRestrictType == "SPECIALIST")
 						{
-							bPreReqErrorFound = true;
-							std::string sError = "#ClassPrereqError:{"+ std::to_string(iClass)+"}";
-							sErrorList += sError;
-							if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+							//For now, without more details, no real need to call it more than one time
+							if (!bPreReqErrorFound) 
 							{
-								return 1;
-							}
+								bPreReqErrorFound = true;
+								std::string sError = "#ClassPrereqError:{"+ std::to_string(iClass)+"}";
+								sErrorList += sError;
+								if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+								{
+									return 1;
+								}
 							
-							//Already prereq error. No need to search for more.
-							break;
-						}
-					}
-
-					//Just in case... If it's set to 0, no problem
-					if (sRestrictType == "BAB" || sRestrictType == "ARCSPELL" || sRestrictType == "DIVSPELL" ||
-						sRestrictType == "SPELL" || sRestrictType == "SAD")
-					{
-						int iValue = 0;
-						iRes = Get2DAInt(pTable, NULL, i, iReqParam1Offset, &iValue);
-
-						if (iRes == 0 || iValue > 0)
-						{
-							//For now, without more details, no real need to call it more than one time
-							if (!bPreReqErrorFound)
-							{
-								bPreReqErrorFound = true;
-								std::string sError = "#ClassPrereqError:{" + std::to_string(iClass) + "}";
-								sErrorList += sError;
-								if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
-								{
-									return 1;
-								}
-
 								//Already prereq error. No need to search for more.
 								break;
 							}
 						}
-					}
 
-					//Just in case, if it's set to 0, no problem
-					if (sRestrictType == "SKILL" || sRestrictType == "SAVE")
-					{
-						int iValue = 0;
-						iRes = Get2DAInt(pTable, NULL, i, iReqParam2Offset, &iValue);
-
-						if (iRes == 0 || iValue > 0)
+						//Just in case... If it's set to 0, no problem
+						if (sRestrictType == "BAB" || sRestrictType == "ARCSPELL" || sRestrictType == "DIVSPELL" ||
+							sRestrictType == "SPELL" || sRestrictType == "SAD")
 						{
-							//For now, without more details, no real need to call it more than one time
-							if (!bPreReqErrorFound)
-							{
-								bPreReqErrorFound = true;
-								std::string sError = "#ClassPrereqError:{" + std::to_string(iClass) + "}";
-								sErrorList += sError;
-								if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
-								{
-									return 1;
-								}
+							int iValue = 0;
+							bRes = Get2DAInt(pTable, i, iReqParam1Offset, &iValue);
 
-								//Already prereq error. No need to search for more.
-								break;
+							if (bRes == 0 || iValue > 0)
+							{
+								//For now, without more details, no real need to call it more than one time
+								if (!bPreReqErrorFound)
+								{
+									bPreReqErrorFound = true;
+									std::string sError = "#ClassPrereqError:{" + std::to_string(iClass) + "}";
+									sErrorList += sError;
+									if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+									{
+										return 1;
+									}
+
+									//Already prereq error. No need to search for more.
+									break;
+								}
 							}
 						}
-					}
 
-
-					//Tricky here... Will be ok only if arcspellor or divspellor is 0.
-					if (sRestrictType == "ARCSPELLOR" || sRestrictType == "DIVSPELLOR")
-					{
-						int iValue = 0;
-						//We have a arc or div test
-						bArcOrDiv = true;
-						iRes = Get2DAInt(pTable, NULL, i, iReqParam1Offset, &iValue);
-
-						//It's ok, one of them is set to 0
-						if (iRes != 0 && iValue == 0)
+						//Just in case, if it's set to 0, no problem
+						if (sRestrictType == "SKILL" || sRestrictType == "SAVE")
 						{
-							bArcOrDivOk = true;
-						}
-					}
+							int iValue = 0;
+							bRes = Get2DAInt(pTable, i, iReqParam2Offset, &iValue);
 
-
-					//Need to be really tested
-					if (sRestrictType == "RACE")
-					{
-						int iValue = 0;
-						iRes = Get2DAInt(pTable, NULL, i, iReqParam1Offset, &iValue);
-
-						if (iValue != iRaceRow)
-						{
-							//For now, without more details, no real need to call it more than one time
-							if (!bPreReqErrorFound)
+							if (bRes == 0 || iValue > 0)
 							{
-								bPreReqErrorFound = true;
-								std::string sError = "#ClassPrereqError:{" + std::to_string(iClass) + "}";
-								sErrorList += sError;
-								if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+								//For now, without more details, no real need to call it more than one time
+								if (!bPreReqErrorFound)
 								{
-									return 1;
-								}
+									bPreReqErrorFound = true;
+									std::string sError = "#ClassPrereqError:{" + std::to_string(iClass) + "}";
+									sErrorList += sError;
+									if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+									{
+										return 1;
+									}
 
-								//Already prereq error. No need to search for more.
-								break;
+									//Already prereq error. No need to search for more.
+									break;
+								}
 							}
 						}
-					}
 
-					//Need to be really tested
-					if (sRestrictType == "SUBRACE")
-					{
-						int iValue = 0;
-						iRes = Get2DAInt(pTable, NULL, i, iReqParam1Offset, &iValue);
 
-						if (iValue != iSubRaceRow)
+						//Tricky here... Will be ok only if arcspellor or divspellor is 0.
+						if (sRestrictType == "ARCSPELLOR" || sRestrictType == "DIVSPELLOR")
 						{
-							//For now, without more details, no real need to call it more than one time
-							if (!bPreReqErrorFound)
-							{
-								bPreReqErrorFound = true;
-								std::string sError = "#ClassPrereqError:{" + std::to_string(iClass) + "};";
-								sErrorList += sError;
-								if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
-								{
-									return 1;
-								}
+							int iValue = 0;
+							//We have a arc or div test
+							bArcOrDiv = true;
+							bRes = Get2DAInt(pTable, i, iReqParam1Offset, &iValue);
 
-								//Already prereq error. No need to search for more.
-								break;
+							//It's ok, one of them is set to 0
+							if (bRes != 0 && iValue == 0)
+							{
+								bArcOrDivOk = true;
+							}
+						}
+
+
+						//Need to be really tested
+						if (sRestrictType == "RACE")
+						{
+							int iValue = 0;
+							bRes = Get2DAInt(pTable, i, iReqParam1Offset, &iValue);
+
+							if (bRes && iValue != iRaceRow)
+							{
+								//For now, without more details, no real need to call it more than one time
+								if (!bPreReqErrorFound)
+								{
+									bPreReqErrorFound = true;
+									std::string sError = "#ClassPrereqError:{" + std::to_string(iClass) + "}";
+									sErrorList += sError;
+									if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+									{
+										return 1;
+									}
+
+									//Already prereq error. No need to search for more.
+									break;
+								}
+							}
+						}
+
+						//Need to be really tested
+						if (sRestrictType == "SUBRACE")
+						{
+							int iValue = 0;
+							bRes = Get2DAInt(pTable, i, iReqParam1Offset, &iValue);
+
+							if (bRes && iValue != iSubRaceRow)
+							{
+								//For now, without more details, no real need to call it more than one time
+								if (!bPreReqErrorFound)
+								{
+									bPreReqErrorFound = true;
+									std::string sError = "#ClassPrereqError:{" + std::to_string(iClass) + "};";
+									sErrorList += sError;
+									if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+									{
+										return 1;
+									}
+
+									//Already prereq error. No need to search for more.
+									break;
+								}
 							}
 						}
 					}
 				}
-			}
-			if (bArcOrDiv && !bArcOrDivOk)
-			{
-				//For now, without more details, no real need to call it more than one time
-				if (!bPreReqErrorFound)
+				if (bArcOrDiv && !bArcOrDivOk)
 				{
-					bPreReqErrorFound = true;
-					std::string sError = "#ClassPrereqError:{" + std::to_string(iClass) + "}";
-					sErrorList += sError;
-					if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+					//For now, without more details, no real need to call it more than one time
+					if (!bPreReqErrorFound)
 					{
-						return 1;
+						bPreReqErrorFound = true;
+						std::string sError = "#ClassPrereqError:{" + std::to_string(iClass) + "}";
+						sErrorList += sError;
+						if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+						{
+							return 1;
+						}
 					}
 				}
 			}
