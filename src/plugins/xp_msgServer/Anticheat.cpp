@@ -875,24 +875,28 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 			int16_t curFeat = myClassFeatList[i].m_FeatIndex;
 
 			//Automatic granted feat, check and remove !
-			if (fLType == 0 && grantedOn == (int16_t)lvlChoosenClass) {
-				int16_t preReqGranted = myClassFeatList[i].m_GrantedPrereq;
-
-				if (preReqGranted == -1 || myCurrentFeats.count(preReqGranted) != 0 || myAutoGrantedFeats.count(preReqGranted) != 0)
+			if (fLType == 0) {
+				if(grantedOn == (int16_t)lvlChoosenClass)
 				{
-					//AllPrereqOk 
-					if (myTakenFeats.erase(curFeat) == 0) {
-						//No ? error only if we not already have it
-						if (myCurrentFeats.count(curFeat) == 0 || myAutoGrantedFeats.count(curFeat)) {
-							sAutoFeatNotGranted += " " + std::to_string(curFeat);
+					int16_t preReqGranted = myClassFeatList[i].m_GrantedPrereq;
 
-							if(g_msgServ->bACLvlUpStopFirstViolation)
-								break;
+					if (preReqGranted == -1 || myCurrentFeats.count(preReqGranted) != 0 || myAutoGrantedFeats.count(preReqGranted) != 0)
+					{
+						//AllPrereqOk 
+						if (myTakenFeats.erase(curFeat) == 0) {
+							//No ? error only if we not already have it
+							//Add check if it is given several time !
+							if (myCurrentFeats.count(curFeat) == 0 && myAutoGrantedFeats.count(curFeat) == 0) {
+								sAutoFeatNotGranted += " " + std::to_string(curFeat);
+
+								if(g_msgServ->bACLvlUpStopFirstViolation)
+									break;
+							}
 						}
-					}
-					else {
-						myAutoGrantedFeats.insert(curFeat);
-						nbNewFeats--;
+						else {
+							myAutoGrantedFeats.insert(curFeat);
+							nbNewFeats--;
+						}
 					}
 				}
 			}
