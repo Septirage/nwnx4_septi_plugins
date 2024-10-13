@@ -1045,7 +1045,7 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 			}
 		}
 
-		//get companion name and pass it (//TODO, need to analyze the name reset error.)
+		//get familiar and pass it (//TODO, need to analyze the name reset error.)
 		uint32_t iFamiliarNameSize = *(uint32_t*)(Data + iPos);
 		iPos += 4;
 		iPos += iFamiliarNameSize;
@@ -1082,7 +1082,7 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 			else if (myCurrentFeats.count(0xC7) == 0) 
 			{
 				// New class need to be a class with AnimalCompanion (and we need the feat too)
-				if (myClass2daRow->m_HasAnimalCompanion != 0 && myObtainedFeats.count(0xC7) == 0) 
+				if (myClass2daRow->m_HasAnimalCompanion != 0 && myObtainedFeats.count(0xC7) != 0) 
 				{
 					// TODO, familiar validity not checked yet
 					bCompOk = true;
