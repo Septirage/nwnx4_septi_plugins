@@ -130,63 +130,94 @@ __declspec(naked) void ReturnOfInventoryWeight()
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// Global OnClientLoaded
 /////////////////////////////////////////////////////////////////////////////////
-void(__fastcall* OriginalEndOfLoadLoginMsg)(void* param_1_00, void* _, NWN::CNWSPlayer* param_2, byte param_3);
+
+#define OFFS_AREALOAD_ONCLIENTENTER_TESTSCRIPTEMPTY 0x00595C43
+#define OFFS_AREALOAD_ONCLIENTENTER_SCRIPTCALL		0x00595cf1
+
+unsigned long ReturnAreaLoadOnClientEnter		   = 0x00595C4B;
+unsigned long ReturnAreaLoadOnClientEnterAfterCall = 0x00595cf6;
+
+unsigned long CallOnClientEnterScript = 0x0072b380;
 
 
-void __fastcall EoLLMHookProc(void* param_1_00, void* _, NWN::CNWSPlayer* param_2, byte param_3)
+
+uint8_t gTestOnClientEnterScript = 0;
+uint32_t gAreaIDOnClientEnter = 0;
+
+
+
+void __fastcall CallGlobalOnClientEnter(NWN::OBJECTID iAreaID)
 {
-	OriginalEndOfLoadLoginMsg(param_1_00, _, param_2, param_3);
-
 	const NWN::CExoString script = {.m_sString       = sScriptOnLoaded.data(),
 		.m_nBufferLength = std::size((sScriptOnLoaded)) + 1};
 	const auto vm                = GetNwn2VirtualMachine();
-	NWN::OBJECTID creaObj = param_2->m_oidNWSObject;
-	CVirtualMachine_ExecuteScript(vm, script, creaObj, 1, 0);
+
+	CVirtualMachine_ExecuteScript(vm, script, iAreaID, 1, 0);
 }
 
 
-DWORD
-FindHookEndOfLoadLoginMsg()
+__declspec(naked) void AreaOnClientEnter_TestScript()
 {
-	char* ptr = (char*)0x400000;
-	while (ptr < (char*)0x800000) {
-		if ((ptr[0] == (char)0x83) && (ptr[1] == (char)0xEC) && (ptr[2] == (char)0x08) && (ptr[3] == (char)0x56) && (ptr[4] == (char)0x6A) &&
-			(ptr[5] == (char)0x01) && (ptr[6] == (char)0x6A) && (ptr[7] == (char)0xFF) && (ptr[8] == (char)0x6A) && (ptr[9] == (char)0x0A) &&
-			(ptr[10] == (char)0x8B) && (ptr[11] == (char)0xF1) && (ptr[12] == (char)0xC7) && (ptr[13] == (char)0x44) && (ptr[14] == (char)0x24) &&
-			(ptr[15] == (char)0x14) && (ptr[16] == (char)0x00) && (ptr[17] == (char)0x00) && (ptr[18] == (char)0x00) && (ptr[19] == (char)0x00) &&
-			(ptr[20] == (char)0xC7) && (ptr[21] == (char)0x44) && (ptr[22] == (char)0x24) && (ptr[23] == (char)0x10) && (ptr[24] == (char)0x0A) &&
-			(ptr[25] == (char)0x00) && (ptr[26] == (char)0x00) && (ptr[27] == (char)0x00) && (ptr[28] == (char)0xE8) && (ptr[29] == (char)0x2F) &&
-			(ptr[30] == (char)0x07) && (ptr[31] == (char)0x1F) && (ptr[32] == (char)0x00)) {
-			return (DWORD)ptr;
-		}
-		else {
-			ptr++;
-		}
+	__asm
+	{
+		//Save the value, so we don't have to test it again.
+		MOV		gTestOnClientEnterScript, AL
+
+		MOV		AL, 0x0
+
+		//Continue like if we have a script
+		JMP		dword ptr[ReturnAreaLoadOnClientEnter]
 	}
-	return NULL;
 }
 
-
-int
-HookEoLLM()
+__declspec(naked) void AreaOnClientEnter_CallScript()
 {
-	DetourTransactionBegin();
-	DetourUpdateThread(GetCurrentThread());
-	int eollm_success, detour_success;
-	DWORD eollm = FindHookEndOfLoadLoginMsg();
-	if (eollm) {
-		logger->Info("o EndOfLoad located at %x.", eollm);
-		*(DWORD*)&OriginalEndOfLoadLoginMsg = eollm;
-		eollm_success	= DetourAttach(&(PVOID&)OriginalEndOfLoadLoginMsg, EoLLMHookProc) == 0;
-	}
-	else {
-		logger->Info("! EndOfLoad locate failed.");
-		return 0;
-	}
+	__asm
+	{
+		MOV		AL, gTestOnClientEnterScript
+		MOV		gAreaIDOnClientEnter, EDX
 
-	detour_success = DetourTransactionCommit() == 0;
-	return eollm_success && detour_success;
+		TEST	AL, AL
+		JNZ		NoAreaOnClientEnterScript
+
+		CALL	[CallOnClientEnterScript]
+
+		PUSH	EAX
+
+		JMP		AreaOnClientEnterGeneralScript
+
+		//Unstack all parameters
+NoAreaOnClientEnterScript:
+		POP		ESI
+		POP		EDX
+		POP		EDI
+		POP		EDI
+
+		PUSH	0x0
+
+		//Call The GenericOnClientEnter
+AreaOnClientEnterGeneralScript:
+
+		MOV		ECX, gAreaIDOnClientEnter
+		CALL	CallGlobalOnClientEnter
+
+		POP		EAX
+
+		JMP		dword ptr[ReturnAreaLoadOnClientEnterAfterCall]
+	}
 }
+
+Patch _GlobalOnClientEnterPatch[] =
+{
+	Patch((DWORD)OFFS_AREALOAD_ONCLIENTENTER_TESTSCRIPTEMPTY, (char*)"\xe9\x00\x00\x00\x00\x90\x90\x90", (int)8), //JMP
+	Patch(OFFS_AREALOAD_ONCLIENTENTER_TESTSCRIPTEMPTY + 1, (relativefunc)AreaOnClientEnter_TestScript),
+
+	Patch((DWORD)OFFS_AREALOAD_ONCLIENTENTER_SCRIPTCALL, (char*)"\xe9\x00\x00\x00\x00", (int)5), //JMP
+	Patch(OFFS_AREALOAD_ONCLIENTENTER_SCRIPTCALL + 1, (relativefunc)AreaOnClientEnter_CallScript),
+
+	Patch()
+};
+Patch *GlobalOnClientEnterPatch = _GlobalOnClientEnterPatch;
 
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -420,7 +451,11 @@ void SmallHookFunctions(SimpleIniConfig* config)
 	{
 		sScriptOnLoaded = sScript;
 		logger->Info("* HookScript for GlobalOnClientEnter: %s", sScript.c_str());
-		HookEoLLM();
+
+		i = 0;
+		while (GlobalOnClientEnterPatch[i].Apply()) {
+			i++;
+		}
 	}
 
 

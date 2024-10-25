@@ -1,4 +1,5 @@
 #include "RuleParser.h"
+#include "../../septutil/NwN2DataPos.h"
 
 #include <unordered_map>
 #include <string>
@@ -10,6 +11,12 @@
 #include <stdexcept>
 #include <algorithm>
 #include <regex>
+
+
+
+#define OFFS_FCT_DetectModeState	0x005bdc90
+#define OFFS_FCT_TrackModeState		0x005bdce0
+
 
 namespace RuleParser
 {
@@ -82,7 +89,31 @@ void processCurrentToken(const std::string& currentToken, std::vector<Token>& to
 		if (lowerToken == "monkpower")
 		{
 			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_MONKPOWER});
-		} 
+		}
+		else if (lowerToken == "detectmode")
+		{
+			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_DETECTMODE});
+		}
+		else if (lowerToken == "stealthmode")
+		{
+			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_STEALTHMODE});
+		}
+		else if (lowerToken == "trackmode")
+		{
+			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_TRACKMODE});
+		}
+		else if (lowerToken == "encumbrancenone")
+		{
+			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_ENCUMBRANCE0});
+		}
+		else if (lowerToken == "encumbrancenormal")
+		{
+			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_ENCUMBRANCE1});
+		}
+		else if (lowerToken == "encumbranceheavy")
+		{
+			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_ENCUMBRANCE2});
+		}
 		else
 		{
 			std::regex pattern("(Rule)(\\d+)", std::regex::icase);
@@ -222,15 +253,66 @@ bool TestIfFeat(int uPcBlock, uint16_t uFeat)
 
 	return false;
 }
+__declspec(naked) uint8_t __fastcall DetectModeState(__in int pCreature)
+{
+	__asm
+	{
+		MOV EAX, OFFS_FCT_DetectModeState
+		JMP EAX
+	}
+}
+
+__declspec(naked) uint8_t __fastcall TrackModeState(__in int pCreature)
+{
+	__asm
+	{
+		MOV EAX, OFFS_FCT_TrackModeState
+		JMP EAX
+	}
+}
+
 
 bool TestSpecial(int iSpecialType, int creaPtr)
 {
-	if (iSpecialType == RULESPECIAL_MONKPOWER)
+	bool bResult = false;
+	uint32_t iVal;
+	switch(iSpecialType) 
 	{
-		uint32_t iVal = *(uint32_t*)(creaPtr + 0x778);
-		return (iVal == 1);
+	case RULESPECIAL_MONKPOWER:
+		iVal = *(uint8_t*)(creaPtr + AmCrtMonkSpeed);
+		bResult = (iVal == 1);
+		break;
+	case RULESPECIAL_DETECTMODE:
+		//iVal = *(uint8_t*)(creaPtr + AmCrtDetectMode);
+		iVal = DetectModeState(creaPtr);
+		bResult = (iVal == 1);
+		break;
+	case RULESPECIAL_STEALTHMODE:
+		iVal = *(uint8_t*)(creaPtr + AmCrtStealthMode);
+		bResult = (iVal == 1);
+		break;
+	case RULESPECIAL_TRACKMODE:
+		//iVal = *(uint8_t*)(creaPtr + AmCrtTrackingMode);
+		iVal = TrackModeState(creaPtr);
+		bResult = (iVal == 1);
+		break;
+	case RULESPECIAL_ENCUMBRANCE0:
+		iVal = *(uint8_t*)(creaPtr + AmCrtEncumbrance);
+		bResult = (iVal == 0);
+		break;
+	case RULESPECIAL_ENCUMBRANCE1:
+		iVal = *(uint8_t*)(creaPtr + AmCrtEncumbrance);
+		bResult = (iVal == 1);
+		break;
+	case RULESPECIAL_ENCUMBRANCE2:
+		iVal = *(uint8_t*)(creaPtr + AmCrtEncumbrance);
+		bResult = (iVal == 2);
+		break;
+	default:
+		bResult = false;
 	}
-	return false;
+
+	return bResult;
 }
 
 bool evaluateRule(Rule* node, RuleType cRuleType, int areaTypeOrPcBlock)

@@ -1,4 +1,4 @@
-plugin_version = '"1.0.2"'
+plugin_version = '"1.1.1"'
 plugin_name = 'xp_enhancedFeatures'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -15,6 +15,7 @@ shared_library_obj = shared_library(plugin_name,
         'SmallHookFunctions.cpp',
         'SkillHooks.cpp',
         'SpeedFeats.cpp',
+        'ReduceSpeedHook.cpp',
         'WeaponFinesseHook.cpp',
         'RuleParser.cpp',
         'BonusParser.cpp',

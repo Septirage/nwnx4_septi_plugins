@@ -202,13 +202,20 @@ struct AmItmProperty
 #define AmCrtAge				0x3CC
 #define AmCrtABAge				0xE8
 
+//u8
+#define AmCrtIsDestroyable		0x174
+#define AmCrtIsRaisable			0x178
+#define AmCrtDeadSelectable		0x17C
+
+
+
+
+#define AmCrtPlot				0x180
+
 #define AmCrtEffectPtr			0x1A0
 #define AmCrtEffectNb			0x1A4
 #define AmCrtEffectSize			0x1A8
 
-#define AmCrtPlot				0x180
-//uint32
-#define AmCrtMonkSpeed			0x778
 
 
 //
@@ -223,15 +230,25 @@ struct AmItmProperty
 #define AmCrtHlfrBlstMode		0x710
 #define AmCrtHlfrShldMode		0x711
 
-
+#define AmCrtInCombat			0x718
 //uint32
 #define AmCrtSize				0x730
+
+//uint32
+#define AmCrtMonkSpeed			0x778
 
 //uint32
 #define AmCrtGoldPiece			0xEE8
 
 //short
 #define AmCrtSoundSet			0xEF0
+
+
+//uint32
+#define AmCrtCreatureSize		0x730
+
+//uint32
+#define AmCrtMasterID			0xF3C
 /* 
 ID table of equiped object ( Inventory_Slot +1)
 // 0 : 98 2F 80 00
@@ -248,7 +265,11 @@ ID table of equiped object ( Inventory_Slot +1)
 //uint32
 #define AmCrtWeightEq				0x0F8C
 //??? 0xF90 ??? 
-//??? 0xF94 ??? Surcharge ???
+
+
+//0 <= nothing, 1 <= small, 2 <= heavy
+#define AmCrtEncumbrance			0xF94
+
 //??? 0xF98 ??? cmp == 1 ?
 #define AmCrtWeightTotal			0x0F9C
 
@@ -379,10 +400,19 @@ struct AmCrtClass
 */
 #define AmCrtABArmorTable			0x059C
 
+//0x5C4 seem related to spellfailure
+//0x5C6 seem related to spellfailure 
+//uint8
+#define AmCrtABArcaneSpellFailure	0x5CA
+
+
 //uint8
 #define AmCrtABMagicResistance		0x05D4 
 //uint8
 #define AmCrtABReducMagicResistance	0x05D5
+
+//uint8
+#define AmCrtABArmorCheckPenalty	0x062B
 
 #define AmCrtABTint					0x0650
 #define AmCrtABHeadTint				0x0680

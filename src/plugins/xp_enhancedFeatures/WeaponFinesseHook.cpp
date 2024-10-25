@@ -288,7 +288,7 @@ void initWeaponFinesse(std::string nxhome, std::string sFileName)
 
 	iRemoveBaseWeaponFinesse = 0;
 
-	if (ini.has("General"))
+	if (bOkRead && ini.has("General"))
 	{
 		if (ini.get("General").has("RemoveBaseWpnFinesseRules"))
 		{
@@ -297,9 +297,17 @@ void initWeaponFinesse(std::string nxhome, std::string sFileName)
 				iRemoveBaseWeaponFinesse = 1;
 			}
 		}
+
+		if (ini.get("General").has("DisableHook"))
+		{
+			std::string sDisableHook = ini.get("General").get("DisableHook");
+
+			bOkRead = !(sDisableHook == "1");
+		}
 	}
 
 	//WeaponFinesse rules
+	if(bOkRead)
 	{
 		//Now parse the SpeedFeatRules
 		int iRuleNumber = 1;
@@ -379,11 +387,19 @@ void initWeaponFinesse(std::string nxhome, std::string sFileName)
 	}
 
 	//CallWpnFinesseHook
-	if (!isWFAlreadyPatched)
+	if (bOkRead && !isWFAlreadyPatched)
 	{
 		isWFAlreadyPatched = true;
 		int i = 0;
 		while(PatchWeaponFinesse[i].Apply()) {
+			i++;
+		}
+	}
+	else if (!bOkRead && isWFAlreadyPatched)
+	{
+		isWFAlreadyPatched = false;
+		int i = 0;
+		while(PatchWeaponFinesse[i].Remove()) {
 			i++;
 		}
 	}

@@ -363,10 +363,10 @@ void initSkillHooks(std::string nxhome, std::string sFileName)
 	bool bOkRead = file.read(ini);
 
 	if (!bOkRead)
-		logger->Err("Cant find SpeedFile : %s", sFileName.c_str());
+		logger->Err("Cant find SkillFile : %s", sFileName.c_str());
 
 	iRemoveBaseSkillFeats = 0;
-	if (ini.has("General"))
+	if (bOkRead && ini.has("General"))
 	{
 		if (ini.get("General").has("RemoveBaseSkillFeatRules"))
 		{
@@ -375,11 +375,19 @@ void initSkillHooks(std::string nxhome, std::string sFileName)
 				iRemoveBaseSkillFeats = 1;
 			}
 		}
+
+		if (ini.get("General").has("DisableHook"))
+		{
+			std::string sDisableHook = ini.get("General").get("DisableHook");
+
+			bOkRead = !(sDisableHook == "1");
+		}
 	}
 
 	//Skill Feats
+	if(bOkRead)
 	{
-		//Now parse the SpeedFeatRules
+		//Now parse the SkillFeatRules
 		int iRuleNumber = 1;
 		std::string sSkillFeatRuleBase = "SkillRule";
 
@@ -448,7 +456,7 @@ void initSkillHooks(std::string nxhome, std::string sFileName)
 			}
 			else
 			{
-				logger->Err("[SpeedFeatsIniFile]: No speed_modifier field for [%s].", sSkillFeatRuleX.c_str());
+				logger->Err("[SkillFeatsIniFile]: No Skill or bonus field for [%s].", sSkillFeatRuleX.c_str());
 			}
 
 			iRuleNumber++;
@@ -458,6 +466,7 @@ void initSkillHooks(std::string nxhome, std::string sFileName)
 
 
 	//Skill Ability
+	if(bOkRead)
 	{
 		//Now parse the SkillAbilityRules
 		int iRuleNumber = 1;
@@ -545,7 +554,7 @@ void initSkillHooks(std::string nxhome, std::string sFileName)
 			}
 			else
 			{
-				logger->Err("[SpeedFeatsIniFile]: No speed_modifier field for [%s].", sSkillAbilityRuleX.c_str());
+				logger->Err("[SkillFeatsIniFile]: No Skill or Ability fied for [%s].", sSkillAbilityRuleX.c_str());
 			}
 
 			iRuleNumber++;
@@ -553,8 +562,9 @@ void initSkillHooks(std::string nxhome, std::string sFileName)
 		}
 	}
 
-
-	if (bHasFeatRule && !isAlreadyPatchedFeat)
+	//Change to bOkRead in order to allow to remove all the skill Feat. 
+	// Base one with the RemoveBaseSkillFeatRules, and no more with a file without any SkillRules
+	if (bOkRead && !isAlreadyPatchedFeat)
 	{
 		isAlreadyPatchedFeat = true;
 		int i = 0;
@@ -562,7 +572,7 @@ void initSkillHooks(std::string nxhome, std::string sFileName)
 			i++;
 		}
 	}
-	else if (!bHasFeatRule && isAlreadyPatchedFeat)
+	else if (!bOkRead && isAlreadyPatchedFeat)
 	{
 		isAlreadyPatchedFeat = false;
 		int i = 0;
@@ -571,6 +581,7 @@ void initSkillHooks(std::string nxhome, std::string sFileName)
 		}
 	}
 
+	//No need to keep the hook if you don't have any rule.
 	if (bHasAbilityRule && !isAlreadyPatchedAb)
 	{
 		isAlreadyPatchedAb = true;

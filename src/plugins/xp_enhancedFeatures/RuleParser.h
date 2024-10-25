@@ -27,6 +27,13 @@ const uint32_t OP_NOT = 4;
 enum class TokenType { OBJECT, OPERATOR, LPAREN, RPAREN, END, SPECIAL };
 
 const int RULESPECIAL_MONKPOWER = 0;
+const int RULESPECIAL_DETECTMODE = 1;
+const int RULESPECIAL_STEALTHMODE = 2;
+const int RULESPECIAL_TRACKMODE = 3;
+const int RULESPECIAL_ENCUMBRANCE0 = 10;
+const int RULESPECIAL_ENCUMBRANCE1 = 11;
+const int RULESPECIAL_ENCUMBRANCE2 = 12;
+
 
 struct Token {
 	TokenType type;

@@ -17,6 +17,7 @@
 #include "SpeedFeats.h"
 #include "SkillHooks.h"
 #include "WeaponFinesseHook.h"
+#include "ReduceSpeedHook.h"
 #include "SmallPatchFunctions.h"
 #include "SmallHookFunctions.h"
 #include "StoreRetrievePatch.h"
@@ -599,6 +600,15 @@ EnhancedFeatures::Init(char* nwnxhome)
 		initWeaponFinesse(nxhome, sWeaponFinesseFile);
 	}
 
+	std::string sReduceSpeedFile = "";
+	config->Read("ReduceSpeedFile", &sReduceSpeedFile, std::string(""));
+	if (sReduceSpeedFile != "")
+	{
+		std::string nxhome(nwnxhome);
+		m_sReduceSpeedFile = sReduceSpeedFile;
+		initReduceSpeedHooks(nxhome, sReduceSpeedFile);
+	}
+
 
 	//Call Small Functions. (will be improved latter)
 	SmallPatchFunctions(config);
@@ -769,6 +779,11 @@ void EnhancedFeatures::SetInt([[maybe_unused]] char* sFunction,
 	{
 		desinitWeaponFinesse();
 		return initWeaponFinesse(nwnxStringHome, m_sWeaponFinesseFile);
+	}
+	else if (function == "ReloadReduceSpeedFile" && m_sReduceSpeedFile != "")
+	{
+		desinitReduceSpeedHooks();
+		return initReduceSpeedHooks(nwnxStringHome, m_sReduceSpeedFile);
 	}
 
 	return;

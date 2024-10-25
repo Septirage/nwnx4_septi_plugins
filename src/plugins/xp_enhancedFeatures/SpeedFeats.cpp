@@ -449,7 +449,7 @@ void initSpeedFeat(std::string nxhome, std::string sFileName)
 
 	m_useSpeedFeats = true;
 
-	if (ini.has("General"))
+	if (bOkRead && ini.has("General"))
 	{
 
 		if (ini.get("General").has("CalculationType"))
@@ -464,10 +464,17 @@ void initSpeedFeat(std::string nxhome, std::string sFileName)
 				m_CalculationTypeSum = false;
 			}
 		}
+
+		if (ini.get("General").has("DisableHook"))
+		{
+			std::string sDisableHook = ini.get("General").get("DisableHook");
+
+			bOkRead = !(sDisableHook == "1");
+		}
 	}
 
 	//SpeedFeat
-	if (m_useSpeedFeats)
+	if (bOkRead && m_useSpeedFeats)
 	{
 		//Now parse the SpeedFeatRules
 		int iRuleNumber = 1;
@@ -542,6 +549,7 @@ void initSpeedFeat(std::string nxhome, std::string sFileName)
 	//Get List for Min then for Max (maxMonkSpeed will only be a specific max)
 
 	//Min speed
+	if(bOkRead)
 	{
 
 		int iRuleNumber                = 1;
@@ -601,6 +609,7 @@ void initSpeedFeat(std::string nxhome, std::string sFileName)
 	}
 
 	//MaxSpeed
+	if(bOkRead)
 	{
 		int iRuleNumber               = 1;
 		std::string sMaxSpeedRuleBase = "MaxSpeedRule";
@@ -657,11 +666,19 @@ void initSpeedFeat(std::string nxhome, std::string sFileName)
 	}
 
 	//CallSpeedFeats
-	if (!isSpeedAlreadyPatched)
+	if (bOkRead && !isSpeedAlreadyPatched)
 	{
 		isSpeedAlreadyPatched = true;
 		int i = 0;
 		while(SpeedFeatPatches[i].Apply()) {
+			i++;
+		}
+	}
+	else if (!bOkRead && isSpeedAlreadyPatched)
+	{
+		isSpeedAlreadyPatched = false;
+		int i = 0;
+		while(SpeedFeatPatches[i].Remove()) {
 			i++;
 		}
 	}
