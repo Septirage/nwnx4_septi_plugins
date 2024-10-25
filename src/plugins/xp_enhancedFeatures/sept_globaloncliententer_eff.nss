@@ -4,7 +4,9 @@
 //------------------------------------------------------------------------------
 // Last Modified By:   	Septirage			2024/09/07
 //------------------------------------------------------------------------------
-// Entering creature can be get by OBJECT_SELF
+// You can use classical OnClientEnter functions like 
+// GetFirstEnteringPC(), GetNextEnteringPC(), FiredFromPartyTransition(). 
+// Destination Area can be get with OBJECT_SELF or GetArea on any of the EnteringPC (they are already in it).
 //////////////////////////////////////////////////////////////////////////////////////////
 
 void main()
