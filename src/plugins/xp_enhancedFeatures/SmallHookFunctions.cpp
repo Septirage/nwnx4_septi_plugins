@@ -17,6 +17,8 @@ std::string sWeightHookScript = "";
 std::string sScriptOnLoaded = "";
 std::string sChangeGoldScript = "";
 std::string sTransitionScript = "";
+std::string sItemBaseCostScript = "";
+std::string g_sCanIStackScript = "";
 
 extern std::unique_ptr<LogNWNX> logger;
 
@@ -24,7 +26,23 @@ extern std::unique_ptr<LogNWNX> logger;
 #define OFFS_WPTransition		0x005D177B
 #define OFFS_DoorTransition		0x005D19CC
 
+#define OFFS_EndOfCalculateBaseCost	0x005d49ab
+#define OFFS_EndCanIStack			0x005d3ab1
 
+unsigned long ReturnEndICanStack = 0x005d3ab9;
+unsigned long ReturnICantStack = 0x005d39ad;
+
+unsigned long ReturnCalculateBaseCost = 0x005d49b1;
+
+
+NWN::OBJECTID GetModuleID_()
+{
+	int ptr = *(int*)OFFS_g_pAppManager;
+	ptr = *(int*)(ptr + 4);
+	ptr = *(int*)(ptr + 4);
+	NWN::OBJECTID result = *(NWN::OBJECTID*)(ptr + 0x10088);
+	return result;
+}
 
 // 1.23
 // g_pVirtualMachine
@@ -274,7 +292,7 @@ int __fastcall GGHookProc(void* pThis, void* _, int amount, int fb, NWN::OBJECTI
 	NWScript::ClearScriptParams();
 	NWScript::AddScriptParameterObject(ptrC->m_idSelf);
 	NWScript::AddScriptParameterInt((int32_t)newAmount);
-	newAmount = NWScript::ExecuteScriptEnhanced(sChangeGoldScript.c_str(), ptrC->m_idSelf, false, &isExecScriptOk);
+	newAmount = NWScript::ExecuteScriptEnhanced(sChangeGoldScript.c_str(), ptrC->m_idSelf, false, &isExecScriptOk, true);
 
 	if (!isExecScriptOk)
 	{
@@ -293,7 +311,7 @@ int __fastcall TGHookProc(void* pThis, void* _, int amount, int fb, NWN::OBJECTI
 	NWScript::ClearScriptParams();
 	NWScript::AddScriptParameterObject(ptrC->m_idSelf);
 	NWScript::AddScriptParameterInt((int32_t)newAmount);
-	newAmount = NWScript::ExecuteScriptEnhanced(sChangeGoldScript.c_str(), ptrC->m_idSelf, false, &isExecScriptOk);
+	newAmount = NWScript::ExecuteScriptEnhanced(sChangeGoldScript.c_str(), ptrC->m_idSelf, false, &isExecScriptOk, true);
 
 	if (!isExecScriptOk)
 	{
@@ -405,6 +423,147 @@ Patch _StartTransitionPatch[] =
 };
 Patch *StartTransitionPatch = _StartTransitionPatch;
 
+int __fastcall CallCalculateBaseCost(int iCurrentBaseCost, NWN::CNWSItem* pItem)
+{
+	if (sItemBaseCostScript != "")
+	{
+		GameObject* pObj = pItem->AsGameObject();
+
+		bool isExecScriptOk = true;
+
+		NWScript::ClearScriptParams();
+		NWScript::AddScriptParameterObject(pObj->GetObjectId());
+		NWScript::AddScriptParameterInt(iCurrentBaseCost);
+		int iRet = NWScript::ExecuteScriptEnhanced(sItemBaseCostScript.c_str(), GetModuleID_(), false, &isExecScriptOk, true);
+	}
+
+	return iCurrentBaseCost;
+}
+
+__declspec(naked) void EndOfCalculateBaseCost()
+{
+	__asm
+	{
+		MOV dword ptr[ESI + 0xA94], ECX
+		PUSH EDX
+		PUSH EAX
+		PUSH ECX
+
+		MOV		EDX, ESI
+		CALL	CallCalculateBaseCost
+
+		MOV dword ptr[ESI + 0xA94], EAX
+
+		POP ECX
+		MOV ECX, EAX
+		POP EAX
+		POP EDX
+
+		JMP dword ptr[ReturnCalculateBaseCost]
+	}
+}
+
+Patch _ItemBaseCostCalcPatch[] =
+{
+	Patch((DWORD)OFFS_EndOfCalculateBaseCost, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6), //JMP
+	Patch(OFFS_EndOfCalculateBaseCost + 1, (relativefunc)EndOfCalculateBaseCost),
+
+	Patch()
+};
+Patch* ItemBaseCostCalcPatch = _ItemBaseCostCalcPatch;
+
+
+
+
+uint32_t g_iStackFixChoice = 0;
+
+uint32_t __fastcall CanIStackUpgraded(char* pItem1, char* pItem2)
+{
+	//Basic fix, really test item properties
+	if (g_iStackFixChoice != 0)
+	{
+		//Number are already tested so only need one of them
+		uint32_t iNumberP1 = *(uint32_t*)(pItem1 + AmItmPropertyNb);
+		AmItmProperty* pProperties1 = *(AmItmProperty**)(pItem1 + AmItmPropertyPtr);
+		AmItmProperty* pProperties2 = *(AmItmProperty**)(pItem2 + AmItmPropertyPtr);
+
+		for (int i = 0; i < iNumberP1; i++)
+		{
+			//If any difference on property => not stackable
+			if (pProperties1[i].uPropertyName != pProperties2[i].uPropertyName ||
+				pProperties1[i].uSubType != pProperties2[i].uSubType ||
+				pProperties1[i].uCostTable != pProperties2[i].uCostTable ||
+				pProperties1[i].uCostValue != pProperties2[i].uCostValue ||
+				pProperties1[i].uParam1 != pProperties2[i].uParam1 ||
+				pProperties1[i].uParam1Value != pProperties2[i].uParam1Value ||
+				pProperties1[i].uChanceAppear != pProperties2[i].uChanceAppear
+				)
+			{
+				return 0;
+			}
+		}
+	}
+
+	if (g_sCanIStackScript != "")
+	{
+		NWN::CNWSItem* Item1 = (NWN::CNWSItem*)pItem1;
+		NWN::CNWSItem* Item2 = (NWN::CNWSItem*)pItem2;
+		GameObject* ob1 = Item1->AsGameObject();
+		GameObject* ob2 = Item2->AsGameObject();
+
+		bool isExecScriptOk = true;
+
+		NWScript::ClearScriptParams();
+		NWScript::AddScriptParameterObject(ob1->GetObjectId());
+		NWScript::AddScriptParameterObject(ob2->GetObjectId());
+		int iRet = NWScript::ExecuteScriptEnhanced(g_sCanIStackScript.c_str(), GetModuleID_(), false, &isExecScriptOk, true);
+
+		iRet = (iRet != 0) ? 1 : 0;
+
+
+		if (isExecScriptOk)
+		{
+			return iRet;
+		}
+	}
+
+	return 1;
+}
+
+__declspec(naked) void UpgradeCanIStack()
+{
+	__asm
+	{
+		MOV		ECX, ESI
+		MOV		EDX, EBP
+		CALL	CanIStackUpgraded
+		TEST	EAX, EAX
+		JZ		JmpToDontStack
+
+		POP		EDI
+		POP		EBX
+		POP		ESI
+		
+		JMP	dword ptr[ReturnEndICanStack]
+
+JmpToDontStack:
+		JMP dword ptr[ReturnICantStack]
+	}
+}
+
+Patch _FixStackingPatch[] =
+{
+	Patch(OFFS_EndCanIStack, (char*)"\xe9\x00\x00\x00\x00\x90\x90\x90", (int)8),
+	Patch(OFFS_EndCanIStack + 1, (relativefunc)UpgradeCanIStack),
+
+	Patch()
+};
+
+Patch *FixStackingPatch = _FixStackingPatch;
+
+
+
+
 /*
 Patch _CalculateWeightPatch[] =
 {
@@ -467,6 +626,37 @@ void SmallHookFunctions(SimpleIniConfig* config)
 		logger->Info("* HookScript for StartTransition: %s", sScript.c_str());
 		i = 0;
 		while (StartTransitionPatch[i].Apply()) {
+			i++;
+		}
+	}
+
+	
+	config->Read("OnItemBaseCostCalculationScript", &sScript, std::string(""));
+	if (sScript != "")
+	{
+		sItemBaseCostScript = sScript;
+		logger->Info("* Script for ItemBaseCostCalculation: %s", sScript.c_str());
+		i = 0;
+		while (ItemBaseCostCalcPatch[i].Apply()) {
+			i++;
+		}
+	}
+
+	
+	config->Read("FixItemStacking", &iTest, 0);
+	config->Read("OnItemStackScript", &sScript, std::string(""));
+	if (iTest > 0 || sScript != "")
+	{
+		if(iTest != 0)
+			logger->Info("* StackingVerification bugfix Enabled");
+		if (sScript != "")
+			logger->Info("* Script for IsStackingPossible: %s", sScript.c_str());
+
+		g_iStackFixChoice = iTest;
+		g_sCanIStackScript = sScript;
+		i = 0;
+		while (FixStackingPatch[i].Apply())
+		{
 			i++;
 		}
 	}

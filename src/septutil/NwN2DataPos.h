@@ -103,26 +103,43 @@
 ///////////////////////////////////////////////
 //bloc couleur
 #define AmItmBaseColor          0x6DC
+
+//uint32
+#define AmItmArmorRulesType		0x718 //
+
+//short
+#define AmItmGMaterial			0x71C //
+
+struct AmItmDmgReductionType
+{
+	uint16_t DmgRedctType;
+	uint16_t Padding;
+
+	uint8_t	DmgRedctSubType;
+	uint8_t Padding2;
+	uint16_t Padding3;
+};
+
+struct AmItmDmgReduction
+{
+	int16_t iAmount;
+	uint16_t Padding;
+
+
+	AmItmDmgReductionType* pDmgRedTypeList;
+	uint32_t	uSizeList;
+	uint32_t	uSizeArray;
+
+	uint16_t	uDmgRedFlags;
+	uint16_t	Padding2;
+};
+
+#define AmItmDamageReductionPtr			0x720
+#define AmItmDamageReductionNb			0x724
+#define AmItmDamageReductionSizeArray	0x728
+
 //uint8
-#define AmItmWpnPart1           0xAA4
-//uint8
-#define AmItmWpnPart2           0xAA5
-//uint8
-#define AmItmWpnPart3           0xAA6
-
-
-//Pointer to exoString
-#define AmItmDescrIdent         0xAB4
-//Pointer to exoString
-#define AmItmDescrNonIdent      0xAC4
-//uint8 (?)
-#define AmItmFXWpn              0xB02
-
-
-
 #define AmItmPlot				0x8B0 //
-#define AmItmIsIdentified		0xA70 //
-
 
 struct AmItmProperty
 {
@@ -150,15 +167,46 @@ struct AmItmProperty
 		uint16_t Padding6;
 };
 
+//uint8
+#define AmItmIsIdentified		0xA70 //
+
+#define AmItmProperty0Ptr		0xA78
+#define AmItmProperty0Nb		0xA7C
+#define AmItmProperty0SizeArray	0xA80
+
 
 #define AmItmPropertyPtr		0xA84
 #define AmItmPropertyNb			0xA88
 #define AmItmPropertySizeArray	0xA8C
 
 
+//uint8
 #define AmItmCharges			0xA90 //
+
 #define AmItmCost				0xA94
+#define AmItmNonIdentifiedPrice	0xA98
 #define AmItmModifyCost			0xA9C 
+
+
+//uint8
+#define AmItmWpnPart1           0xAA4
+//uint8
+#define AmItmWpnPart2           0xAA5
+//uint8
+#define AmItmWpnPart3           0xAA6
+
+#define AmItmDescIdentifiedRef	0xAB0
+//Pointer to exoString
+#define AmItmDescrIdent         0xAB4
+
+#define AmItmDescNIdentRef		0xAC0
+//Pointer to exoString
+#define AmItmDescrNonIdent      0xAC4
+
+//strref then exostring
+#define AmItmLocalizedName		0xAD0
+
+
 #define AmItmIsDropable			0xAE4 //
 #define AmItmIsPickpocketable	0xAE8 //
 #define AmItmIsCursed			0xAEC //
@@ -167,6 +215,9 @@ struct AmItmProperty
 //Int
 #define AmItmIcon				0xAF4 //
 #define AmItmIsStolen			0xAF8 //
+
+//uint8 (?)
+#define AmItmFXWpn              0xB02
 
 #define AmItmContainerUI		0xB08
 #define AmItmIpActPref			0xB0C //
@@ -177,10 +228,6 @@ struct AmItmProperty
 //char
 #define AmItmContainerPref		0xB14
 #define AmItmForceContainer		0xB18
-
-
-#define AmItmArmorRulesType		0x718 //
-#define AmItmGMaterial			0x71C //
 
 
 #define AmItmModelPieceColor1		0x4

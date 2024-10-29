@@ -7,6 +7,8 @@
 #include "../plugin.h"
 #include "../../NWN2Lib/NWN2.h"
 #include "../../NWN2Lib/NWN2Common.h"
+#include "../../septutil/NwN2DataPos.h"
+#include "../../hook/scriptManagement.h"
 #include <unordered_set>
 
 
@@ -32,63 +34,8 @@ extern std::unique_ptr<LogNWNX> logger;
 
 #define OFFS_MonkSpecialWeaponTest		0x007514d3
 
-#define OFFS_WeaponFinesseNoSize		0x007563ce
-#define OFFS_WeaponFinesseSize			0x00756400
 
-unsigned long Return1WeaponFinesse = 0x00756431;
-unsigned long Return0WeaponFinesse = 0x007563e1;
-unsigned long ContinueWeaponFinesse = 0x007563d8;
-
-std::unordered_set<uint32_t> g_listWeaponFinesseNoSize;
-std::unordered_set<uint32_t> g_listWeaponFinesseWSize;
 std::unordered_set<uint32_t> g_listMonkWeapon;
-
-
-uint32_t __fastcall CheckWeaponFinesseNoSizeList(uint32_t uWeaponType)
-{
-	return g_listWeaponFinesseNoSize.contains(uWeaponType);
-}
-
-uint32_t __fastcall CheckWeaponFinesseWSizeList(uint32_t uWeaponType)
-{
-	return g_listWeaponFinesseWSize.contains(uWeaponType);
-}
-
-__declspec(naked) void TestWeaponFinesseNoSize()
-{
-	__asm
-	{
-		PUSH	EAX
-		CALL	CheckWeaponFinesseNoSizeList
-
-		CMP		EAX, 0
-		POP		EAX
-		JE		GoToContinueWeaponFinesse
-
-		jmp dword ptr[Return1WeaponFinesse]
-
-GoToContinueWeaponFinesse:
-		jmp dword ptr[ContinueWeaponFinesse]
-	}
-}
-
-__declspec(naked) void TestWeaponFinesseWSize()
-{
-	__asm
-	{
-		PUSH	EAX
-		CALL	CheckWeaponFinesseWSizeList
-
-		CMP		EAX, 0
-		POP		EAX
-		JE		GoToReturn0WeaponFinesse
-
-		jmp dword ptr[Return1WeaponFinesse]
-
-GoToReturn0WeaponFinesse:
-		jmp dword ptr[Return0WeaponFinesse]
-	}
-}
 
 
 uint32_t __fastcall TestIfMonkSpecialWeapon(uint32_t uWeaponType)
@@ -378,8 +325,6 @@ GoToApplyExtraWildShape:
 	}
 }
 
-
-
 Patch _FixRemainingSpellOnBonusLoss[] =
 {
 	Patch(OFFS_RemoveSpellBonus, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
@@ -444,19 +389,6 @@ Patch _PatchMonkWeaponList[] =
 };
 Patch* PatchMonkWeaponList = _PatchMonkWeaponList;
 
-/*
-Patch _PatchWeaponFinesse[] =
-{
-	Patch(OFFS_WeaponFinesseNoSize, (char*)"\xe9\x00\x00\x00\x00", (int)5),
-	Patch(OFFS_WeaponFinesseNoSize + 1, (relativefunc)TestWeaponFinesseNoSize),
-
-	Patch(OFFS_WeaponFinesseSize, (char*)"\xe9\x00\x00\x00\x00", (int)5),
-	Patch(OFFS_WeaponFinesseSize + 1, (relativefunc)TestWeaponFinesseWSize),
-
-	Patch()
-};
-Patch *PatchWeaponFinesse = _PatchWeaponFinesse;
-*/
 
 
 Patch _DisableTumbleACPatch[] =
@@ -478,8 +410,6 @@ Patch _DisablespellcraftSavePatch[] =
 };
 
 Patch *DisablespellcraftSavePatch = _DisablespellcraftSavePatch;
-
-
 
 
 bool SmallPatchFunctions(SimpleIniConfig* config)
@@ -571,40 +501,6 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 			i++;
 		}
 	}
-	
-	/*
-	std::string sList2 = "";
-	config->Read("WeaponFinesseNoSize", &sList, std::string(""));
-	config->Read("WeaponFinesseWithSize", &sList2, std::string(""));
-	if (sList != "" || sList2 != "")
-	{
-		if (sList == "")
-		{
-			sList = "36 78";
-		}
-		if (sList2 == "")
-		{
-			sList2 = "0 9 22 37 38 40 42 51 60 111";
-		}
 
-		std::istringstream iss(sList);
-		std::istringstream iss2(sList2);
-		uint32_t number;
-
-		while (iss >> number) {
-			g_listWeaponFinesseNoSize.insert(number);
-		}
-		while (iss2 >> number) {
-			g_listWeaponFinesseWSize.insert(number);
-		}
-		logger->Info("WeaponFinesse configuration : WithoutSizeCheck=\"%s\" WithSizeCheck=\"%s\"", sList.c_str(), sList2.c_str());
-
-		i = 0;
-		while (PatchWeaponFinesse[i].Apply())
-		{
-			i++;
-		}
-	}
-	*/
 	return true;
 }
