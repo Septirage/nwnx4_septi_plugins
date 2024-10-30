@@ -311,6 +311,41 @@ unsigned long ReturnItemPropertyFix = 0x005C7F4C;
 		}
 	}
 
+	void __fastcall RemoveAreaFromModuleList(char* ptrArea)
+	{
+		GameObject        *ModuleObject;
+		GameObjectManager m_ObjectManager;
+		NWN::OBJECTID      areaID = *(NWN::OBJECTID*)(ptrArea+0xA0);
+
+		if ((ModuleObject = m_ObjectManager.GetGameObject(0)) != NULL)
+		{
+			//ObjectAsModule
+			ModuleObject = (GameObject*)((int)ModuleObject - 0x30);
+
+			//GetNumberOfArea and AreaList
+			uint32_t iNumberOfArea = *(uint32_t*)((int)ModuleObject + 0x118);
+			NWN::OBJECTID* pAreaIDList = *(NWN::OBJECTID**)((int)ModuleObject + 0x114);
+
+			for (uint32_t i = 0; i < iNumberOfArea; i++)
+			{
+				//This is the area we want to remove
+				if (pAreaIDList[i] == areaID)
+				{
+					//Reduce number of area
+					iNumberOfArea--;
+					*(uint32_t*)((int)ModuleObject + 0x118) = iNumberOfArea;
+
+					//"Stack" area list
+					for (uint32_t j = i; j < iNumberOfArea; j++)
+					{
+						pAreaIDList[j] = pAreaIDList[j + 1];
+					}
+					break;
+				}
+			}
+		}
+	}
+
 	void __fastcall DeleteAllInArea(char* ptrArea)
 	{
 		NWN::OBJECTID      ObjectId;
@@ -323,18 +358,33 @@ unsigned long ReturnItemPropertyFix = 0x005C7F4C;
 		int	iNumberOfObject;
 		iNumberOfObject = *(int*)(ptrArea - 0xad0 + 0xa98);
 
+		int iNbNotDeleted = 0;
 		for (int i = 0; i < iNumberOfObject; i++)
 		{
+
 			// The delete object will remove the objid from the list, so we
 			// will just delete the first one in chain
-			ObjectId = (NWN::OBJECTID) ptrObjectList[0];
+			//Update : If we have a problem with the object, it will stay first of the list.
+			//			So add an index.
+			ObjectId = (NWN::OBJECTID) ptrObjectList[iNbNotDeleted];
 
 			if ((ObjectId & NWN::INVALIDOBJID) != 0)
 				ObjectId &= ~(NWN::LISTTYPE_MASK);
 
 			if ((Object = m_ObjectManager.GetGameObject(ObjectId)) != NULL)
 			{
-				DeleteObjectByPtr((void*)Object);
+				//TODO, if TURD, remove it from Module TURD List (or dont delete it?)
+				if (*(uint32_t*)Object == 0x00806064)
+				{
+					iNbNotDeleted++;
+				}
+				else
+				{
+					DeleteObjectByPtr((void*)Object);
+				}
+			}
+			else {
+				iNbNotDeleted++;
 			}
 		}
 	}
@@ -357,6 +407,10 @@ unsigned long ReturnItemPropertyFix = 0x005C7F4C;
 			call    DeleteAllInArea
 
 
+			//Remove AreaFrom the ModuleAreaList TODO
+			mov ecx, edi
+			call	RemoveAreaFromModuleList
+
 			//param2 = 1
 			push 0x1
 			//set ptr as param1
@@ -364,6 +418,7 @@ unsigned long ReturnItemPropertyFix = 0x005C7F4C;
 
 			//CaLL FNCT !!
 			call dword ptr[DestroyArea]
+
 
 
 			//Finish the function as before the hook.

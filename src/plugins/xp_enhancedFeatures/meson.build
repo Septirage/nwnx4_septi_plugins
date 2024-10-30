@@ -1,4 +1,4 @@
-plugin_version = '"1.1.2"'
+plugin_version = '"1.1.3"'
 plugin_name = 'xp_enhancedFeatures'+global_name_project_add
 dllName = plugin_name+'.dll'
 
