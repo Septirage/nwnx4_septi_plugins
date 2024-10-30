@@ -1,5 +1,17 @@
 
+a
 
+a
+
+a
+
+a
+
+a
+
+a
+
+a
 
 .
 .
@@ -24,9 +36,7 @@
 - [Constants List](#constants-list)
 
 
----
 
----
 
 <div style="page-break-after: always;"></div>
 
@@ -169,10 +179,10 @@ xp_aspectManager_creature.nss
 [GetCreatureSubRace\_xpAM](#getcreaturesubrace_xpam)  
 
 Weight  
-[RefreshCreatureTotalWeight\_xpAM](#refreshcreaturetotalweightxpAM)  
-[GetCreatureTotalWeight\_xpAM](#getcreaturetotalweightxpAM)  
-[GetCreatureEquipmentWeight\_xpAM](#getcreatureequipmentweightxpAM)  
-[SetCreatureEquipmentWeight\_xpAM](#setcreatureequipmentweightxpAM)  
+[RecalculateCreatureTotalWeight\_xpAM](#recalculatecreaturetotalweight_xpam)  
+[GetCreatureTotalWeight\_xpAM](#getcreaturetotalweight_xpam)  
+[GetCreatureEquipmentWeight\_xpAM](#getcreatureequipmentweight_xpam)  
+[SetCreatureEquipmentWeight\_xpAM](#setcreatureequipmentweight_xpam)  
 
 Other  
 [SetCreatureAge\_xpAM](#setcreatureage_xpam)  
@@ -382,6 +392,7 @@ xp_aspectManager_item.nss
 <td style="vertical-align:top;">  
 
 [SetBaseItemType\_xpAM](#setbaseitemtype_xpam)  
+[GetItemBaseMaterialType\_xpAM](#getitembasematerialtype_xpam)  
 [SetItemAppearanceVariation\_xpAM](#setitemappearancevariation_xpam)  
 [GetItemAppearanceVariation\_xpAM](#getitemappearancevariation_xpam)  
 [SetItemAppearanceCategory\_xpAM](#setitemappearancecategory_xpam)   
@@ -420,7 +431,32 @@ ModelPart
 [GetItemModelPartCategory\_xpAM](#getitemmodelpartcategory_xpam)  
 [SetItemModelPartColor\_xpAM](#setitemmodelpartcolor_xpam)  
 [GetItemModelPartColor\_xpAM](#getitemmodelpartcolor_xpam)  
-
+</td>
+<td style="vertical-align:top">
+  
+Costs  
+[SetItemBaseCost\_xpAM](#setitembasecost_xpam)  
+[GetItemBaseCost\_xpAM](#getitembasecost_xpam)  
+[SetItemNonIdentifiedCost\_xpAM](#setitemnonidentifiedcost_xpam)  
+[GetItemNonIdentifiedCost\_xpAM](#getitemnonidentifiedcost_xpam)  
+[SetItemCostModifier\_xpAM](#setitemcostmodifier_xpam)  
+[GetItemCostModifier\_xpAM](#getitemcostmodifier_xpam)  
+  
+DamageReduction  
+[GetItemNbDamageReduction\_xpAM](#getitemnbdamagereduction_xpam)  
+[AddItemDamageReduction\_xpAM](#additemdamagereduction_xpam)  
+[RemoveItemDamageReduction\_xpAM](#removeitemdamagereduction_xpam)  
+[SetItemDmgReductionAmount\_xpAM](#setitemdmgreductionamount_xpam)  
+[GetItemDmgReductionAmount\_xpAM](#getitemdmgreductionamount_xpam)  
+[SetItemDmgReductionUseOr\_xpAM](#setitemdmgreductionuseor_xpam)  
+[GetItemDmgReductionUseOr\_xpAM](#getitemdmgreductionuseor_xpam)    
+[GetItemDmgRedctNbPiercing\_xpAM](#getitemdmgredctnbpiercing_xpam)  
+[AddItemDmgRedctPiercing\_xpAM](#additemdmgredctpiercing_xpam)  
+[RemoveItemDmgRedctPiercing\_xpAM](#removeitemdmgredctpiercing_xpam)  
+[SetItemDmgRedctPiercingType\_xpAM](#setitemdmgredctpiercingtype_xpam)  
+[GetItemDmgRedctPiercingType\_xpAM](#getitemdmgredctpiercingtype_xpam)  
+[SetItemDmgRedctPiercingSubType\_xpAM](#setitemdmgredctpiercingsubtype_xpam)  
+[GetItemDmgRedctPiercingSubType\_xpAM](#getitemdmgredctpiercingsubtype_xpam)  
 </td>
  </tr>
 </table><div style="page-break-after: always;"></div>
@@ -1474,10 +1510,10 @@ The age of the creature.
 
 <div style="page-break-after: always;"></div>
 
-# RefreshCreatureTotalWeight\_xpAM
+# RecalculateCreatureTotalWeight\_xpAM
 
 ```cpp
-void RefreshCreatureTotalWeight_xpAM(
+void RecalculateCreatureTotalWeight_xpAM(
     object oCreature
 );
 ```
@@ -4629,6 +4665,455 @@ Get the Color of the iModelPart of oItem
 ## Return Value
 
 The color of the model part in RGB string format
+
+---
+
+# GetItemBaseMaterialType\_xpAM
+
+```cpp
+int GetItemBaseMaterialType_xpAM(
+    object oItem
+);
+```
+Get the BaseMaterialType of oItem
+
+## Parameters
+
+* `oItem` - The item to get the BaseMaterialType for
+
+## Return Value
+
+The base material type of oItem, refer to iprp_materials.2da row.
+
+<div style="page-break-after: always;"></div>
+
+# SetItemBaseCost\_xpAM
+
+```cpp
+void SetItemBaseCost_xpAM(
+    object oItem,
+    int iCost
+);
+```
+Set the BaseCost of oItem.
+
+## Parameters
+
+* `oItem` - The item object
+* `iCost` - The BaseCost to set
+
+## Note
+BaseCost is recalculated by the game on several occasion. See EnhancedFeature BaseCost hook for more details.
+BaseCost is not the price. The price (for an identified item) is calculated with BaseCost+CostModifier. Then modified by Merchant configuration and Appraise skill.
+For a stack. All the costs are for 1 item of the stack.
+
+---
+
+# GetItemBaseCost\_xpAM
+
+```cpp
+int GetItemBaseCost_xpAM(
+    object oItem
+);
+```
+Get the BaseCost of oItem.
+
+## Parameters
+
+* `oItem` - The item object
+
+## Return Value
+
+The BaseCost of oItem
+
+## Note
+BaseCost is not the price. The price (for an identified item) is calculated with BaseCost+CostModifier. Then modified by Merchant configuration and Appraise skill.
+For a stack. All the costs are for 1 item of the stack.
+
+<div style="page-break-after: always;"></div>
+
+# SetItemNonIdentifiedCost\_xpAM
+
+```cpp
+void SetItemNonIdentifiedCost_xpAM(
+    object oItem,
+    int iCost
+);
+```
+Set the non identified cost of oItem.
+
+## Parameters
+
+* `oItem` - The item object
+* `iCost` - The NonIdentifiedCost to set
+
+## Note
+NonIdentifiedCost is recalculated by the game on several occasion. See EnhancedFeature BaseCost hook for more details.
+NonIdentifiedCost is not the price. The price for an non identified item is calculated with NonIdentifiedCost. Then modified by Merchant configuration and Appraise skill.
+For a stack. All the costs are for 1 item of the stack.
+
+---
+
+# GetItemNonIdentifiedCost\_xpAM
+
+```cpp
+int GetItemNonIdentifiedCost_xpAM(
+    object oItem
+);
+```
+Get the NonIdentified Cost of oItem.
+
+## Parameters
+
+* `oItem` - The item object
+
+## Return Value
+
+The NonIdentifiedCost of oItem
+
+## Note
+NonIdentifiedCost is not the price. The price for an non identified item is calculated with NonIdentifiedCost. Then modified by Merchant configuration and Appraise skill.
+For a stack. All the costs are for 1 item of the stack.
+
+<div style="page-break-after: always;"></div>
+
+# SetItemCostModifier\_xpAM
+
+```cpp
+void SetItemNonIdentifiedCost_xpAM(
+    object oItem,
+    int iCost
+);
+```
+Set the cost modifier of oItem.
+
+## Parameters
+
+* `oItem` - The item object
+* `iCost` - The Cost Modifier to set
+
+## Note
+For an identified item, the price is calculated with BaseCost+CostModifier (then modifierby Merchant configuration and Appraise skill). 
+So, if you set a negative value, it will decrease the price of oItem, else it will increase it.
+For a stack. All the costs are for 1 item of the stack.
+
+---
+
+# GetItemCostModifier\_xpAM
+
+```cpp
+int GetItemCostModifier_xpAM(
+    object oItem
+);
+```
+Get the Cost Modifier of oItem.
+
+## Parameters
+
+* `oItem` - The item object
+
+## Return Value
+
+The Cost Modifier of oItem
+
+## Note
+For an identified item, the price is calculated with BaseCost+CostModifier (then modifierby Merchant configuration and Appraise skill). 
+So, if you set a negative value, it will decrease the price of oItem, else it will increase it.
+For a stack. All the costs are for 1 item of the stack.
+
+
+
+<div style="page-break-after: always;"></div>
+
+# GetItemNbDamageReduction\_xpAM
+
+```cpp
+int GetItemNbDamageReduction_xpAM(
+    object oItem
+);
+```
+Get the Number of DamageReduction for this Item
+
+## Parameters
+
+* `oItem` - The item object
+
+## Return Value
+
+The Number of DamageReduction on oItem
+
+---
+
+# AddItemDamageReduction\_xpAM
+
+```cpp
+void AddItemDamageReduction_xpAM(
+    object oItem,
+    int iAmount,
+    int bUseOrLogic
+);
+```
+Create and add a new DamageReduction on oItem
+
+## Parameters
+
+* `oItem` - The item object
+* `iAmount` - The amount of DamageReduction
+* `bUseOrLogic` - Set to TRUE to use OR logic if you add several PiercingType on this DamageReduction. FALSE otherwise
+
+---
+
+# RemoveItemDamageReduction\_xpAM
+
+```cpp
+void RemoveItemDamageReduction_xpAM(
+    object oItem,
+    int iDmgRedctIdx
+);
+```
+Remove a specific DamageReduction from oItem
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the DamageReduction you want to Remove from oItem
+
+
+<div style="page-break-after: always;"></div>
+
+# SetItemDmgReductionAmount\_xpAM
+
+```cpp
+void SetItemDmgReductionAmount_xpAM(
+    object oItem,
+    int iDmgRedctIdx,
+    int iAmount
+);
+```
+Change the Amount of Damage Reduction for a specific DamageReduction for oItem
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the DamageReduction you want change
+* `iAmount` - The new amount of damage reduction to set
+
+---
+
+# GetItemDmgReductionAmount\_xpAM
+
+```cpp
+int GetItemDmgReductionAmount_xpAM(
+    object oItem,
+    int iDmgRedctIdx
+);
+```
+Get the Amount of a specific DamageReduction of oItem.
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the specific DamageReduction you want to get the amount for
+
+## Return Value
+
+The Amount of a specific DamageReduction of oItem.
+
+<div style="page-break-after: always;"></div>
+
+# SetItemDmgReductionUseOr\_xpAM
+
+```cpp
+void SetItemDmgReductionUseOr_xpAM(
+    object oItem,
+    int iDmgRedctIdx,
+    int bUseOrLogic
+);
+```
+Change the UseOrLogic flag of a specific DamageReduction for oItem
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the DamageReduction you want to change
+* `bUseOrLogic` - The new value of the flag
+
+---
+
+# GetItemDmgReductionUseOr\_xpAM
+
+```cpp
+int GetItemDmgReductionUseOr_xpAM(
+    object oItem,
+    int iDmgRedctIdx
+);
+```
+Get the UseOrLogic flag of a specific DamageReduction of oItem.
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the specific DamageReduction you want to get UseOrLogic flag
+
+## Return Value
+
+The UseOrLogic flag of a specific DamageReduction of oItem.
+
+<div style="page-break-after: always;"></div>
+
+# GetItemDmgRedctNbPiercing\_xpAM
+
+```cpp
+int GetItemDmgRedctNbPiercing_xpAM(
+    object oItem,
+    int iDmgRedctIdx
+);
+```
+Get the Number of Piercing type for a specific DamageReduction of this Item
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the specific DamageReduction
+
+## Return Value
+
+The Number of PiercingType for the choosen DamageReduction on oItem
+
+---
+
+# AddItemDmgRedctPiercing\_xpAM
+
+```cpp
+void AddItemDmgRedctPiercing_xpAM(
+    object oItem,
+    int iDmgRedctIdx,
+    int iType,
+    int iSubType
+);
+```
+Create and add a new Piercing type for a specific DamageReduction on oItem
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the specific DamageReduction
+* `iType` - The DR_TYPE_* wanted
+* `iSubType` - Value depend of iType. For DR\_TYPE\_DMGTYPE: DAMAGE\_TYPE\_\*, DR\_TYPE\_GMATERIAL: GMATERIAL\_\*, DR\_TYPE\_ALIGNMENT: ALIGNMENT\_\*. For other, Subtype don't matter.
+
+<div style="page-break-after: always;"></div>
+
+# RemoveItemDmgRedctPiercing\_xpAM
+
+```cpp
+void RemoveItemDmgRedctPiercing_xpAM(
+    object oItem,
+    int iDmgRedctIdx,
+    int iPiercingIdx
+);
+```
+Remove a specific PiercingType from a specific DamageReduction from oItem
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the DamageReduction you want to remove PiercingType from
+* `iPiercingIdx` - The index of PiercingIdx you want to remove
+
+---
+
+# SetItemDmgRedctPiercingType\_xpAM
+
+```cpp
+void SetItemDmgRedctPiercingType_xpAM(
+    object oItem,
+    int iDmgRedctIdx,
+    int iPiercingIdx,
+    int iType
+);
+```
+Change the Type of a specific PiercingType of a specific DamageReduction from oItem
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the DamageReduction you want to update
+* `iPiercingIdx` - The index of PiercingIdx you want to change
+* `iType` - The new DR\_TYPE\_\* to use for this PiercingType 
+
+
+<div style="page-break-after: always;"></div>
+
+# GetItemDmgRedctPiercingType\_xpAM
+
+```cpp
+int GetItemDmgRedctPiercingType_xpAM(
+    object oItem,
+    int iDmgRedctIdx,
+    int iPiercingIdx
+);
+```
+Get the DR\_TYPE\_\* value used as type for the choosen PiercingType
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the DamageReduction you want
+* `iPiercingIdx` - The index of PiercingIdx you want
+
+## Return Value
+
+The DR\_TYPE\_\* value used as type for the choosen PiercingType
+
+---
+
+# SetItemDmgRedctPiercingSubType\_xpAM
+
+```cpp
+void SetItemDmgRedctPiercingType_xpAM(
+    object oItem,
+    int iDmgRedctIdx,
+    int iPiercingIdx,
+    int iSubType
+);
+```
+Change the SubType of a specific PiercingType of a specific DamageReduction from oItem
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the DamageReduction you want to update
+* `iPiercingIdx` - The index of PiercingIdx you want to change
+* `iSubType` - The value depend of the Type. For DR\_TYPE\_DMGTYPE: DAMAGE\_TYPE\_\*, DR\_TYPE\_GMATERIAL: GMATERIAL\_\*, DR\_TYPE\_ALIGNMENT: ALIGNMENT\_\*. For other, Subtype doesn't matter.
+
+
+
+<div style="page-break-after: always;"></div>
+
+# GetItemDmgRedctPiercingSubType\_xpAM
+
+```cpp
+int GetItemDmgRedctPiercingSubType_xpAM(
+    object oItem,
+    int iDmgRedctIdx,
+    int iPiercingIdx
+);
+```
+Get the subtype value used for the choosen PiercingType
+
+## Parameters
+
+* `oItem` - The item object
+* `iDmgRedctIdx` - The index of the DamageReduction you want
+* `iPiercingIdx` - The index of PiercingIdx you want
+
+## Return Value
+
+The value depend of the Type. 
+* DR\_TYPE\_DMGTYPE: DAMAGE\_TYPE\_\*
+* DR\_TYPE\_GMATERIAL: GMATERIAL\_\*
+* DR\_TYPE\_ALIGNMENT: ALIGNMENT\_\*
+For other, Subtype doesn't matter
 
 ---
 

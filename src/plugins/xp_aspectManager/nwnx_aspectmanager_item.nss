@@ -2,7 +2,8 @@
 // nwnx_aspectmanager_item - item specific functions of the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified By:	Septirage			2024-05-18	Add Get/SetItemModelPartMask_xpAM (1.4.2)
+// Last Modified by:	Septirage			2024-10-29  Add Get/set Cost Function + DmgReduction (1.4.6)
+//						Septirage			2024-05-18	Add Get/SetItemModelPartMask_xpAM (1.4.2)
 //						Septirage           2024-02-28
 //--------------------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -11,6 +12,9 @@
 
 //Set the base item type (BASE_ITEM_* or Baseitems.2da ID) of oItem.
 void SetBaseItemType_xpAM(object oItem, int iItemType);
+
+//Get the base material type of oItem. It will refer to a iprp_materials.2da row
+int GetItemBaseMaterialType_xpAM(object oItem);
 
 //Set the Visual Variation of oItem
 void SetItemAppearanceVariation_xpAM(object oItem, int iVariation);
@@ -150,6 +154,107 @@ string GetItemModelPartColor_xpAM(object oItem, int iModelPart, int iColor);
 
 
 
+/*********************************** Cost ************************************/
+
+//Set the BaseCost of oItem to iCost.
+//Note: this BaseCost will be recalculated by the game by several events.
+//			See xp_EnhancedFeature pluginfor more information
+void SetItemBaseCost_xpAM(object oItem, int iCost);
+
+//Get the BaseCost of oItem.
+int GetItemBaseCost_xpAM(object oItem);
+
+//Set the NonIdentified Cost of oItem to iCost.
+//Note: this NonIdentifiedCost will be recalculated by game in same time as BaseCost
+//			See xp_EnhancedFeature pluginfor more information
+void SetItemNonIdentifiedCost(object oItem, int iCost);
+
+//Get the NonIdentified Vost of oItem.
+int GetItemNonIdentifiedCost(object oItem);
+
+//Set the CostModifier of oItem to iCost
+void SetItemCostModifier_xpAM(object oItem, int iCost);
+
+//Get the CostModifier of oItem
+int GetItemCostModifier_xpAM(object oItem);
+
+
+/****************************** DamageReduction ******************************/
+
+// Get the number of DamageReduction for this Item
+int GetItemNbDamageReduction_xpAM(object oItem);
+
+// Add a new DamageReduction for this Item
+//	iAmount : The Amount of Reduction
+//	bUseOrLogic : If you add PiercingType, should they work together with a Or logic or no
+void AddItemDamageReduction_xpAM(object oItem, int iAmount, int bUseOrLogic);
+
+
+// Remove a DamageReduction of this Item
+//	iDmgRedctIdx : The Idx of the DmgRedct to remove. Should be > 0 and < NbDamageReduction
+void RemoveItemDamageReduction_xpAM(object oItem, int iDmgRedctIdx);
+
+// Set the Amount of Damage Reduction for a specific Dmg Redct for this Item
+//	iDmgRedctIdx : The Damage Reduction to change. Should be >0 and < NbDamagereduction
+//	iAmount : The new Amount to set for the given DmgRedct.
+void SetItemDmgReductionAmount_xpAM(object oItem, int iDmgRedctIdx, int iAmount);
+
+// Get the Amount of Damage Reduction for a specific Dmg Redct for this Item
+//	iDmgRedctIdx : The Damage Reduction to get the amount for. Should be >0 and < NbDamagereduction
+int GetItemDmgReductionAmount_xpAM(object oItem, int iDmgRedctIdx);
+
+// Set the UseOrLogic flag of Damage Reduction for a specific Dmg Redct for this Item
+//	iDmgRedctIdx : The Damage Reduction to change. Should be >0 and < NbDamagereduction
+//	bUseOrLogic : Set to TRUE to UseOrLogic, FALSE otherwise.
+void SetItemDmgReductionUseOr_xpAM(object oItem, int iDmgRedctIdx, int bUseOrLogic);
+
+// Get the UseOrLogic flag of Damage Reduction for a specific Dmg Redct for this Item
+//	iDmgRedctIdx : The Damage Reduction to change. Should be >0 and < NbDamagereduction
+int GetItemDmgReductionUseOr_xpAM(object oItem, int iDmgRedctIdx);
+
+// Get the Number of Piercing type for a specific DamageReduction of oItem
+//	iDmgRedctIdx : The index of the specific DamageReduction
+int GetItemDmgRedctNbPiercing_xpAM(object oItem, int iDmgRedctIdx);
+
+// Create and add a new Piercing type for a specific DamageReduction on oItem
+//	iDmgRedctIdx : The index of the specific DamageReduction
+//	iType : The DR_TYPE_* wanted
+//	iSubType : value depend of iType.
+//      - DR_TYPE_DMGTYPE:      DAMAGE_TYPE_*
+//      - DR_TYPE_GMATERIAL:    GMATERIAL_*
+//      - DR_TYPE_ALIGNMENT:    ALIGNMENT_*
+//      For other DR_TYPE_ , subtype doesn't matter
+void AddItemDmgRedctPiercing_xpAM(object oItem, int iDmgRedctIdx, int iType, int iSubType);
+
+// Remove a specific PiercingType from a specific DamageReduction from oItem
+void RemoveItemDmgRedctPiercing_xpAM(object oItem, int iDmgRedctIdx, int iPiercingIdx);
+
+// Change the DR_TYPE_* of a specific PiercingType of a specific DamageReduction from oItem
+void SetItemDmgRedctPiercingType_xpAM(object oItem, int iDmgRedctIdx, int iPiercingIdx, int iType);
+
+// Get the DR_TYPE_* value used as a type for the choosen PiercingType
+int GetItemDmgRedctPiercingType_xpAM(object oItem, int iDmgRedctIdx, int iPiercingIdx);
+
+// Change the SubType of a specific PiercingType of a specific DamageReduction from oItem
+//	iSubType : value depend of iType.
+//      - DR_TYPE_DMGTYPE:      DAMAGE_TYPE_*
+//      - DR_TYPE_GMATERIAL:    GMATERIAL_*
+//      - DR_TYPE_ALIGNMENT:    ALIGNMENT_*
+//      For other DR_TYPE_ , subtype doesn't matter
+void SetItemDmgRedctPiercingSubType_xpAM(object oItem, int iDmgRedctIdx, int iPiercingIdx, int iSubType);
+
+// Get the subtype value used for the choosen PiercingType.
+// Value depend of Type: 
+//      - DR_TYPE_DMGTYPE:      DAMAGE_TYPE_*
+//      - DR_TYPE_GMATERIAL:    GMATERIAL_*
+//      - DR_TYPE_ALIGNMENT:    ALIGNMENT_*
+//      For other DR_TYPE_ , subtype doesn't matter
+int GetItemDmgRedctPiercingSubType_xpAM(object oItem, int iDmgRedctIdx, int iPiercingIdx);
+
+
+
+
+
 
 /*****************************************************************************/
 
@@ -165,6 +270,11 @@ string GetItemModelPartColor_xpAM(object oItem, int iModelPart, int iColor);
 void SetBaseItemType_xpAM(object oItem, int iItemType)
 {
 	NWNXSetInt("AspectManager", "item","itemType", ObjectToInt(oItem), iItemType);
+}
+
+int GetItemBaseMaterialType_xpAM(object oItem)
+{
+	return NWNXGetInt("AspectManager", "item", "BaseMaterialType", ObjectToInt(oItem));
 }
 
 void SetItemAppearanceVariation_xpAM(object oItem, int iVariation)
@@ -365,4 +475,119 @@ void SetItemModelPartColor_xpAM(object oItem, int iModelPart, int iColor, string
 string GetItemModelPartColor_xpAM(object oItem, int iModelPart, int iColor)
 {
 	return NWNXGetString("AspectManager", "item", "ModelPart"+IntToString(iModelPart)+"Color"+IntToString(iColor), ObjectToInt(oItem));
+}
+
+
+/*********************************** Cost ************************************/
+
+
+void SetItemBaseCost_xpAM(object oItem, int iCost)
+{
+	NWNXSetInt("AspectManager", "item", "BaseCost", ObjectToInt(oItem), iCost);
+}
+
+int GetItemBaseCost_xpAM(object oItem)
+{
+	return NWNXGetInt("AspectManager", "item", "BaseCost", ObjectToInt(oItem));
+}
+
+void SetItemNonIdentifiedCost(object oItem, int iCost)
+{
+	NWNXSetInt("AspectManager", "item", "NonIdentifiedCost", ObjectToInt(oItem), iCost);
+}
+
+int GetItemNonIdentifiedCost(object oItem)
+{
+	return NWNXGetInt("AspectManager", "item", "NonIdentifiedCost", ObjectToInt(oItem));
+}
+
+void SetItemCostModifier_xpAM(object oItem, int iCost)
+{
+	NWNXSetInt("AspectManager", "item", "ModifyCost", ObjectToInt(oItem), iCost);
+}
+
+int GetItemCostModifier_xpAM(object oItem)
+{
+	return NWNXGetInt("AspectManager", "item", "ModifyCost", ObjectToInt(oItem));
+}
+
+
+/****************************** DamageReduction ******************************/
+
+
+int GetItemNbDamageReduction_xpAM(object oItem)
+{
+	return NWNXGetInt("AspectManager", "item", "NumberOfDamageReduction", ObjectToInt(oItem));
+}
+
+//DmgRedct
+void AddItemDamageReduction_xpAM(object oItem, int iAmount, int bUseOrLogic)
+{
+	NWNXSetInt("AspectManager", "item", "DmgRedctAddRedct "+IntToString(iAmount), ObjectToInt(oItem), bUseOrLogic);
+}
+
+void RemoveItemDamageReduction_xpAM(object oItem, int iDmgRedctIdx)
+{
+	NWNXSetInt("AspectManager", "item", "RemoveDmgRedct", ObjectToInt(oItem), iDmgRedctIdx);
+}
+
+void SetItemDmgReductionAmount_xpAM(object oItem, int iDmgRedctIdx, int iAmount)
+{
+	NWNXSetInt("AspectManager", "item", "DmgRedctAmount "+IntToString(iDmgRedctIdx), ObjectToInt(oItem), iAmount);
+}
+
+int GetItemDmgReductionAmount_xpAM(object oItem, int iDmgRedctIdx)
+{
+	return NWNXGetInt("AspectManager", "item", "DmgRedctAmount "+IntToString(iDmgRedctIdx), ObjectToInt(oItem));
+}
+
+void SetItemDmgReductionUseOr_xpAM(object oItem, int iDmgRedctIdx, int bUseOrLogic)
+{
+	NWNXSetInt("AspectManager", "item", "DmgRedctUseOrLogic "+IntToString(iDmgRedctIdx), ObjectToInt(oItem), bUseOrLogic);
+}
+
+int GetItemDmgReductionUseOr_xpAM(object oItem, int iDmgRedctIdx)
+{
+	return NWNXGetInt("AspectManager", "item", "DmgRedctUseOrLogic "+IntToString(iDmgRedctIdx), ObjectToInt(oItem));
+}
+
+int GetItemDmgRedctNbPiercing_xpAM(object oItem, int iDmgRedctIdx)
+{
+	return NWNXGetInt("AspectManager", "item", "DmgRedctNumPiercing "+IntToString(iDmgRedctIdx), ObjectToInt(oItem));
+}
+
+void AddItemDmgRedctPiercing_xpAM(object oItem, int iDmgRedctIdx, int iType, int iSubType)
+{
+	string sParam = "DmgRedctAddPiercing "+IntToString(iType)+ " "+IntToString(iSubType);
+	NWNXSetInt("AspectManager", "item", sParam, ObjectToInt(oItem), iDmgRedctIdx);
+}
+
+void RemoveItemDmgRedctPiercing_xpAM(object oItem, int iDmgRedctIdx, int iPiercingIdx)
+{
+	string sParam = "DmgRedctRemovePiercing "+IntToString(iDmgRedctIdx);
+	NWNXSetInt("AspectManager", "item", sParam, ObjectToInt(oItem), iPiercingIdx);
+}
+
+void SetItemDmgRedctPiercingType_xpAM(object oItem, int iDmgRedctIdx, int iPiercingIdx, int iType)
+{
+	string sParam = "DmgRedctPiercingType "+IntToString(iDmgRedctIdx)+ " "+IntToString(iPiercingIdx);
+	NWNXSetInt("AspectManager", "item", sParam, ObjectToInt(oItem), iType);
+}
+
+int GetItemDmgRedctPiercingType_xpAM(object oItem, int iDmgRedctIdx, int iPiercingIdx)
+{
+	string sParam = "DmgRedctPiercingType "+IntToString(iDmgRedctIdx)+ " "+IntToString(iPiercingIdx);
+	return NWNXGetInt("AspectManager", "item", sParam, ObjectToInt(oItem));
+}
+
+void SetItemDmgRedctPiercingSubType_xpAM(object oItem, int iDmgRedctIdx, int iPiercingIdx, int iSubType)
+{
+	string sParam = "DmgRedctPiercingSubType "+IntToString(iDmgRedctIdx)+ " "+IntToString(iPiercingIdx);
+	NWNXSetInt("AspectManager", "item", sParam, ObjectToInt(oItem), iSubType);
+}
+
+int GetItemDmgRedctPiercingSubType_xpAM(object oItem, int iDmgRedctIdx, int iPiercingIdx)
+{
+	string sParam = "DmgRedctPiercingSubType "+IntToString(iDmgRedctIdx)+ " "+IntToString(iPiercingIdx);
+	return NWNXGetInt("AspectManager", "item", sParam, ObjectToInt(oItem));
 }

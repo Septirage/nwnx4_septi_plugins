@@ -10,6 +10,7 @@
 
 const std::string cst_ModelPiece = "ModelPiece";
 const std::string cst_ModelPart = "ModelPart";
+const std::string cst_DmgRedct = "DmgRedct";
 
 enum MODEL_PART
 {

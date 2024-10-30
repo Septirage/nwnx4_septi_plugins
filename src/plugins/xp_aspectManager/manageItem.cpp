@@ -3,6 +3,13 @@
 #include "../../NWN2Lib/NWN2Common.h"
 #include "../../septutil/NwN2DataPos.h"
 
+#include "nwn2heap.h"
+#include <algorithm>
+#include <sstream>
+
+typedef void (__cdecl * NWN2Heap_Deallocate_Proc)(void *p);
+extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
+
 char* GetItemModelPartPtr(char* ItemPtr, int iModelPart) {
 	char* retValue = NULL;
 
@@ -149,6 +156,325 @@ NWN::D3DXCOLOR* GetItemColorPtr(char* ItmPtr, std::string sCommand) {
 
 	return (NWN::D3DXCOLOR*) retVal;
 }
+
+
+void SetItemBaseCost(char* ItemPtr, int iValue)
+{
+	*(int32_t*)(ItemPtr + AmItmCost) = iValue;
+}
+
+int GetItemBaseCost(char* ItemPtr)
+{
+	return *(int32_t*)(ItemPtr + AmItmCost);
+}
+
+void SetItemNonIdentifiedCost(char* ItemPtr, int iValue)
+{
+	*(int32_t*)(ItemPtr + AmItmNonIdentifiedPrice) = iValue;
+}
+
+int GetItemNonIdentifiedCost(char* ItemPtr)
+{
+	return *(int32_t*)(ItemPtr + AmItmNonIdentifiedPrice);
+}
+
+void SetItemModifyCost(char* ItemPtr, int iValue)
+{
+	*(int32_t*)(ItemPtr + AmItmModifyCost) = iValue;
+}
+
+int GetItemModifyCost(char* ItemPtr)
+{
+	return *(int32_t*)(ItemPtr + AmItmModifyCost);
+}
+
+int GetItemGMaterial(char* ItemPtr)
+{
+	return *(uint16_t*)(ItemPtr + AmItmGMaterial);
+}
+
+int GetItemNumberOfDmgRedct(char* ItemPtr)
+{
+	return *(uint32_t*)(ItemPtr + AmItmDamageReductionNb);
+}
+
+int GetItemDmgReductionAmount(char* ItemPtr, uint32_t iDmgRedctIdx)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+		return myDmgRedcts[iDmgRedctIdx].iAmount;
+	}
+	return 0;
+}
+
+void SetItemDmgReductionAmount(char* ItemPtr, uint32_t iDmgRedctIdx, int iAmount)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+		int16_t iShortAmount = static_cast<int16_t>(std::clamp(iAmount, static_cast<int>(INT16_MIN), static_cast<int>(INT16_MAX)));
+		myDmgRedcts[iDmgRedctIdx].iAmount = iShortAmount;
+	}
+}
+
+int GetItmDmgReductionUseOrLogic(char* ItemPtr, uint32_t iDmgRedctIdx)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+		return myDmgRedcts[iDmgRedctIdx].uDmgRedFlags;
+	}
+	return 0;
+}
+
+void SetItmDmgReductionUseOrLogic(char* ItemPtr, uint32_t iDmgRedctIdx, int iUseOrLogic)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+		myDmgRedcts[iDmgRedctIdx].uDmgRedFlags = (iUseOrLogic!=0?1:0);
+	}
+}
+
+
+int GetItmDmgRedctNumberPiercingType(char* ItemPtr, uint32_t iDmgRedctIdx)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+		return myDmgRedcts[iDmgRedctIdx].uSizeList;
+	}
+	return 0;
+}
+
+int GetItmDmgRedctPiercingType(char* ItemPtr, uint32_t iDmgRedctIdx, uint32_t iPiercingIdx)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+
+		if (iPiercingIdx < myDmgRedcts[iDmgRedctIdx].uSizeList)
+		{
+			AmItmDmgReductionType* myRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
+			return myRdctType->DmgRedctType;
+		}
+	}
+	return 0;
+}
+
+void SetItmDmgRedctPiercingType(char* ItemPtr, uint32_t iDmgRedctIdx, uint32_t iPiercingIdx, int iType)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+
+		if (iPiercingIdx < myDmgRedcts[iDmgRedctIdx].uSizeList)
+		{
+			AmItmDmgReductionType* myRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
+			myRdctType->DmgRedctType = (iType&0xFFFF);
+		}
+	}
+}
+
+
+int GetItmDmgRedctPiercingSubType(char* ItemPtr, uint32_t iDmgRedctIdx, uint32_t iPiercingIdx)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+
+		if (iPiercingIdx < myDmgRedcts[iDmgRedctIdx].uSizeList)
+		{
+			AmItmDmgReductionType* myRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
+			return myRdctType->DmgRedctSubType;
+		}
+	}
+	return 0;
+}
+
+void SetItmDmgRedctPiercingSubType(char* ItemPtr, uint32_t iDmgRedctIdx, uint32_t iPiercingIdx, int iSubType)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+
+		if (iPiercingIdx < myDmgRedcts[iDmgRedctIdx].uSizeList)
+		{
+			AmItmDmgReductionType* myRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
+			myRdctType[iPiercingIdx].DmgRedctSubType = (iSubType & 0xFFFF);
+		}
+	}
+}
+
+
+
+void AddDmgRedctPiercingType(char* ItemPtr, uint32_t iDmgRedctIdx, int iType, int iSubType)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+
+		//Need to allocate new array.
+		if (myDmgRedcts[iDmgRedctIdx].uSizeList >= myDmgRedcts[iDmgRedctIdx].uSizeArray)
+		{
+			//Calculate Size
+			uint32_t iNewSize = myDmgRedcts[iDmgRedctIdx].uSizeArray * 2;
+			uint32_t iAllocationSize = iNewSize * sizeof(AmItmDmgReductionType);
+
+			uint32_t iOldSize = myDmgRedcts[iDmgRedctIdx].uSizeArray * sizeof(AmItmDmgReductionType);
+
+			//Allocate new one
+			NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
+			NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
+			char* NewDmgRedct = (char*)pHeap->Allocate(iAllocationSize);
+			memset(NewDmgRedct, 0, iAllocationSize);
+
+			//Copy old one in the new one
+			AmItmDmgReductionType* pOldDmgRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
+			memcpy(NewDmgRedct, pOldDmgRdctType, iOldSize);
+
+			//Make the switch
+			myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList = (AmItmDmgReductionType*)NewDmgRedct;
+			myDmgRedcts[iDmgRedctIdx].uSizeArray = iNewSize;
+
+			//Free the old one
+			if (NWN2Heap_Deallocate)
+				NWN2Heap_Deallocate( pOldDmgRdctType );
+		}
+
+		//Add the new one at the end of the list
+		AmItmDmgReductionType* myRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
+		myRdctType[myDmgRedcts[iDmgRedctIdx].uSizeList].DmgRedctType = (iType & 0xFFFF);
+		myRdctType[myDmgRedcts[iDmgRedctIdx].uSizeList].DmgRedctSubType = (iSubType & 0xFFFF);
+		myDmgRedcts[iDmgRedctIdx].uSizeList++;
+	}
+}
+
+
+void RemoveDmgRedctPiercingType(char* ItemPtr, uint32_t iDmgRedctIdx, uint32_t iPiercingIdx)
+{
+	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
+	{
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+		uint32_t uTypeNb = myDmgRedcts[iDmgRedctIdx].uSizeList;
+		if (uTypeNb > iPiercingIdx)
+		{
+			//Not the last one
+			AmItmDmgReductionType* myPtrDest = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
+			if ( (iPiercingIdx + 1) < uTypeNb)
+			{
+				for (int i = 0; (i + 1 + iPiercingIdx) < uTypeNb; i++)
+				{
+					myPtrDest[iPiercingIdx + i].DmgRedctType = myPtrDest[iPiercingIdx + i + 1].DmgRedctType;
+					myPtrDest[iPiercingIdx + i].DmgRedctSubType = myPtrDest[iPiercingIdx + i + 1].DmgRedctSubType;
+				}
+			}
+			myPtrDest[uTypeNb-1].DmgRedctType = 0;
+			myPtrDest[uTypeNb-1].DmgRedctSubType = 0;
+
+			myDmgRedcts[iDmgRedctIdx].uSizeList--;
+		}
+	}
+}
+
+
+void AddDmgRedct(char* ItemPtr, int iAmount, int iUseOrLogic)
+{
+	uint32_t iArraySize = *(uint32_t*)(ItemPtr + AmItmDamageReductionSizeArray);
+	uint32_t iNb = *(uint32_t*)(ItemPtr + AmItmDamageReductionNb);
+
+	if (iNb >= iArraySize)
+	{
+		uint32_t oldSize = iArraySize * sizeof(AmItmDmgReduction);
+		uint32_t newSize = oldSize * 2;
+
+		if (iArraySize == 0)
+		{
+			oldSize = 0;
+			newSize = 0x10 * sizeof(AmItmDmgReduction);
+			iArraySize = 0x8;
+		}
+
+		//Allocate new one
+		NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
+		NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
+		char* pNewDmgRect = (char*)pHeap->Allocate(newSize);
+		memset(pNewDmgRect, 0, newSize);
+
+
+		//Copy old one in the new one
+		AmItmDmgReduction* pOldDmgRdct;
+		if (oldSize != 0)
+		{
+			pOldDmgRdct = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+			memcpy(pNewDmgRect, pOldDmgRdct, oldSize);
+		}
+
+		//Make the switch
+		*(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr) = (AmItmDmgReduction*)pNewDmgRect;
+		*(uint32_t*)(ItemPtr + AmItmDamageReductionSizeArray) = iArraySize*2;
+
+		//Free the old one
+		if (oldSize != 0)
+		{
+			if (NWN2Heap_Deallocate)
+				NWN2Heap_Deallocate(pOldDmgRdct);
+		}
+	}
+
+	*(uint32_t*)(ItemPtr + AmItmDamageReductionNb) = (iNb + 1);
+	AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+	myDmgRedcts[iNb].iAmount = iAmount;
+	myDmgRedcts[iNb].uDmgRedFlags = ((iUseOrLogic!=0)?1:0);
+
+
+	//Allocate the RedctType
+	NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
+	NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
+	AmItmDmgReductionType* pNewDmgRectType = (AmItmDmgReductionType*)pHeap->Allocate(0x10*sizeof(AmItmDmgReductionType));
+	myDmgRedcts[iNb].pDmgRedTypeList = pNewDmgRectType;
+	myDmgRedcts[iNb].uSizeArray = 0x10;
+	myDmgRedcts[iNb].uSizeList = 0;
+
+}
+
+
+void RemoveDmgRedct(char* ItemPtr, uint32_t iDmgRedctIdx)
+{
+	int iNumberDmgRedct = GetItemNumberOfDmgRedct(ItemPtr);
+	if (iDmgRedctIdx >= 0 && iDmgRedctIdx < iNumberDmgRedct)
+	{
+		//Free the DmgReductionType list.
+		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
+		AmItmDmgReductionType* pOldDmgRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
+		if (NWN2Heap_Deallocate)
+			NWN2Heap_Deallocate( pOldDmgRdctType );
+
+
+		//If not last one
+		if ((iDmgRedctIdx + 1) < iNumberDmgRedct)
+		{
+			for (int i = 0; (i + 1 + iDmgRedctIdx) < iNumberDmgRedct; i++)
+			{
+				myDmgRedcts[iDmgRedctIdx+i].iAmount = myDmgRedcts[iDmgRedctIdx+1+i].iAmount;
+				myDmgRedcts[iDmgRedctIdx+i].pDmgRedTypeList = myDmgRedcts[iDmgRedctIdx+1+i].pDmgRedTypeList;
+				myDmgRedcts[iDmgRedctIdx+i].uDmgRedFlags = myDmgRedcts[iDmgRedctIdx+1+i].uDmgRedFlags;
+				myDmgRedcts[iDmgRedctIdx+i].uSizeArray = myDmgRedcts[iDmgRedctIdx+1+i].uSizeArray;
+				myDmgRedcts[iDmgRedctIdx+i].uSizeList = myDmgRedcts[iDmgRedctIdx+1+i].uSizeList;
+			}
+
+		}
+
+		//last one is now not here.
+		myDmgRedcts[iNumberDmgRedct - 1].pDmgRedTypeList = NULL;
+		myDmgRedcts[iNumberDmgRedct - 1].uSizeList = 0;
+		myDmgRedcts[iNumberDmgRedct - 1].uSizeArray = 0;
+		(*(uint32_t*)(ItemPtr + AmItmDamageReductionNb))--;
+	}
+}
+
+
 
 
 void SetItemBaseItem(char* ItemPtr, int iValue) {
@@ -352,6 +678,16 @@ int ItemGetInt(char* cCommand, int iObjectID) {
 		return GetItemWpnPart3(ItemPtr);
 	else if (sCommand == "ModelPartMask")
 		return GetItemModelPartMask(ItemPtr);
+	else if (sCommand == "BaseCost")
+		return GetItemBaseCost(ItemPtr);
+	else if (sCommand == "NonIdentifiedCost")
+		return GetItemNonIdentifiedCost(ItemPtr);
+	else if (sCommand == "ModifyCost")
+		return GetItemModifyCost(ItemPtr);
+	else if (sCommand == "BaseMaterialType")
+		return GetItemGMaterial(ItemPtr);
+	else if (sCommand == "NumberOfDamageReduction")
+		return GetItemNumberOfDmgRedct(ItemPtr);
 	else if (sCommand.rfind(cst_ModelPiece, 0) == 0) {
 		sCommand = sCommand.substr(cst_ModelPiece.size());
 		char* pEnd;
@@ -374,6 +710,44 @@ int ItemGetInt(char* cCommand, int iObjectID) {
 			return GetItemModelPartVariation(ItemPtr, iModelPart);
 		else if(sCommand == "Category")
 			return GetItemModelPartCategory(ItemPtr, iModelPart);
+	}
+	else if (sCommand.rfind(cst_DmgRedct, 0) == 0) {
+		sCommand = sCommand.substr(cst_DmgRedct.size());
+		std::string sParam;
+
+		std::size_t spacePos = sCommand.find(' ');
+		if (spacePos == std::string::npos) {
+			sParam = "";
+		}
+		else {
+			sParam = sCommand.substr(spacePos + 1);
+			sCommand = sCommand.substr(0, spacePos);
+		}
+
+		std::vector<int> iParameters;
+		std::istringstream iss(sParam);
+		int number;
+
+		while (iss >> number) {
+			iParameters.push_back(number);
+		}
+
+		if (iParameters.size() == 2)
+		{
+			if(sCommand == "PiercingType")
+				return GetItmDmgRedctPiercingType(ItemPtr, iParameters.at(0), iParameters.at(1));
+			else if(sCommand == "PiercingSubType")
+				return GetItmDmgRedctPiercingSubType(ItemPtr, iParameters.at(0), iParameters.at(1));
+		}
+		else if (iParameters.size() == 1)
+		{
+			if (sCommand == "NumPiercing")
+				return GetItmDmgRedctNumberPiercingType(ItemPtr, iParameters.at(0));
+			else if (sCommand == "UseOrLogic")
+				return GetItmDmgReductionUseOrLogic(ItemPtr, iParameters.at(0));
+			else if (sCommand == "Amount")
+				return GetItemDmgReductionAmount(ItemPtr, iParameters.at(0));
+		}
 	}
 
 	return 0;
@@ -398,8 +772,6 @@ void ItemSetInt(char* cCommand, int iObjectID, int iValue) {
 
 	char* ItemPtr = (char*)Object->AsItem();
 
-
-
 	if (sCommand == "itemType")
 		SetItemBaseItem(ItemPtr, iValue);
 	else if (sCommand == "appVariation")
@@ -416,6 +788,14 @@ void ItemSetInt(char* cCommand, int iObjectID, int iValue) {
 		SetItemWpnPart3(ItemPtr, iValue);
 	else if (sCommand == "ModelPartMask")
 		SetItemModelPartMask(ItemPtr, iValue);
+	else if (sCommand == "BaseCost")
+		SetItemBaseCost(ItemPtr, iValue);
+	else if (sCommand == "NonIdentifiedCost")
+		SetItemNonIdentifiedCost(ItemPtr, iValue);
+	else if (sCommand == "ModifyCost")
+		SetItemModifyCost(ItemPtr, iValue);
+	else if (sCommand == "RemoveDmgRedct")
+		RemoveDmgRedct(ItemPtr, iValue);
 	else if (sCommand.rfind(cst_ModelPiece, 0) == 0) {
 		sCommand = sCommand.substr(cst_ModelPiece.size());
 		char* pEnd;
@@ -440,9 +820,47 @@ void ItemSetInt(char* cCommand, int iObjectID, int iValue) {
 		else if(sCommand == "Category")
 			SetItemModelPartCategory(ItemPtr, iModelPart, iValue);
 	}
+	else if (sCommand.rfind(cst_DmgRedct, 0) == 0) {
+		sCommand = sCommand.substr(cst_DmgRedct.size());
+		std::string sParam;
 
+		std::size_t spacePos = sCommand.find(' ');
+		if (spacePos == std::string::npos) {
+			sParam = "";
+		} else {
+			sParam = sCommand.substr(spacePos + 1);
+			sCommand = sCommand.substr(0, spacePos);
+		}
 
+		std::vector<int> iParameters;
+		std::istringstream iss(sParam);
+		int number;
 
+		while (iss >> number) {
+			iParameters.push_back(number);
+		}
+
+		if (iParameters.size() == 2)
+		{
+			if (sCommand == "AddPiercing")
+				AddDmgRedctPiercingType(ItemPtr, iValue, iParameters.at(0), iParameters.at(1));
+			else if (sCommand == "PiercingSubType")
+				SetItmDmgRedctPiercingSubType(ItemPtr, iParameters.at(0), iParameters.at(1), iValue);
+			else if (sCommand == "PiercingType")
+				SetItmDmgRedctPiercingType(ItemPtr, iParameters.at(0), iParameters.at(1), iValue);
+		}
+		else if (iParameters.size() == 1) 
+		{
+			if (sCommand == "RemovePiercing")
+				RemoveDmgRedctPiercingType(ItemPtr, iParameters.at(0), iValue);
+			else if (sCommand == "AddRedct")
+				AddDmgRedct(ItemPtr, iParameters.at(0), iValue);
+			else if (sCommand == "Amount")
+				SetItemDmgReductionAmount(ItemPtr, iParameters.at(0), iValue);
+			else if (sCommand == "UseOrLogic")
+				SetItmDmgReductionUseOrLogic(ItemPtr, iParameters.at(0), iValue);
+		}
+	}
 }
 
 float ItemGetFloat(char* cCommand, int iObjectID) {
