@@ -34,6 +34,8 @@ extern std::unique_ptr<LogNWNX> logger;
 
 #define OFFS_MonkSpecialWeaponTest		0x007514d3
 
+#define OFFS_CallSplitCopyLVar			0x005d97b8
+
 
 std::unordered_set<uint32_t> g_listMonkWeapon;
 
@@ -411,11 +413,28 @@ Patch _DisablespellcraftSavePatch[] =
 
 Patch *DisablespellcraftSavePatch = _DisablespellcraftSavePatch;
 
+Patch _KeepLocalVarOnSplitPatch[] =
+{
+	Patch(OFFS_CallSplitCopyLVar, (char*)"\x6a\x01", (int)2), //PUSH 01
+
+	Patch()
+};
+Patch* KeepLocalVarOnSplitPatch = _KeepLocalVarOnSplitPatch;
+
 
 bool SmallPatchFunctions(SimpleIniConfig* config)
 {
 	int iTest = 0;
 	int i = 0;
+
+	config->Read("KeepLocalVarOnSplit", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* LocalVar keept on Split");
+		while (KeepLocalVarOnSplitPatch[i].Apply()) {
+			i++;
+		}
+	}
 
 	config->Read("DisableTumbleAC", &iTest, 0);
 	if (iTest == 1)

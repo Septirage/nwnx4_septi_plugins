@@ -19,6 +19,7 @@ std::string sChangeGoldScript = "";
 std::string sTransitionScript = "";
 std::string sItemBaseCostScript = "";
 std::string g_sCanIStackScript = "";
+std::string g_sOnSplitScript = "";
 
 extern std::unique_ptr<LogNWNX> logger;
 
@@ -28,6 +29,9 @@ extern std::unique_ptr<LogNWNX> logger;
 
 #define OFFS_EndOfCalculateBaseCost	0x005d49ab
 #define OFFS_EndCanIStack			0x005d3ab1
+
+#define OFFS_EndOfSplit				0x005e6353
+//0x005c8420
 
 unsigned long ReturnEndICanStack = 0x005d3ab9;
 unsigned long ReturnICantStack = 0x005d39ad;
@@ -144,7 +148,16 @@ __declspec(naked) void ReturnOfInventoryWeight()
 }
 */
 
+/*
+Patch _CalculateWeightPatch[] =
+{
+Patch(OFFS_CalculateInventoryWeightHook, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+Patch(OFFS_CalculateInventoryWeightHook + 1, (relativefunc)ReturnOfInventoryWeight),
 
+Patch()
+};
+Patch *CalculateWeightPatch = _CalculateWeightPatch;
+*/
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// Global OnClientLoaded
 /////////////////////////////////////////////////////////////////////////////////
@@ -423,6 +436,11 @@ Patch _StartTransitionPatch[] =
 };
 Patch *StartTransitionPatch = _StartTransitionPatch;
 
+
+/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////// OnCostChange
+/////////////////////////////////////////////////////////////////////////////////
+
 int __fastcall CallCalculateBaseCost(int iCurrentBaseCost, NWN::CNWSItem* pItem)
 {
 	if (sItemBaseCostScript != "")
@@ -474,6 +492,10 @@ Patch* ItemBaseCostCalcPatch = _ItemBaseCostCalcPatch;
 
 
 
+
+/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////// CanIStack
+/////////////////////////////////////////////////////////////////////////////////
 
 uint32_t g_iStackFixChoice = 0;
 
@@ -562,18 +584,62 @@ Patch _FixStackingPatch[] =
 Patch *FixStackingPatch = _FixStackingPatch;
 
 
+/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////// OnSplit
+/////////////////////////////////////////////////////////////////////////////////
+unsigned long CalledBySplitStack = 0x005c8420;
+unsigned long ReturnSplitStack  = 0x005e635c;
 
 
-/*
-Patch _CalculateWeightPatch[] =
+void __fastcall CallOnSplitStack(char* pOrigin, char* pNew)
 {
-	Patch(OFFS_CalculateInventoryWeightHook, (char*)"\xe9\x00\x00\x00\x00", (int)5),
-	Patch(OFFS_CalculateInventoryWeightHook + 1, (relativefunc)ReturnOfInventoryWeight),
+	if (g_sOnSplitScript != "")
+	{
+		NWN::CNWSItem* Item1 = (NWN::CNWSItem*)pOrigin;
+		NWN::CNWSItem* Item2 = (NWN::CNWSItem*)pNew;
+		GameObject* ob1 = Item1->AsGameObject();
+		GameObject* ob2 = Item2->AsGameObject();
+
+		bool isExecScriptOk = true;
+
+		NWScript::ClearScriptParams();
+		NWScript::AddScriptParameterObject(ob1->GetObjectId());
+		NWScript::AddScriptParameterObject(ob2->GetObjectId());
+		int iRet = NWScript::ExecuteScriptEnhanced(g_sOnSplitScript.c_str(), GetModuleID_(), false, &isExecScriptOk, true);
+	}
+}
+
+__declspec(naked) void PrepareOnSplitCall()
+{
+	__asm
+	{
+		PUSH	EDX
+		MOV		EDX, dword ptr [ESP + 0x14]
+		MOV		ECX, EBP
+		CALL	CallOnSplitStack
+
+		POP		EDX
+
+
+		//Redo the old code
+		PUSH	0x1
+		MOV		ECX, ESI
+		CALL	dword ptr[CalledBySplitStack]
+		JMP		dword ptr[ReturnSplitStack]
+	}
+}
+
+Patch _OnSplitStackPatch[] =
+{
+	Patch(OFFS_EndOfSplit, (char*)"\xe9\x00\x00\x00\x00\x90\x90\x90\x90", (int)9),
+	Patch(OFFS_EndOfSplit + 1, (relativefunc)PrepareOnSplitCall),
 
 	Patch()
 };
-Patch *CalculateWeightPatch = _CalculateWeightPatch;
-*/
+
+Patch *OnSplitStackPatch = _OnSplitStackPatch;
+
+
 
 void SmallHookFunctions(SimpleIniConfig* config)
 {
@@ -657,6 +723,19 @@ void SmallHookFunctions(SimpleIniConfig* config)
 		i = 0;
 		while (FixStackingPatch[i].Apply())
 		{
+			i++;
+		}
+	}
+
+
+	//OnSplitStack hook
+	config->Read("OnSplitStackScript", &sScript, std::string(""));
+	if (sScript != "")
+	{
+		g_sOnSplitScript = sScript;
+		logger->Info("* HookScript for OnSplitStack: %s", sScript.c_str());
+		i = 0;
+		while (OnSplitStackPatch[i].Apply()) {
 			i++;
 		}
 	}
