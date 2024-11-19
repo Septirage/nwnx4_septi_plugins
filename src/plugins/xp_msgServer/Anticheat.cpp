@@ -12,6 +12,7 @@
 #include "nwn2heap.h"
 #include "Connection.h"
 #include "../../septutil/intern2daMgt.h"
+#include "../../septutil/NwN2DataPos.h"
 
 #include <detours/detours.h>
 extern std::unique_ptr<LogNWNX> logger;
@@ -84,6 +85,200 @@ std::string ExoStringToString(const NWN::CExoString* myExoString) {
 	return "";
 }
 
+/////////////////////////////////////////////////////////////////////
+/////////////////////////// 2DA Functions ///////////////////////////
+/////////////////////////////////////////////////////////////////////
+
+#define FUNC_2daColumnNameToRowOffset	0x0051a290
+#define FUNC_2DAGetString				0x0051a2e0
+#define FUNC_2DAGetInt					0x0051a5f0
+
+#define FUNC_GetClientName				0x00571380
+
+#define FUNC_Check2DACache				0x0054aa40
+
+__declspec(naked) int __fastcall Get2DAColumnOffset(uint32_t* p2DATable,  void* Unused, const char* columnName)
+{
+	__asm
+	{
+		mov		edx, FUNC_2daColumnNameToRowOffset;
+		jmp		edx;
+	}
+}
+
+
+std::string Get2DAString(uint32_t* p2DATable, int iRow, int iColumnOffset)
+{
+	std::string sResult = "";
+	if ((-1 < iRow) && (iRow < *(int*)((int)p2DATable + 0x40)) && (-1 < iColumnOffset) && (iColumnOffset < *(int*)((int)p2DATable + 0x44)))
+	{
+
+		NWN::CExoString* resultExoString = (NWN::CExoString*)(*(int*)(*(int*)((int)p2DATable + 0x3c) + iRow * 4) + iColumnOffset * 8);
+
+		if (resultExoString != 0 && resultExoString->m_nBufferLength != 0 && resultExoString->m_sString != 0)
+		{
+			sResult = ExoStringToString(resultExoString);
+		}
+	}
+
+	return sResult;
+}
+
+bool Get2DAInt(uint32_t* p2DATable, int iRow, int iColumnOffset, int* iValue)
+{
+	std::string stringRes = Get2DAString(p2DATable, iRow, iColumnOffset);
+
+	if (stringRes != "")
+	{
+		try
+		{
+			int iNumber = std::stoi(stringRes);
+			*iValue = iNumber;
+			return true;
+
+		} catch (const std::exception& e) {
+			return false;
+		}
+	}
+
+	return false;
+}
+
+__declspec(naked) NWN::CExoString* __fastcall GetClientName(void* pContext)
+{
+	__asm
+	{
+		mov		edx, FUNC_GetClientName;
+		jmp		edx;
+	}
+}
+
+__declspec(naked) uint32_t __fastcall Check2daCache(uint32_t ptrTable, void* Unused, NWN::CExoString* sTableName)
+{
+	__asm
+	{
+		mov		edx, FUNC_Check2DACache;
+		jmp		edx;
+	}
+}
+
+
+
+/********************************************************************/
+
+#define FUNC_2DASetupSEPTIMsgServ		0x00686d42
+#define FUNC_2DASetupRetSEPTIMsgServ	0x00686def
+
+
+__declspec(naked) int __fastcall Prepare2DA_intern(NWN::CExoString* sNameTable, void* UNUSED)
+{
+	__asm 
+	{
+		push ecx
+		PUSH EBX
+		push edx
+		push ebp
+		push esi
+		push edi
+		sub esp, 0x60
+
+
+		LEA EAX, [ESP + 0xC]
+
+		mov edx, [ecx]
+		mov [eax], edx
+
+		mov edx, [ecx + 4] 
+		mov [eax + 4], edx
+
+
+		//MOV [EAX], [ECX]
+		//MOV [EAX+4], [ECX+4]
+
+		mov		edx, FUNC_2DASetupSEPTIMsgServ;
+		jmp		edx;
+	}
+}
+
+__declspec(naked) int __fastcall Prepare2DARet_intern(NWN::CExoString* sNameTable, void* UNUSED)
+{
+	__asm
+	{
+		//Remove the whole space on esp immediatly
+		ADD ESP, 0x60
+
+		//Save ptr on p2DATable
+		//Count.. All the register (5*4) + 4
+		CMP EBX, 0
+		JNE Prepare2DAMsgServKeepESI
+		MOV ESI, 0
+
+		Prepare2DAMsgServKeepESI:
+		MOV EAX, ESI
+
+			//Restore everything
+			POP EDI
+			POP ESI
+			POP EBP
+			POP EDX
+			POP EBX
+			POP ECX
+
+			RET
+	}
+}
+
+Patch _tempPatch2DAmsgServ[] =
+{
+	//List of TempPatch for Setup2DA table
+	Patch((DWORD)FUNC_2DASetupRetSEPTIMsgServ, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(FUNC_2DASetupRetSEPTIMsgServ+1, (relativefunc)Prepare2DARet_intern),
+};
+
+Patch *tempPatch2DAmsgServ = _tempPatch2DAmsgServ;
+
+uint32_t Preparation2DA(NWN::CExoString* cTable)
+{
+	char lowerTableName[32];
+
+	for (int i = 0; i < 32 && i < cTable->m_nBufferLength; i++)
+	{
+		lowerTableName[i] = (char)tolower(cTable->m_sString[i]);
+	}
+
+	NWN::CExoString lowerTable;
+
+	lowerTable.m_sString = lowerTableName;
+	lowerTable.m_nBufferLength = cTable->m_nBufferLength;
+
+	//Patch stuff here
+
+	uint32_t* tempPtr = *(uint32_t**)OFFS_g_pAppManager;
+	uint32_t value = tempPtr[1];
+
+	uint32_t p2DATable = Check2daCache(value, NULL, &lowerTable);
+
+	if (p2DATable != 0)
+	{
+		return p2DATable;
+	}
+
+	//Patch the function
+	tempPatch2DAmsgServ[0].Apply();
+	tempPatch2DAmsgServ[1].Apply();
+
+
+	//Call it
+	p2DATable = Prepare2DA_intern(&lowerTable, NULL);
+
+	//Unpatch here
+	tempPatch2DAmsgServ[0].Remove();
+	tempPatch2DAmsgServ[1].Remove();
+
+
+	return p2DATable;
+}
+/********************************************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////// Start Of Level Up AntiCheats ///////////////////////////////////////////////////
@@ -162,6 +357,24 @@ bool FeatValidAllClasses(uint16_t featToTest) {
 	return false;
 }
 
+std::string  GetCreatureName(int iMemoryPosition)
+{
+	NWN::CExoString* CreaName = NULL;
+	int* objectAddr = (int*)((int)iMemoryPosition);
+	if (objectAddr && *objectAddr) {
+		objectAddr = (int*)(*objectAddr);
+		if (objectAddr) {
+			CreaName = (NWN::CExoString*)(*objectAddr + 4);
+		}
+	}
+
+	if ((CreaName == NULL) || (CreaName->m_sString == NULL) || (CreaName->m_nBufferLength == 0))
+	{
+		CreaName = NULL;
+	}
+	return ExoStringToString(CreaName);
+}
+
 int LevelUpViolation(MsgServ* g_msgServ, NWN::OBJECTID ObjectId, std::string sPlayerName, int currentLevel, std::string sCharacterName, std::string errorsList)
 {
 	//Is that a bad player ?
@@ -194,7 +407,7 @@ int ReallyBadMsg(MsgServ* g_msgServ, std::string sPlayerName, int currentLevel, 
 	return -1;
 }
 
-void PrintMessage(unsigned char* Data, int size, std::string sCharName)
+void PrintMessage(const unsigned char* Data, int size, std::string sCharName)
 {
 	if (static_cast<int>(logger->Level()) >= 4)
 	{
@@ -209,15 +422,16 @@ void PrintMessage(unsigned char* Data, int size, std::string sCharName)
 	}
 }
 
-int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPlayerName, MsgServ* g_msgServ)
-{
-	/*
-	if (size < 61) {
-		//Really bad message, drop it
-		return -1;
+bool CheckMsgSize(size_t sizeMSg, uint64_t uPos, uint32_t sizeData, std::string sPlayerName, int currentLevel, std::string sCharacterName, std::string errorsList) {
+	if (sizeMSg < (uPos + sizeData)) {
+		logger->Err("[%s] %s : lvl up (%d) message error. Drop it. Current violations detected :\n %s \n", sPlayerName.c_str(), sCharacterName.c_str(), currentLevel + 1, errorsList.c_str());
+		return false;
 	}
-	*/
+	return true;
+}
 
+int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::string sPlayerName, MsgServ* g_msgServ)
+{
 	////////////////////////////////////////// Data Preparation //////////////////////////////////////////
 	std::string errorsList = "";
 	GameObjectManager m_ObjectManager;
@@ -230,7 +444,6 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 		return -1;
 	}
 
-
 	NWN::OBJECTID ObjectId = Player->m_oidPCObject;
 
 	if ((ObjectId & NWN::INVALIDOBJID) != 0)
@@ -241,47 +454,38 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 		logger->Err("LevelUpMessage: PlayerObject not found.");
 		return -1;
 	}
-	
-	
+
 	//get character name
 	std::string sCharacterName = "";
 	{
-		const NWN::CExoString * FirstName = (NWN::CExoString*)((**(int**)((int)Object + 0x2d8)) + 4);;
-		const NWN::CExoString * LastName = (NWN::CExoString*)((**(int**)((int)Object + 0x2e8)) + 4);;
-
-		if ((FirstName->m_sString == NULL) || (FirstName->m_nBufferLength == 0))
-		{
-			FirstName = NULL;
-		}
-		
-		sCharacterName = ExoStringToString(FirstName);
-
-		if ((LastName->m_sString == NULL) || (LastName->m_nBufferLength == 0))
-		{
-			LastName = NULL;
-		}
-
-		sCharacterName = sCharacterName + " " + ExoStringToString(LastName);
+		//Get FirstName
+		sCharacterName = GetCreatureName((int)Object + 0x2d8);
+		//Add LastName
+		sCharacterName = sCharacterName + " " + GetCreatureName((int)Object + 0x2e8);
 	}
 
 	PrintMessage(Data, size, sCharacterName);
 
-	uint8_t* uPcBlock = *(uint8_t**)((uint8_t*)Object + 0x1FC4);
+	uint8_t* uPcBlock = *(uint8_t**)((uint8_t*)Object + AmCrtPtrAppBlock);
 
-	//Nb of class this character already have
-	uint8_t nb_OwnedClass = uPcBlock[0x14];
-
+	//Nb Of Class this character already have
+	uint8_t nb_OwnedClass = uPcBlock[AmCrtABNbClass];
 
 	///////////////////////////////////////// Check for classes /////////////////////////////////////////
-	int iPos = 7; // skip MsgType & size (3+4).
 
-	//The classID choosen for this levelup
-	uint8_t nChoosenClass = Data[iPos];
-	iPos++;
+
+	uint64_t uPos = 7; //Skip MsgType,SubType and Size
+
+	if (!CheckMsgSize(size, uPos, 1, sPlayerName, -1, sCharacterName, "#ReallyBadMsg{}"))
+		return -1;
+
+	uint8_t nChoosenClass = Data[uPos];
+	uPos++;
 	uint8_t nClassPosition = 0;
 	uint8_t lvlChoosenClass = 0;
 	uint8_t currentLevel = 0;
 	uint8_t previousSchool = 0xFF;
+	uint8_t currentSchool = 0xFF;
 	uint8_t previousDomain1 = 0xFF;
 	uint8_t previousDomain2 = 0xFF;
 
@@ -291,10 +495,9 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 	// ****** Build myClasses ***** //
 	smallClass myClasses[4];
 	{
-		uint8_t* classBlock = uPcBlock + 0x10C;
+		uint8_t* classBlock = uPcBlock + AmCrtAbClass0;
 
 		bool isOwnedClass = false;
-
 
 		myClasses[0].classId = classBlock[4];
 		myClasses[0].classLvl = classBlock[5];
@@ -307,7 +510,6 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 			previousDomain1 = classBlock[8];
 			previousDomain2 = classBlock[9];
 		}
-
 
 		if (nb_OwnedClass > 1)
 		{
@@ -362,8 +564,6 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 			}
 		}
 
-
-
 		//Too Many classes ?
 		if (!isOwnedClass && nb_OwnedClass > 3)
 		{
@@ -381,7 +581,7 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 					return -1;
 			}
 		}
-		else if(isOwnedClass == 0)
+		else if(isOwnedClass == false)	//We take a new class
 		{
 			nClassPosition = nb_OwnedClass;
 			nb_OwnedClass++;
@@ -397,7 +597,7 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 	//Get the "2DA" class ptr
 	NWN2DA::classes2DA myClass2daRow = GetClasseRow(nChoosenClass);
 
-	//Invalid class, just quit.
+	//Invalid class, just quit, cant even allow it to continue
 	if (myClass2daRow == NULL) {
 		errorsList += "#class_notvalid:{" + std::to_string(nChoosenClass) + "}";
 
@@ -441,8 +641,8 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 	if(AlignRestrict != 0x0 && AlignRstrctType != 0x0) {
 		bool bCompareRes = (InvertRestrict != 0);
 
-		uint8_t iGoodEvil = *(uint8_t *)(uPcBlock + 0x78);
-		uint8_t iLawChaos = *(uint8_t *)(uPcBlock + 0x7A);
+		uint8_t iGoodEvil = uPcBlock[AmCrtABAlignGE];
+		uint8_t iLawChaos = uPcBlock[AmCrtABAlignLC];
 
 		bool isGood = false;
 		bool isEvil = false;
@@ -516,13 +716,12 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 		}
 	}
 
-
 	//Load list of feats
-	uint32_t currentNbOfFeats =  *(uint32_t*)(uPcBlock + 0x1C);
-	uint16_t* currentFeatsList = *(uint16_t**)(uPcBlock + 0x18);
+	uint32_t currentNbOfFeats =  *(uint32_t*)(uPcBlock + AmCrtABNbOfFeats);
+	uint16_t* currentFeatsList = *(uint16_t**)(uPcBlock + AmCrtABFeatList);
+
 
 	std::unordered_set<uint16_t> myCurrentFeats(currentFeatsList, currentFeatsList + currentNbOfFeats);
-
 
 	//Call function Verif class
 	if (TestIfClassOK(uPcBlock, NULL, nChoosenClass) == 0)
@@ -538,37 +737,45 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 
 
 	///////////////////////////////////////// Ability Point /////////////////////////////////////////
-	//No test to do on it but save it for Prereq purpose
+	//No test to do on ability points (server dont except and manage extra ability point if not on the right lvl)
+	//but save it for Prereq purpos
 	int iAbilityIncreased = -1;
 	if ((((currentLevel & 0xff) + 1) & 0x03) == 0) {
-		iAbilityIncreased = Data[iPos];
-		iPos++;
+		if (!CheckMsgSize(size, uPos, 1, sPlayerName, currentLevel, sCharacterName, errorsList))
+			return -1;
+		iAbilityIncreased = Data[uPos];
+		uPos++;
 	}
 
 	///////////////////////////////////////// HitDie(?) /////////////////////////////////////////
 	// Don't seem to have any effect. Need further investigation, just skip for now
-	iPos++;
+	uPos++;
 
 
 	///////////////////////////////////////// Skill Points /////////////////////////////////////////
-
 	uint32_t skillPointForMyClass = myClass2daRow->m_SkillPointBase;
 
-	uint32_t skillBitMask = *(uint32_t*)(Data+iPos); //get the bitmask (be carrefull of indianess)
-	iPos+=4;
+	if (!CheckMsgSize(size, uPos, 4, sPlayerName, currentLevel, sCharacterName, errorsList))
+		return -1;
+	//Get the bitmask
+	uint32_t skillBitMask = *(uint32_t*)(Data+uPos);
+	uPos+=4;
 
 	//MycurrentSkills
-	uint8_t* currentSkillList = *(uint8_t**)(uPcBlock+0x50);
-	uint16_t keepedSkillPoints = *(uint16_t*)(uPcBlock + 0x5C);
+	uint8_t* currentSkillList = *(uint8_t**)(uPcBlock+AmCrtABCurrentSkillList);
+	uint16_t keepedSkillPoints = *(uint16_t*)(uPcBlock +AmCrtABKeepedSkillPoints);
+
 
 	std::vector<smallSkill> skillsCurrent;
 	int8_t crossClassCost = 2;
 	bool bHasSkilled = false;
 
+	//AdaptCrossClassCost 
 	if (myCurrentFeats.count(FEAT_ABLE_LEARNER) > 0) {
 		crossClassCost = 1;
 	}
 
+	//Remember SkilledFeat
 	if (myCurrentFeats.count(FEAT_SKILLED) > 0) {
 		bHasSkilled = true;
 	}
@@ -577,32 +784,30 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 	std::vector<smallSkill> skillGained;	
 	int totalSkillPointUsed = 0;
 
-
 	uint8_t maxSkillId = g_global2da->m_NumberOfSkills;
 
-	for(uint8_t i=0; i < maxSkillId; i++)
+	for (uint8_t i = 0; i < maxSkillId; i++)
 	{
 		uint32_t iMasked = (i & 0x1F); //Because we have only a 32 bit "vector"
 
 		//We change that skill
-		if((skillBitMask & (1 << iMasked)) != 0)
+		if ((skillBitMask & (1 << iMasked)) != 0)
 		{
 			//	Because the same bit can inform for every i%32 
 			//		(ie : bit 0 can be up for Skill0, Skill32, Skill64, ...)
-			if(Data[iPos] != 0)
+			if (!CheckMsgSize(size, uPos, 1, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorForSkill{" + std::to_string(i) + "}"))
+				return -1;
+			if (Data[uPos] != 0)
 			{
 				//We really increase that skill
 				smallSkill curSkill;
 				curSkill.skillId = i;
-				curSkill.nbPoint = Data[iPos];
+				curSkill.nbPoint = Data[uPos];
 				skillGained.push_back(curSkill);
 			}
-			iPos++;
-			if ((iPos + 48) > size)
-			{
-				return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#ErrorForSkill{"+std::to_string(i)+ "}");
-			}
+			uPos++;
 		}
+
 
 		//Create the current skills amount list
 		{
@@ -615,13 +820,14 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 
 			//The game store the oposite of the REMOVED entry in 2DA
 			//Here, we don't want to allow skills points to be added
-			if(iAllClassesCanUse == 0 || iREMOVEDSkill == 0) {
+			if (iAllClassesCanUse == 0 || iREMOVEDSkill == 0) {
 				curSkill.skillCost = -1;
-			} else {
+			}
+			else {
 				//By default, set it to crossClassCost
 				curSkill.skillCost = crossClassCost;
 			}
-			curSkill.maxRank = (currentLevel + 4)/2;
+			curSkill.maxRank = (currentLevel + 4) / 2;
 			skillsCurrent.push_back(curSkill);
 		}
 	}
@@ -658,15 +864,15 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 		}
 	}
 
-	if ((iPos + 48) > size)
-	{
-		return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#AfterClassCheck{}");
-	}
+	if (!CheckMsgSize(size, uPos, 2, sPlayerName, currentLevel, sCharacterName, errorsList + "#AfterClassCheck{}"))
+		return -1;
 
-	unsigned int skillPointKept = *(uint16_t*)(Data+iPos);
-	iPos+=2;
+	unsigned int skillPointKept = *(uint16_t*)(Data+uPos);
+	uPos+=2;
+
 
 	uint32_t skillPointUsed = skillPointKept;
+
 
 	//For my taken Skills :
 	std::string skillPointsError = "";
@@ -710,7 +916,6 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 		errorsList += "#skillrank_tohigh:{" + skillRankToHigh + "}";
 	}
 
-
 	//Skills, we have test if we can take those skills AND if we don't put too many rank in it.
 	// Now, test the total amount of pointZ
 	int iIntel = CalculateAbility((void*)uPcBlock, NULL, SEPT_ANTICHEAT_INT);
@@ -726,9 +931,7 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 		iIntelBonus = (iIntel - 10) / 2;
 	}
 
-	uint16_t skillPointStored = *(uint16_t*)(uPcBlock + 0x5c);
-
-	uint32_t skillPointAllowed = skillPointForMyClass + skillPointStored + (bHasSkilled ? 1 : 0) + iIntelBonus;
+	uint32_t skillPointAllowed = skillPointForMyClass + keepedSkillPoints + (bHasSkilled ? 1 : 0) + iIntelBonus;
 
 	if (skillPointAllowed < skillPointUsed) {
 		errorsList += "#toomany_skillPoint:{" + std::to_string(skillPointAllowed) + "," + std::to_string(skillPointUsed) + "}";
@@ -740,21 +943,17 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 		}
 	}
 
-
-
 	////////////////////////////////// Background (in gff, but the autolevel up stuff in fact) //////////////////////////////////
 	//We don't care ? Don't seem to have any impact, check 
-	iPos+=4;
+	uPos+=4;
 
 
 	///////////////////////////////////////// Feats /////////////////////////////////////////
-	uint8_t nbNewFeats = Data[iPos];
-	iPos++;
+	if (!CheckMsgSize(size, uPos, 1, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnFeatNumber{}"))
+		return -1;
 
-	if( ((iPos+41)+nbNewFeats*2) > size)
-	{
-		return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#ErrorAfterFeat{}");
-	}
+	uint8_t nbNewFeats = Data[uPos];
+	uPos++;
 
 
 	//Ok, start to count the number of given feats.
@@ -774,11 +973,13 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 	iNumberGeneralFeat += myClass2daRow->m_NormalBFeat[lvlChoosenClass - 1];
 
 	//check the feats validity
-	uint16_t* takenFeatsList = (uint16_t*)(Data + iPos);
+	if (!CheckMsgSize(size, uPos, 2*nbNewFeats, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnFeatNumber{}"))
+		return -1;
+
+	uint16_t* takenFeatsList = (uint16_t*)(Data + uPos);
 	std::unordered_set<uint16_t> myTakenFeats(takenFeatsList, takenFeatsList + nbNewFeats);
 	std::unordered_set<uint16_t> myObtainedFeats(takenFeatsList, takenFeatsList + nbNewFeats);
-	iPos += (2 * nbNewFeats);
-
+	uPos += (2 * nbNewFeats);
 
 	//Check the list of feat for this class	
 	NWN2DA::clsFeat2DA* myClassFeatList = myClass2daRow->m_clsFeatTable;
@@ -789,9 +990,6 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 	std::unordered_set<uint16_t> myDomainsFeats;
 	std::unordered_set<uint16_t> mySelectableLvlUp;
 	std::unordered_set<uint16_t> myAutoGrantedFeats;
-
-
-
 
 	//Add the ranger specials Combat Style feat because... well... Obsidian suck at it
 	if (lvlChoosenClass == 2 && nChoosenClass == 7) {
@@ -925,51 +1123,68 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 				return -1;
 		}
 	}
-
-
-
 	//Cant test the feats right now. Need to wait for the possibility of domains.
-	
-
 
 
 	///////////////////////////////////////// Spells /////////////////////////////////////////
 	// Need to have a way to know if we have a spell choice Panel. And so, spell lists
+	// Spell panel is showed if there must be spell gains this level.
+	// => If you are a magical class and don't know every spell. Check the SpellKnownTable (if you are a wizard => 2)
+	// Else, if you have a BonusSpellCasterLvlTable/BonusCasterFeatByClassMap check if you have the feat.
+	//		Due to a client engine bug, stop at the first one. If you have it, check if the corresponding class should learn new spells
+	// 
+	// /!\ don't forget the SpellSwap.
 	// 
 	//*10 (spell 0 to 9) : nb spells gained, spell gained list, nb spell removed, spell removed list
 	//Check if we can take the spell or not. Check if the number of spell gained/removed is correct (spell removed should be for exchange stuff, should be the more difficult task)
-	//Check how the fu**ing double spell class work (if both classes must choose spell at least)
-	// For now... just don't check the spells... Need more investigation
-
-	for (int i = 0; i < 10; i++) 
+	//
+	// We will tests spells after, once we have newly taken feats and school
+		//Fill the lists, check them after.
+	std::vector<uint32_t> mySpellTaken[10];
+	std::vector<uint32_t> mySpellRemoved[10];
+	uint32_t iTotalSpellGained = 0;
+	uint32_t iTotalSpellRemoved = 0;
 	{
-		//NumSpellAdded lvl i
-		uint8_t iNumSpell = Data[iPos];
-		iPos++;
-
-		//We gain iNumSpell
-		//For now, pass them (4 bytes for each spells)
-		iPos += 4 * iNumSpell;
-
-		if ((iPos + 21 + (10 - i) * 2 - 1) > size)
+		for (int i = 0; i < 10; i++)
 		{
-			return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#ErrorAfterSpell{lvl:"+std::to_string(i) + "}");
-		}
+			//NumSpellAdded lvl i
+			if (!CheckMsgSize(size, uPos, 1, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnSpellLvl{" + std::to_string(i) + "}"))
+				return -1;
+			uint8_t iNumSpell = Data[uPos];
+			uPos++;
 
-		//NumSpellRemoved lvl i
-		iNumSpell = Data[iPos];
-		iPos++;
+			//We gain iNumSpell
+			iTotalSpellGained += iNumSpell;
 
-		//We remove iNumSpell
-		//For now, pass them (4 bytes for each spells)
-		iPos += 4 * iNumSpell;
+			if (!CheckMsgSize(size, uPos, 4*iNumSpell, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnSpellLvlTaken{" + std::to_string(i) + "}"))
+				return -1;
 
-		if ((iPos + 21 + (10 - i - 1) * 2) > size)
-		{
-			return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#ErrorAfterRemoved{lvl:"+std::to_string(i) + "}");
+			for (uint8_t j = 0; j < iNumSpell; j++)
+			{
+				mySpellTaken[i].push_back(*(uint32_t*)(Data + uPos));
+				uPos += 4;
+			}
+
+			//NumSpellRemoved lvl i
+			if (!CheckMsgSize(size, uPos, 1, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnSpellLvlRemoved{" + std::to_string(i) + "}"))
+				return -1;
+			iNumSpell = Data[uPos];
+			uPos++;
+
+			//We remove iNumSpell
+			iTotalSpellRemoved += iNumSpell;
+
+			//Check size(4 bytes for each spells)
+			if (!CheckMsgSize(size, uPos, 4 * iNumSpell, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnSpellLvlRemoved{" + std::to_string(i) + "}"))
+				return -1;
+
+			for (uint8_t j = 0; j < iNumSpell; j++)
+			{
+				mySpellRemoved[i].push_back(*(uint32_t*)(Data + uPos));
+				uPos += 4;
+			}
 		}
 	}
-
 	///////////////////////////////////////// God Name /////////////////////////////////////////
 	//TODO check if this god is ok with your classes (or just current classes ?)+race+(alignment), ...
 	//TODO check if it's still the same. 
@@ -977,18 +1192,16 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 	//			- check if the change is valid. (config  to don't allow the change ? --for example, it must be changed before?)
 	//TODO, for now, don't check
 	{
-		uint32_t iGodNameSize = *(uint32_t*)(Data+iPos);
-		iPos += 4;
+		if (!CheckMsgSize(size, uPos, 4, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnGodNameSize{}"))
+			return -1;
+		uint32_t iGodNameSize = *(uint32_t*)(Data+uPos);
+		uPos += 4;
 
 		//God name now. Just skip it.
-		iPos += iGodNameSize;
-
-		if (iPos + 17 > size)
-		{
-			return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#ErrorAfterGodName{}");
-		}
+		if (!CheckMsgSize(size, uPos, iGodNameSize, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnGodName2{}"))
+			return -1;
+		uPos += iGodNameSize;
 	}
-
 
 	///////////////////////////////////////// Familiar name /////////////////////////////////////////
 	// Need to understand how to know if the familiar is changed
@@ -998,14 +1211,15 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 	// ttttttttttt => familiar name
 	//TODO check where the "go back to void name" error came from
 	{
-		uint32_t iFamiliarType = *(uint32_t*)(Data + iPos);
-		iPos += 4;
-		uint32_t iOldFamiliarType = *(uint32_t*)(uPcBlock + 0xdf4);
+		if (!CheckMsgSize(size, uPos, 4, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnFamiliarType{}"))
+			return -1;
+		uint32_t iFamiliarType = *(uint32_t*)(Data + uPos);
+		uPos += 4;
+		uint32_t iOldFamiliarType = *(uint32_t*)(uPcBlock + AmCrtABFamiliarType);
 
 		if (iFamiliarType != iOldFamiliarType)
 		{
 			bool bFamOk = false;
-
 
 			if (iFamiliarType == 0xFFFFFFFF) {
 				// In some case, a character without familiar still have an "old familiar type".
@@ -1050,43 +1264,44 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 		}
 
 		//get familiar and pass it (//TODO, need to analyze the name reset error.)
-		uint32_t iFamiliarNameSize = *(uint32_t*)(Data + iPos);
-		iPos += 4;
-		iPos += iFamiliarNameSize;
-
-		if (iPos + 9 > size)
-		{
-			return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#ErrorAfterFamiliar:{}");
-		}
+		if (!CheckMsgSize(size, uPos, 4, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnFamiliarName{}"))
+			return -1;
+		uint32_t iFamiliarNameSize = *(uint32_t*)(Data + uPos);
+		uPos += 4;
+		if (!CheckMsgSize(size, uPos, iFamiliarNameSize, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnFamiliarName2{}"))
+			return -1;
+		uPos += iFamiliarNameSize;
 	}
 
 
 	///////////////////////////////////////// Animal Companion name /////////////////////////////////////////
 	{
-		uint32_t iCompanionType = *(uint32_t*)(Data + iPos);
-		iPos += 4;
+		if (!CheckMsgSize(size, uPos, 4, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorOnCompagnonType{}"))
+			return -1;
+		uint32_t iCompanionType = *(uint32_t*)(Data + uPos);
+		uPos += 4;
 
-		uint32_t iOldCompanionType = *(uint32_t*)(uPcBlock + 0xdf0);
+		uint32_t iOldCompanionType = *(uint32_t*)(uPcBlock + AmCrtABAnimalCompanionType);
 
 		if (iCompanionType != iOldCompanionType)
 		{
 			bool bCompOk = false;
 
-			
+
 			if (iCompanionType == 0xFFFFFFFF)
 			{
 				// In some case, a character without animal companion still have an "old companion type".
 				// Check if we don't have the "AnimalCompanion" feat
-				if (myCurrentFeats.count(0xC7) == 0) 
+				if (myCurrentFeats.count(0xC7) == 0)
 				{
 					bCompOk = true;
 				}
 			}
 			// New one ? So no "Animal Companion" feat
-			else if (myCurrentFeats.count(0xC7) == 0) 
+			else if (myCurrentFeats.count(0xC7) == 0)
 			{
 				// New class need to be a class with AnimalCompanion (and we need the feat too)
-				if (myClass2daRow->m_HasAnimalCompanion != 0 && myObtainedFeats.count(0xC7) != 0) 
+				if (myClass2daRow->m_HasAnimalCompanion != 0 && myObtainedFeats.count(0xC7) != 0)
 				{
 					// TODO, familiar validity not checked yet
 					bCompOk = true;
@@ -1102,9 +1317,9 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 
 			if (!bCompOk)
 			{
-				errorsList += "#CompanionType:{oldType:"+std::to_string(iOldCompanionType)+" newType:"+std::to_string(iCompanionType)+"}";
+				errorsList += "#CompanionType:{oldType:" + std::to_string(iOldCompanionType) + " newType:" + std::to_string(iCompanionType) + "}";
 
-				if(g_msgServ->bACLvlUpStopFirstViolation)
+				if (g_msgServ->bACLvlUpStopFirstViolation)
 				{
 					if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
 						return -1;
@@ -1113,33 +1328,34 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 		}
 
 		//get companion name and pass it (//TODO, need to analyze the name reset error.)
-		uint32_t iCompanionNameSize = *(uint32_t*)(Data + iPos);
-		iPos += 4;
-		iPos += iCompanionNameSize;
+		if (!CheckMsgSize(size, uPos, 4, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorAfterCompanion{}"))
+			return -1;
+		uint32_t iCompanionNameSize = *(uint32_t*)(Data + uPos);
+		uPos += 4;
 
-		if (iPos + 1 > size)
-		{
-			return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#ErrorAfterCompanion:{}");
-		}
+		if (!CheckMsgSize(size, uPos, iCompanionNameSize, sPlayerName, currentLevel, sCharacterName, errorsList + "#ErrorAfterCompanion2{}"))
+			return -1;
+		uPos += iCompanionNameSize;
 	}
+
 
 	///////////////////////////////////////// Domains /////////////////////////////////////////
 	//If domain... 
-	//TODO Check if the character should have domain (before or now with the new class)
+	// Check if the character should have domain (before or now with the new class)
 	//	If it should : Grab the 2 domains.
 	//		If already have before: should be the same.(can it be legally changed ?) //TODO lets assume that no
 	//		If not : check if its ok
-	{		
+	{
 		if (myClass2daRow->m_HasDomains)
 		{
-			if (iPos + 3 > size)
-			{
-				return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#DomainError:{}");
-			}
-			uint8_t uDomain1 = Data[iPos];
-			iPos++;
-			uint8_t uDomain2 = Data[iPos];
-			iPos++;
+			if (!CheckMsgSize(size, uPos, 1, sPlayerName, currentLevel, sCharacterName, errorsList + "#DomainError{}"))
+				return -1;
+			uint8_t uDomain1 = Data[uPos];
+			uPos++;
+			if (!CheckMsgSize(size, uPos, 1, sPlayerName, currentLevel, sCharacterName, errorsList + "#DomainError2{}"))
+				return -1;
+			uint8_t uDomain2 = Data[uPos];
+			uPos++;
 			//Need to check only if not first level
 			if (lvlChoosenClass > 1)
 			{
@@ -1184,9 +1400,9 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 					}
 				}
 				else {
-					errorsList += "#DomainDontExist:{"+std::to_string((int)uDomain1)+ "}";
+					errorsList += "#DomainDontExist:{" + std::to_string((int)uDomain1) + "}";
 
-					if(g_msgServ->bACLvlUpStopFirstViolation)
+					if (g_msgServ->bACLvlUpStopFirstViolation)
 					{
 						if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
 							return -1;
@@ -1217,17 +1433,15 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 					}
 				}
 				else {
-					errorsList += "#DomainDontExist:{"+std::to_string((int)uDomain2)+ "}";
+					errorsList += "#DomainDontExist:{" + std::to_string((int)uDomain2) + "}";
 
-					if(g_msgServ->bACLvlUpStopFirstViolation)
+					if (g_msgServ->bACLvlUpStopFirstViolation)
 					{
 						if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
 							return -1;
 					}
 				}
-				//myDomainsFeats
 			}
-
 		}
 	}
 
@@ -1262,7 +1476,7 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 
 		for (const auto& testFeat: myTakenFeats) {
 			bool bCurFeatPossible = false;
-			
+
 			if (myDomainsFeats.count(testFeat) > 0)
 			{
 				iDomainsFeatsPossibility++;
@@ -1375,7 +1589,6 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 				}
 			}
 
-
 			//Depatch Creature
 
 			//Depatch Feats
@@ -1430,21 +1643,19 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 		}
 	}
 
+
 	///////////////////////////////////////// Spell School /////////////////////////////////////////
 	//If must have a spell school =>
 	//	If it should, grab the school
-	//		If already have before : should be the same (can it be legally changed ?) //TODO, 
-	//		If not : check if it's ok	
+	//		If already have before : should be the same, 
+	//		If not : check if it's ok
 	{
 		if (myClass2daRow->m_HasSchool)
 		{
-			if (iPos + 2 > size)
-			{
-				return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#ErrorSpellSchool{}");
-			}
-
-			uint8_t uSchool = Data[iPos];
-			iPos++;
+			if (!CheckMsgSize(size, uPos, 1, sPlayerName, currentLevel, sCharacterName, errorsList + "#DomainError2{}"))
+				return -1;
+			uint8_t uSchool = Data[uPos];
+			uPos++;
 
 			if (lvlChoosenClass > 1)
 			{
@@ -1459,11 +1670,421 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 					}
 				}
 			}
+			currentSchool = uSchool;
 		}
 	}
 
-	//End with a 0x70
-	if (Data[iPos] != 0x70 || (iPos+1) != size)
+	//We have everything, test the spells
+	{
+		//Ok, The client work this way :
+		//First test if a BonusSpellCasterLvel should be applied. If yes, show it (or show nothing if its a class that don't choose spell)
+		// If not, test if the current class should show a spell choice.
+		//If you have a number of spellknown, it will compare the number of spell known with the new number to known and ask to choose the diff.
+		// Wizard : first level : All applicable lvl0 spells + 3+BonusInt Lvl1 spells. Other level: 2spells in any possible level 
+		//		/!\ Bug, if you have a spellcaster progression with a wizard of the first level. It will give you 3+BonusInt spell to take instead of 2
+
+		uint8_t nClassSpellToTest = nChoosenClass;
+		bool bClassProgress = false;
+		uint8_t bonusSpellLvl = 0;
+		{
+			int iClassFeatFound = -1;
+			for (uint8_t i = 0; i < 0xFE; i++)
+			{
+				uint16_t featToTest = myClass2daRow->m_SpellCasterFeat[i];
+				//A feat exist for this class
+				if (featToTest != 0xFFFF)
+				{
+					if ((myCurrentFeats.count(featToTest) != 0) ||
+						(myAutoGrantedFeats.count(featToTest) != 0) ||
+						(myTakenFeats.count(featToTest) != 0))
+					{
+						//We have it !
+						//Client only test the first one found
+						iClassFeatFound = i;
+						break;
+					}
+				}
+			}
+
+			//We have a progression
+			if (iClassFeatFound != -1)
+			{
+				nClassSpellToTest = (uint8_t)iClassFeatFound;
+				bClassProgress = true;
+			}
+		}
+
+		int iOppositeSchool = 0;
+		//School stuff
+		//Game don't really manage school oposition except for wizard
+		if(currentSchool != 0xFF && nClassSpellToTest == 0xA)
+		{
+			uint32_t* pTableSchool;
+			std::string sSpellSchool2DAFile = "spellschools";
+			NWN::CExoString spellSchool2DAFile = {.m_sString       = sSpellSchool2DAFile.data(), .m_nBufferLength = std::size(sSpellSchool2DAFile) + 1};
+
+			pTableSchool = (uint32_t*)Preparation2DA(&spellSchool2DAFile);
+
+			if (pTableSchool != NULL)
+			{
+				int iRowNumber = pTableSchool[16];
+
+				int iOppositionOffset = Get2DAColumnOffset(pTableSchool, NULL, "Opposition");
+
+				if (!(currentSchool < iRowNumber && Get2DAInt(pTableSchool, currentSchool, iOppositionOffset, &iOppositeSchool)))
+				{
+					iOppositeSchool = 0;
+				}
+			}
+		}
+
+
+
+
+		NWN2DA::classes2DA mySpellClass = GetClasseRow(nClassSpellToTest);
+		if (mySpellClass != NULL && mySpellClass->m_SpellCaster == 1 && mySpellClass->m_AllSpellsKnow != 1)
+		{
+			//Test if we can take those spells (don't care about the number right now)
+			for (uint8_t i = 0; i < 10; i++)
+			{
+				for (uint16_t iSpellID : mySpellTaken[i])
+				{
+					NWN2DA::spells2da spellLine = GetSpellRow(iSpellID);
+					if (spellLine != NULL && spellLine->m_Available == 1 && spellLine->m_Removed != 1)
+					{
+						int levelOfSpell = 0;
+						if (iOppositeSchool != 0)
+						{
+							//This spell is of a forbidden school
+							if (spellLine->m_SchoolV == iOppositeSchool)
+							{
+								errorsList += "#SpellSchoolError:{"+std::to_string(iSpellID) + "}";
+
+								if(g_msgServ->bACLvlUpStopFirstViolation)
+								{
+									if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+										return -1;
+								}
+							}
+						}
+						if (nClassSpellToTest == 0x1) {
+							levelOfSpell = spellLine->m_Bard;
+						}
+						else if (nClassSpellToTest == 0x2 || nClassSpellToTest == 0x3A) {
+							levelOfSpell = spellLine->m_Cleric;
+						}
+						else if (nClassSpellToTest == 0x3 || nClassSpellToTest == 0x37) {
+							levelOfSpell = spellLine->m_Druid;
+						}
+						else if (nClassSpellToTest == 0x6) {
+							levelOfSpell = spellLine->m_Paladin;
+						}
+						else if (nClassSpellToTest == 0x7) {
+							levelOfSpell = spellLine->m_Ranger;
+						}
+						else if (nClassSpellToTest == 0x9 || nClassSpellToTest == 0xA) {
+							levelOfSpell = spellLine->m_WizSorc;
+						}
+						else {
+							levelOfSpell = spellLine->m_Innate;
+						}
+
+						if (levelOfSpell != i)
+						{
+							errorsList += "#SpellLevelError:{"+std::to_string(iSpellID)+":"+std::to_string(levelOfSpell)+":"+std::to_string(i)+ "}";
+
+							if(g_msgServ->bACLvlUpStopFirstViolation)
+							{
+								if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+									return -1;
+							}
+						}
+					}
+					else
+					{
+						errorsList += "#SpellError:{"+std::to_string(iSpellID)+ "}";
+
+						if(g_msgServ->bACLvlUpStopFirstViolation)
+						{
+							if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+								return -1;
+						}
+					}
+				}
+			}
+
+			//Ok, here we know that every spell are ok. Now, test their number
+			//First, do we have this class ? Else.. Error 
+			int iPositionClassSpell = -1;
+			if(myClasses[0].classId == nClassSpellToTest)
+			{
+				iPositionClassSpell = 0;
+			}
+			else if (myClasses[1].classId == nClassSpellToTest) {
+				iPositionClassSpell = 1;
+			}
+			else if (myClasses[2].classId == nClassSpellToTest) {
+				iPositionClassSpell = 2;
+			}
+			else if (myClasses[3].classId == nClassSpellToTest) {
+				iPositionClassSpell = 3;
+			}
+
+			if (iPositionClassSpell == -1)
+			{
+				errorsList += "#SpellClassProgressionError:{}";
+				if(g_msgServ->bACLvlUpStopFirstViolation)
+				{
+					if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+						return -1;
+				}
+			}
+			else
+			{
+				uint32_t iMaxGained = 0;
+				uint32_t iMaxRemoved = 0;
+				int iLvlSpClass = 0;
+				//Need to calculate the actual spelllvl
+				{
+					iLvlSpClass = myClasses[iPositionClassSpell].classLvl + 1;
+
+					//Test all class to test if we need to progress. Yes, even the current one. A class can have bonusSpelllvl for itself.
+					for (uint8_t i = 0; i < nb_OwnedClass; i++)
+					{
+						NWN2DA::classes2DA myTestClass = GetClasseRow(myClasses[i].classId);
+						if (myTestClass != NULL && myClasses[i].classId < 0xFE)
+						{
+							uint16_t featToTest = myTestClass->m_SpellCasterFeat[myClasses[i].classId];
+							if (featToTest != 0xFFFF && ((myCurrentFeats.count(featToTest) != 0) ||
+								(myAutoGrantedFeats.count(featToTest) != 0) ||
+								(myTakenFeats.count(featToTest) != 0)) )
+							{
+								//Progression
+								int iLvlTest = myClasses[i].classLvl;
+								if (i == nClassPosition)
+									iLvlTest++;
+
+								iLvlSpClass += myTestClass->m_CombinedBonusSpellcasterLvl[iLvlTest];
+							}
+						}
+					}
+				}
+
+				/*		
+				std::vector<uint32_t> mySpellTaken[10];
+				std::vector<uint32_t> mySpellRemoved[10];
+				uint32_t iTotalSpellGained = 0;
+				uint32_t iTotalSpellRemoved = 0;
+				*/
+
+				//First.. test wizard, they are specials
+				if (nClassSpellToTest == 0x0A)
+				{
+					//There is a bug on wizard and SpellLvlProgression with other classes
+					if (nClassSpellToTest != nChoosenClass && myClasses[iPositionClassSpell].classLvl < 2)
+					{
+						iMaxGained = 3 + iIntelBonus;
+					}
+					//First level of wizard
+					else if (myClasses[iPositionClassSpell].classLvl < 1)
+					{
+						iMaxGained = 3 + iIntelBonus;
+					}
+					else
+					{
+						iMaxGained = 2;
+					}
+
+					//If we remove spells, we have new one. The check of "can i remove them" will be done latter.
+					iMaxGained += iTotalSpellRemoved;
+
+					if (iMaxGained > iTotalSpellGained)
+					{
+						errorsList += "#TooManySpellTakens:{}";
+						if(g_msgServ->bACLvlUpStopFirstViolation)
+						{
+							if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+								return -1;
+						}
+					}
+
+					//Need to test the max spell lvl
+					int iMaxSpellNumber = mySpellClass->m_NumSpellLevels[iLvlSpClass-1];
+
+					for (uint8_t i = iMaxSpellNumber; i < 10; i++)
+					{
+						if (mySpellTaken[i].size() > 0 && i > iMaxSpellNumber)
+						{
+							errorsList += "#SpellLvlTooHigh:{}";
+							if(g_msgServ->bACLvlUpStopFirstViolation)
+							{
+								if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+									return -1;
+							}
+							break;
+						}
+					}
+				}
+				//All other class will use a spellKnownTable
+				else {
+					//Need to test the max spell lvl
+					iMaxGained = 0;
+					int iMaxSpellNumber = mySpellClass->m_NumSpellLevels[iLvlSpClass-1];
+					// iPositionClassSpell
+
+
+					AmCrtClass* myClassStr = NULL;
+					if (myClasses[iPositionClassSpell].classLvl != 0)
+					{
+						myClassStr = ((AmCrtClass*)(uPcBlock + AmCrtAbClass0))+iPositionClassSpell;
+					}
+
+					
+					uint8_t* pSpellKnowByLvl = mySpellClass->m_SpellKnowTable->m_pSpellKnowForLevel[iLvlSpClass-1];
+
+					//for each spellLvl
+					for (uint8_t i = 0; i < 10; i++)
+					{
+						//If we can take a spell of this level, check the number
+						if (i < iMaxSpellNumber)
+						{
+							//Need to get the current number of 
+							int uSpellKnwnNb = 0;
+							if(myClassStr != NULL)
+								uSpellKnwnNb = myClassStr->SpellsKnow[i].NbSpellsKnow;
+							//Substract the removedSpells number
+							uSpellKnwnNb -= mySpellRemoved[i].size();
+							//Test the difference beetween resulting number and number of known spells.
+							int iSpellDiff = pSpellKnowByLvl[i] - uSpellKnwnNb;
+
+							//If the diff is bellow 0,then we probably have added some by other way. The add Spell screen will not be shown
+							if (iSpellDiff < 0)
+								iSpellDiff = 0;
+
+							// Test if this diff is equal to NumberOfSpellTaken for this level
+							if (mySpellTaken[i].size() != iSpellDiff)
+							{
+								errorsList += "#TooManySpellTakens:{"+std::to_string(i) + "}";
+								if(g_msgServ->bACLvlUpStopFirstViolation)
+								{
+									if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+										return -1;
+								}
+							}
+						}
+						//Else... We shouldn't have taken any spell 
+						else
+						{
+							if (mySpellTaken[i].size() > 0)
+							{
+								errorsList += "#SpellLvlTooHigh:{"+std::to_string(i) + "}";
+								if(g_msgServ->bACLvlUpStopFirstViolation)
+								{
+									if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+										return -1;
+								}
+							}
+						}
+					}
+				}
+
+				//Ok, here we have checked that the spell taken are ok, time to check removed spells
+				//Need to check the number, the level, and the fact that we previously have this spell
+				bool bTooManyRemoved = false;
+				if (mySpellClass->m_SpellSwapMinLvl != 0 && mySpellClass->m_SpellSwapMinLvl <= iLvlSpClass)
+				{
+					if (iTotalSpellRemoved > 1)
+					{
+						bTooManyRemoved = true;
+					}
+					else if (iTotalSpellRemoved == 1)
+					{
+						//Ok, here check that we have autorization to remove spells.
+						//Is this a level on which i can ?
+						if (((iLvlSpClass - mySpellClass->m_SpellSwapMinLvl) % mySpellClass->m_SpellSwapLvlInterval) == 0)
+						{
+							//Starting here, we can take the shortcut : only one spell removed
+							int iMaxSpellNumber = mySpellClass->m_NumSpellLevels[iLvlSpClass-1];
+
+							//I really can remove a spell here. Check the spellLvl and if i can remove it
+							bool bRemovedFound = false;
+							for (int i = 0; i < (iMaxSpellNumber - mySpellClass->m_SpellSwapLvlDiff); i++)
+							{
+								if (mySpellRemoved[i].size() != 0)
+								{
+									bRemovedFound = true;
+
+									uint32_t uSpellRemToTest = mySpellRemoved[i].front();
+
+									AmCrtClass* myClassStr = NULL;
+									if(myClasses[iPositionClassSpell].classLvl != 0)
+										myClassStr = ((AmCrtClass*)(uPcBlock + AmCrtAbClass0))+iPositionClassSpell;
+
+									bool bFoundTestRem = false;
+									if (myClassStr != NULL && myClassStr->SpellsKnow[i].lSpellsKnow != NULL)
+									{
+										for (int j = 0; j < myClassStr->SpellsKnow[i].NbSpellsKnow; j++)
+										{
+											if (myClassStr->SpellsKnow[i].lSpellsKnow[j] == uSpellRemToTest)
+											{
+												bFoundTestRem = true;
+												break;
+											}
+										}
+									}
+									
+									//Dont found this spell
+									if (bFoundTestRem)
+									{
+										errorsList += "#BadSpellRemoved:{"+std::to_string(uSpellRemToTest) + "}";
+										if(g_msgServ->bACLvlUpStopFirstViolation)
+										{
+											if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+												return -1;
+										}
+									}
+									break;
+								}
+							}
+
+							if (!bRemovedFound)
+							{
+								errorsList += "#SpellRemovedTooHigh:{}";
+								if(g_msgServ->bACLvlUpStopFirstViolation)
+								{
+									if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+										return -1;
+								}
+
+							}
+						}
+						else
+						{
+							bTooManyRemoved = true;
+						}
+					}
+				}
+				else if (iTotalSpellRemoved > 0)
+				{
+					bTooManyRemoved = true;
+				}
+
+				if (bTooManyRemoved)
+				{
+					errorsList += "#TooManySpellRemoved:{"+std::to_string(iTotalSpellRemoved) + "}";
+					if(g_msgServ->bACLvlUpStopFirstViolation)
+					{
+						if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
+							return -1;
+					}
+				}
+			}
+		}
+	}
+
+
+	//End with a 0x70 (i have rare case with end by 0x60 or 0x7c. Need to find why. As long as i don't understand, only test the size.
+	if ((uPos+1) != size) //|| Data[uPos] != 0x70
 	{
 		return ReallyBadMsg(g_msgServ, sPlayerName, currentLevel, sCharacterName, errorsList+"#badMessageEnd{}");
 	}
@@ -1476,7 +2097,7 @@ int CheckForLevelUp(int playerId, unsigned char* Data, int size, std::string sPl
 	}
 
 	if (LevelUpViolation(g_msgServ, ObjectId, sPlayerName, currentLevel, sCharacterName, errorsList) <= 0)
-			return -1;
+		return -1;
 	return 1;
 }
 
@@ -1606,219 +2227,6 @@ __declspec(naked) int __fastcall GetGFFListLength(void* puVar, void* Unused, voi
 		jmp		edx;
 	}
 }
-
-///////////////////////
-
-#define FUNC_2daColumnNameToRowOffset	0x0051a290
-#define FUNC_2DAGetString				0x0051a2e0
-#define FUNC_2DAGetInt					0x0051a5f0
-
-#define FUNC_GetClientName				0x00571380
-
-#define FUNC_Check2DACache				0x0054aa40
-
-__declspec(naked) int __fastcall Get2DAColumnOffset(uint32_t* p2DATable,  void* Unused, const char* columnName)
-{
-	__asm
-	{
-		mov		edx, FUNC_2daColumnNameToRowOffset;
-		jmp		edx;
-	}
-}
-
-
-std::string Get2DAString(uint32_t* p2DATable, int iRow, int iColumnOffset)
-{
-	std::string sResult = "";
-	if ((-1 < iRow) && (iRow < *(int*)((int)p2DATable + 0x40)) && (-1 < iColumnOffset) && (iColumnOffset < *(int*)((int)p2DATable + 0x44)))
-	{
-
-		NWN::CExoString* resultExoString = (NWN::CExoString*)(*(int*)(*(int*)((int)p2DATable + 0x3c) + iRow * 4) + iColumnOffset * 8);
-
-		if (resultExoString != 0 && resultExoString->m_nBufferLength != 0 && resultExoString->m_sString != 0)
-		{
-			sResult = ExoStringToString(resultExoString);
-		}
-	}
-
-	return sResult;
-}
-
-bool Get2DAInt(uint32_t* p2DATable, int iRow, int iColumnOffset, int* iValue)
-{
-	std::string stringRes = Get2DAString(p2DATable, iRow, iColumnOffset);
-
-	if (stringRes == "")
-	{
-		try
-        {
-			int iNumber = std::stoi(stringRes);
-			*iValue = iNumber;
-			return true;
-
-		} catch (const std::exception& e) {
-			return false;
-        }
-	}
-
-	return false;
-}
-
-/*
-__declspec(naked) int __fastcall Get2DAString(uint32_t* p2DATable,  void* Unused, int iRow, int iColumnOffset, NWN::CExoString* result)
-{
-	__asm
-	{
-		mov		edx, FUNC_2DAGetString;
-		jmp		edx;
-	}
-}
-
-__declspec(naked) int __fastcall Get2DAInt(uint32_t* p2DATable,  void* Unused, int iRow, int iColumnOffset, int* result)
-{
-	__asm
-	{
-		mov		edx, FUNC_2DAGetInt;
-		jmp		edx;
-	}
-}
-*/
-
-__declspec(naked) NWN::CExoString* __fastcall GetClientName(void* pContext)
-{
-	__asm
-	{
-		mov		edx, FUNC_GetClientName;
-		jmp		edx;
-	}
-}
-
-__declspec(naked) uint32_t __fastcall Check2daCache(uint32_t ptrTable, void* Unused, NWN::CExoString* sTableName)
-{
-	__asm
-	{
-		mov		edx, FUNC_Check2DACache;
-		jmp		edx;
-	}
-}
-
-
-
-/********************************************************************/
-
-#define FUNC_2DASetupSEPTIMsgServ		0x00686d42
-#define FUNC_2DASetupRetSEPTIMsgServ	0x00686def
-
-
-__declspec(naked) int __fastcall Prepare2DA_intern(NWN::CExoString* sNameTable, void* UNUSED)
-{
-	__asm 
-	{
-		push ecx
-		PUSH EBX
-		push edx
-		push ebp
-		push esi
-		push edi
-		sub esp, 0x60
-
-
-		LEA EAX, [ESP + 0xC]
-
-		mov edx, [ecx]
-		mov [eax], edx
-
-		mov edx, [ecx + 4] 
-		mov [eax + 4], edx
-
-
-		//MOV [EAX], [ECX]
-		//MOV [EAX+4], [ECX+4]
-
-		mov		edx, FUNC_2DASetupSEPTIMsgServ;
-		jmp		edx;
-	}
-}
-
-__declspec(naked) int __fastcall Prepare2DARet_intern(NWN::CExoString* sNameTable, void* UNUSED)
-{
-	__asm
-	{
-		//Remove the whole space on esp immediatly
-		ADD ESP, 0x60
-
-		//Save ptr on p2DATable
-		//Count.. All the register (5*4) + 4
-		CMP EBX, 0
-		JNE Prepare2DAMsgServKeepESI
-		MOV ESI, 0
-
-Prepare2DAMsgServKeepESI:
-		MOV EAX, ESI
-
-		//Restore everything
-		POP EDI
-		POP ESI
-		POP EBP
-		POP EDX
-		POP EBX
-		POP ECX
-
-		RET
-	}
-}
-
-Patch _tempPatch2DAmsgServ[] =
-{
-	//List of TempPatch for Setup2DA table
-	Patch((DWORD)FUNC_2DASetupRetSEPTIMsgServ, (char*)"\xe9\x00\x00\x00\x00", (int)5),
-	Patch(FUNC_2DASetupRetSEPTIMsgServ+1, (relativefunc)Prepare2DARet_intern),
-};
-
-Patch *tempPatch2DAmsgServ = _tempPatch2DAmsgServ;
-
-uint32_t Preparation2DA(NWN::CExoString* cTable)
-{
-	char lowerTableName[32];
-
-	for (int i = 0; i < 32 && i < cTable->m_nBufferLength; i++)
-	{
-		lowerTableName[i] = (char)tolower(cTable->m_sString[i]);
-	}
-	
-	NWN::CExoString lowerTable;
-
-	lowerTable.m_sString = lowerTableName;
-	lowerTable.m_nBufferLength = cTable->m_nBufferLength;
-
-	//Patch stuff here
-	
-	uint32_t* tempPtr = *(uint32_t**)OFFS_g_pAppManager;
-	uint32_t value = tempPtr[1];
-
-	uint32_t p2DATable = Check2daCache(value, NULL, &lowerTable);
-
-	if (p2DATable != 0)
-	{
-		return p2DATable;
-	}
-
-	//Patch the function
-	tempPatch2DAmsgServ[0].Apply();
-	tempPatch2DAmsgServ[1].Apply();
-
-
-	//Call it
-	p2DATable = Prepare2DA_intern(&lowerTable, NULL);
-
-	//Unpatch here
-	tempPatch2DAmsgServ[0].Remove();
-	tempPatch2DAmsgServ[1].Remove();
-
-
-	return p2DATable;
-}
-/********************************************************************/
 
 
 //Septi, time to be smart. Dont do a too complicated function for this please
@@ -2020,9 +2428,6 @@ bool TestIfFeatOk_CharCreation(uint16_t featToTest, NWN2DA::classes2DA myClass,
 	return true;
 }
 
-//uint32_t local_6c[20];
-//char	 local_20[32];
-
 ///////////////////////
 
 bool CharacterCreationError(std::string sAccountName, std::string sErrorList)
@@ -2054,7 +2459,6 @@ bool CharacterCreationError(std::string sAccountName, std::string sErrorList)
 	return bError;
 }
 
-//571380
 
 int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* pContext, int* aiStack110)
 {
@@ -2232,6 +2636,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 		void* newPtr[5];
 		void* newPtr2[5];
 
+		//No need to test results, if we are here the server have already tested the existance.
 		int iTempRes = GetGFFList(puVar, NULL, newPtr, gffPtr, "ClassList");
 		iTempRes = GetGFFListLength(puVar, NULL, newPtr);
 		iTempRes = GetGFFStruct(puVar, NULL, newPtr2, newPtr, 0);
@@ -2308,7 +2713,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 							int iValue = 0;
 							bRes = Get2DAInt(pTable, i, iReqParam1Offset, &iValue);
 
-							if (bRes == 0 || iValue > 0)
+							if (iValue > 0)
 							{
 								//For now, without more details, no real need to call it more than one time
 								if (!bPreReqErrorFound)
@@ -2333,7 +2738,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 							int iValue = 0;
 							bRes = Get2DAInt(pTable, i, iReqParam2Offset, &iValue);
 
-							if (bRes == 0 || iValue > 0)
+							if (iValue > 0)
 							{
 								//For now, without more details, no real need to call it more than one time
 								if (!bPreReqErrorFound)
@@ -2362,7 +2767,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 							bRes = Get2DAInt(pTable, i, iReqParam1Offset, &iValue);
 
 							//It's ok, one of them is set to 0
-							if (bRes != 0 && iValue == 0)
+							if (bRes && iValue == 0)
 							{
 								bArcOrDivOk = true;
 							}
@@ -2594,9 +2999,8 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 
 	//Test skillspoints
 	std::vector<smallSkill> skillsTaken;
+	int iIntBonus = 0;
 	{
-		int iIntBonus = 0;
-
 		if (iInt < 10)
 		{
 			iIntBonus = (iInt - 11) / 2;
@@ -2679,7 +3083,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 				uint32_t cClassSkillID = listClassSkill[iCS].m_SkillIndex;
 				uint32_t cClassSkillC = listClassSkill[iCS].m_ClassSkill;
 
-				if (cClassSkillC == 1) {
+				if (cClassSkillC == 1 && cClassSkillID < skillsTaken.size()) {
 					//Allow
 					skillsTaken[cClassSkillID].maxRank = 4;
 					skillsTaken[cClassSkillID].skillCost = 1;
@@ -3088,7 +3492,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 
 		if (sListDomainFeatNotFound != "")
 		{
-			std::string sError = "#DomainFeatNotFound:{"+sListDomainFeatNotFound+"}";
+			std::string sError = "#DomainFeatNotFound:{" + sListDomainFeatNotFound + "}";
 			sErrorList += sError;
 			if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
 			{
@@ -3126,7 +3530,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 
 		//Ok, now.. Test each feats prerequisites
 		//we loop as long as we have thing 
-		while(myTakenFeats.size() > 0)
+		while (myTakenFeats.size() > 0)
 		{
 			std::unordered_set<uint16_t> myCurrentValidated;
 			for (uint16_t featToTest : myTakenFeats) {
@@ -3139,9 +3543,9 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 				//Just leave, we will not validate anything else
 				break;
 			}
-			else 
+			else
 			{
-				for (uint16_t featToAdd : myCurrentValidated) 
+				for (uint16_t featToAdd : myCurrentValidated)
 				{
 					if (myTakenFeats.erase(featToAdd) != 0)
 					{
@@ -3153,7 +3557,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 
 		if (myTakenFeats.size() > 0)
 		{
-			std::string sError = "#AtLeastOneFeatNotValidated:{"+std::to_string(*myTakenFeats.begin()) + "};";
+			std::string sError = "#AtLeastOneFeatNotValidated:{" + std::to_string(*myTakenFeats.begin()) + "};";
 			sErrorList += sError;
 			if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
 			{
@@ -3162,6 +3566,241 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 		}
 	}
 
+
+
+	/////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////// Spell check ////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	{
+
+		void* pClassList[5];
+		void* pClass0Strct[5];
+		void* pKnownList[5];
+		void* pWorkingStrct[5];
+
+		int iTempRes = GetGFFList(puVar, NULL, pClassList, gffPtr, "ClassList");
+		iTempRes = GetGFFListLength(puVar, NULL, pClassList);
+		iTempRes = GetGFFStruct(puVar, NULL, pClass0Strct, pClassList, 0);
+
+		//We are in the Class/0. Now, need to parse the differents know lists 
+
+		std::vector<uint16_t> mySpells[10];
+		uint64_t numberOfSpells = 0;
+
+		for (int i = 0; i < 10; i++)
+		{
+			std::string sListKnown = "KnownList" + std::to_string(i);
+			iTempRes = GetGFFList(puVar, NULL, pKnownList, pClass0Strct, sListKnown.c_str());
+			if (iTempRes != 0)
+			{
+				int iNumSpKnownList = GetGFFListLength(puVar, NULL, pKnownList);
+				numberOfSpells += iNumSpKnownList;
+				for (int j = 0; j < iNumSpKnownList; j++)
+				{
+					iTempRes = GetGFFStruct(puVar, NULL, pWorkingStrct, pKnownList, j);
+					if (iTempRes != 0)
+					{
+						uint16_t uSpell = GetGFFWord(puVar, NULL, pWorkingStrct, "Spell", aiStack110, 0);
+						mySpells[i].push_back(uSpell);
+					}
+				}
+			}
+		}
+
+		uint8_t uSchool = 0;
+		int iOppositeSchool = 0;
+
+		if(myClass->m_HasSchool)
+		{
+			uSchool = GetGFFByte(puVar, NULL, pClass0Strct, "School", aiStack110, 0);
+
+
+			
+
+			uint32_t* pTableSchool;
+			std::string sSpellSchool2DAFile = "spellschools";
+			NWN::CExoString spellSchool2DAFile = {.m_sString       = sSpellSchool2DAFile.data(), .m_nBufferLength = std::size(sSpellSchool2DAFile) + 1};
+
+			pTableSchool = (uint32_t*)Preparation2DA(&spellSchool2DAFile);
+
+			if (pTableSchool != NULL)
+			{
+				int iRowNumber = pTableSchool[16];
+
+				int iOppositionOffset = Get2DAColumnOffset(pTableSchool, NULL, "Opposition");
+
+				if (!(uSchool < iRowNumber && Get2DAInt(pTableSchool, uSchool, iOppositionOffset, &iOppositeSchool)))
+				{
+					iOppositeSchool = 0;
+				}
+			}
+		}
+	
+		//Spell choose list
+		if (myClass->m_SpellCaster == 1 && myClass->m_AllSpellsKnow != 1)
+		{
+			//First, check spells validity
+			for (int i = 0; i < 10; i++)
+			{
+				for (uint16_t iSpellID : mySpells[i]) 
+				{	
+					NWN2DA::spells2da spellLine = GetSpellRow(iSpellID);
+					//check null
+					if (spellLine != NULL && spellLine->m_Available == 1 && spellLine->m_Removed != 1)
+					{
+						int levelOfSpell = 0;
+						//Game don't manage opposition school except for wizard...
+						if (iOppositeSchool != 0 && iClass == 0xA)
+						{
+							//This spell is of a forbidden school
+							if (spellLine->m_SchoolV == iOppositeSchool)
+							{
+								//error lvl
+								std::string sError = "#SpellSchoolError:{};";
+								sErrorList += sError;
+								if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+								{
+									return 1;
+								}
+							}
+						}
+						if (iClass == 0x1) {
+							levelOfSpell = spellLine->m_Bard;
+						}
+						else if (iClass == 0x2 || iClass == 0x3A) {
+							levelOfSpell = spellLine->m_Cleric;
+						}
+						else if (iClass == 0x3 || iClass == 0x37) {
+							levelOfSpell = spellLine->m_Druid;
+						}
+						else if (iClass == 0x6) {
+							levelOfSpell = spellLine->m_Paladin;
+						}
+						else if (iClass == 0x7) {
+							levelOfSpell = spellLine->m_Ranger;
+						}
+						else if (iClass == 0x9 || iClass == 0xA) {
+							levelOfSpell = spellLine->m_WizSorc;
+						}
+						else {
+							levelOfSpell = spellLine->m_Innate;
+						}
+
+						if (levelOfSpell != i)
+						{
+							//error lvl
+							std::string sError = "#SpellLvlError:{};";
+							sErrorList += sError;
+							if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+							{
+								return 1;
+							}
+						}
+					}
+					else {
+						std::string sError = "#SpellUnknow:{};";
+						sErrorList += sError;
+						if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+						{
+							return 1;
+						}
+
+					}
+				}
+				
+			}
+
+			//Now, check the numbers
+
+			//wizard are "specials"
+			if (iClass == 0xa)
+			{
+				int lvl0Nb = 0;
+				int lvl1Nb = 3;
+				if (iIntBonus > 0)
+					lvl1Nb += iIntBonus;
+
+
+				uint32_t iSpellTIdx = 0;
+				NWN2DA::spells2da spellTest = GetSpellRow(iSpellTIdx);
+
+				//Lvl0 = all availables
+				while (spellTest != NULL)
+				{
+					if (spellTest->m_Available == 1 && spellTest->m_Removed != 1 && spellTest->m_WizSorc == 0)
+					{
+						//Game don't really manage opposite school except for wizard
+						if (iClass != 0xA || iOppositeSchool == 0 || spellTest->m_SchoolV != iOppositeSchool)
+						{
+							//Valid spell
+							lvl0Nb++;
+						}
+					}
+					iSpellTIdx++;
+					spellTest = GetSpellRow(iSpellTIdx);
+				}
+
+				if (lvl1Nb != mySpells[1].size() || lvl0Nb != mySpells[0].size() || numberOfSpells != (lvl1Nb+lvl0Nb))
+				{
+					std::string sError = "#SpellNumberLvlError:{};";
+					sErrorList += sError;
+					if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+					{
+						return 1;
+					}
+				}
+			}
+			else 
+			{
+				uint8_t uNumSpellLevels = myClass->m_NumSpellLevels[0];
+
+				uint8_t* pSpellKnowByLvl = myClass->m_SpellKnowTable->m_pSpellKnowForLevel[0];
+				uint64_t calcNumberOfSpells = 0;
+
+				std::string sListLvlNumSpellError = "";
+
+				for (uint8_t i = 0; i < uNumSpellLevels; i++)
+				{
+					calcNumberOfSpells += pSpellKnowByLvl[i];
+					if (mySpells[i].size() != pSpellKnowByLvl[i])
+					{
+						std::string sError = " "+std::to_string(i)+":"+std::to_string(pSpellKnowByLvl[i])+":"+std::to_string(mySpells[i].size());
+						sListLvlNumSpellError += sError;
+					}
+				}
+				if(sListLvlNumSpellError != "")
+				{
+					std::string sError = "#SpellNumberLvlError:{"+sListLvlNumSpellError+"};";
+					sErrorList += sError;
+					if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+					{
+						return 1;
+					}
+				}
+
+
+				if (calcNumberOfSpells != numberOfSpells)
+				{
+					std::string sError = "#SpellNumberError:{" + std::to_string(calcNumberOfSpells) + ":" + std::to_string(numberOfSpells) + "}; ";
+					sErrorList += sError;
+					if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+					{
+						return 1;
+					}
+				}
+			}
+		}
+		else if(numberOfSpells != 0)
+		{
+			std::string sError = "#SpellNumberError:{0:"+ std::to_string(numberOfSpells) + "};";
+			sErrorList += sError;
+			if (gMsgServerStopFirstCreation && CharacterCreationError(sAccountName, sErrorList))
+			{
+				return 1;
+			}
+		}
+
+	}
 
 
 
@@ -3262,7 +3901,7 @@ __declspec(naked) void CharacterCreationCheck()
 
 		//Save carac + race bonus. done 
 
-		//Check if Class OK : alignment , (god for latter?) , prereqTable. done (there is something strange wis ability, seems to be more a client side stuff) 
+		//Check if Class OK : alignment , (god for latter?) , prereqTable. done (there is something strange with ability, seems to be more a client side stuff) 
 
 		//Check if CompPointsOK. done
 
@@ -3270,7 +3909,6 @@ __declspec(naked) void CharacterCreationCheck()
 
 
 		//Familiar/AnimalCompanion TODO
-		//Spells...TODO
 
 FinishCharacterCreationTest:
 		//Resume the original flow
@@ -3324,6 +3962,12 @@ bool ApplyAntiCheatCreationPatch(SimpleIniConfig* config, bool activateIt)
 	}
 
 	g_AnticheatActivated = activateIt;
+
+	logger->Debug("AntiCheat on CharacterCreation activated :");
+	if (g_ScriptCreationError != "")
+		logger->Debug("With %s script", g_ScriptCreationError.c_str());
+	logger->Debug("StopOnFirstViolation: %s", gMsgServerStopFirstCreation ? "TRUE" : "FALSE");
+	logger->Debug("Parameters : MinScaleX: %f, MinScaleZ: %f,  MaxScaleX: %f, MaxScaleZ: %f", gfMinScaleX, gfMinScaleZ, gfMaxScaleX, gfMaxScaleZ);
 
 	return true;
 }

@@ -355,6 +355,21 @@ ID table of equiped object ( Inventory_Slot +1)
 //uint8_t
 #define AmCrtABNbClass				0x0014
 
+//uint16*
+#define AmCrtABFeatList				0x0018
+
+//uint32
+#define AmCrtABNbOfFeats			0x001C
+
+//uint8*
+#define AmCrtABCurrentSkillList		0x0050
+//uint16
+#define AmCrtABKeepedSkillPoints	0x005C
+
+//uint8_t
+#define AmCrtABAlignGE				0x0078
+#define AmCrtABAlignLC				0x007A
+
 //uint32_t
 #define AmCrtABIsDM					0x0094
 

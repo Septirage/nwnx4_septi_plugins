@@ -4,6 +4,7 @@
 
 #include "../../NWN2Lib/NWN2.h"
 #include "../../NWN2Lib/NWN2Common.h"
+#include <cstdint>
 
 /*
 #define POSITION2DA_CLASSES			0x168
@@ -151,7 +152,7 @@ namespace NWN2DA
 		int16_t								m_FeatIndex;
 		int8_t								m_GrantedOnLevel; //2
 		int8_t								m_List;	//3
-		int32_t								m_OnMenu;	//4
+		uint32_t							m_OnMenu;	//4
 
 		int16_t								m_GrantedPrereq; //8
 		uint16_t								m_Padding;
@@ -159,8 +160,10 @@ namespace NWN2DA
 
 	struct clsSkills2DA
 	{
-		uint32_t							m_SkillIndex;
-		uint32_t							m_ClassSkill;
+		uint16_t							m_SkillIndex;
+		char								Padding0[2];
+		uint8_t								m_ClassSkill;
+		char								Padding1[3];
 	};
 
 	struct spellKnowTable
@@ -493,8 +496,126 @@ namespace NWN2DA
 
 	typedef domains2da_line* domains2da;
 
+	struct spells2da_line
+	{
+		NWN::CExoString	m_Label;
+		uint32_t	m_Name;			//0x8
+		uint32_t	m_SpellDesc;	//0xC
+		char		m_IconResRef[32];	//0x10
+		NWN::CExoString	m_SchoolS;	//0x30
+		uint8_t		m_SchoolV;		//0x38 //Todo, change to add an enum ? a=1 c=2 D=3 E=4 I=6 N=7 T=8 V=5
+		uint8_t		m_Range;	//0x39 //Todo enum? P:0 T:1 S:2 M:3 L:4 I:5 -1
+		uint16_t	Padding0;
+		NWN::CExoString	m_VS;	//0x3C
+		//
+		uint16_t	m_TargetType;	//0x44
+		uint16_t	Padding1;
+		//
+		NWN::CExoString	m_ImpactScript;	//0x48
+		int8_t		m_Bard;			//0x50
+		int8_t		m_Cleric;		//0x51
+		int8_t		m_Druid;		//0x52
+		int8_t		m_Paladin;		//0x53
+		int8_t		m_Ranger;		//0x54
+		int8_t		m_WizSorc;		//0x55
+		int8_t		m_WizSorc2;		//0x56
+		int8_t		m_Warlock;		//0x57
+		int8_t		m_Innate;		//0x58
+		//
+		int8_t		Padding3[3];	//0x59-0x5B
+		//
+		int32_t		m_ConjTime;		//0x5C
+		int16_t		m_ConjAnim;		//0x60				//read:8 party:5 bardsong:7 defensive:4 attack:6 major:3 head:2 hand:1 else:0
+		char		m_ConjVisual0[32];	//0x62
+		char		m_ConjVisual1[32];	//0x82
+		char		m_ConjVisual2[32];	//0xa2
+		char		m_LowConjVisual0[32];	//0xC2		
+		char		Padding4[0x40];	//? 0x20*2 (lowconjVisual1 & 2 doesnt exist)
+		char		m_ConjSoundMale[32];	//0x122
+		char		m_ConjSoundFemale[32];	//0x142
+		char		m_ConjSoundVFX[32]; //0x162
+		uint16_t	Padding5;
+		NWN::CExoString		m_ConjSoundOverride; //0x184
+		int16_t		m_CastAnim;		//18c creature:8 attack:7 touch:6 general:0xd major:0xc defensive:0xb throw:0x9 lightning:6 (?)  point:6(?) bardsong:a  area:4 turn:3 up:3(?) self:2  spray/out:1
+		int16_t		Padding6;
+		uint32_t	m_CastTime;	//0x190
+		char		m_CastVisual0[32]; //0x194
+		char		m_CastVisual1[32];//0x1B4
+		char		m_CastVisual2[32];//0x1D4
+		char		m_LowCastVisual0[32];//0x1F4
+		char		Padding7[0x40]; //LowCastVisual1 & 2 don't exist
+		char		m_CastSound[32];	//0x254
+
+		uint32_t	m_Proj;		//0x274
+		char		m_ProjModel[32];	//0x278
+		NWN::CExoString	m_ProjSEF;	//0x298
+		NWN::CExoString m_LowProjSEF;	//0x2a0
+		
+		uint32_t	m_ProjType;		//0x2A8  thrownballistic:0x11 launchedballistic:0x10 loworbit:0x0f homingspiral:0x0e burst:0x09 bounce:0x08 linked:0x07 spiral:0x06 accelerating:0x05 burstup:0x04 highballistic:0x03 ballistic:0x02 homing:0x01
+
+		uint8_t		m_ProjSpwnPoint;	//0x2AC	 hands:0x1 lhand:0x2 rhand:0x3 head:0x4 chest:0x5 halo:0x6 mouth:0x7 attach:0xa ... Other stuff ?
+		char		m_ProjSound[32];	//0x2AD
+		uint8_t		m_ProjOrientation;	//0x2CD	path:0x2 target:0x1 else:0
+		
+		uint16_t	Padding8;
+
+		NWN::CExoString	m_ImpactSEF;	//0x2D0
+		NWN::CExoString m_LowImpactSEF;	//0x2D8
+
+		uint8_t		Padding9[8]; //??? 0x2E0
+
+		uint32_t	m_Category;		//0x2E8
+		int32_t		m_Innate2;		//0x2EC
+
+		uint16_t*	m_SubRadialList; //0x2F0
+		uint8_t		m_SubRadialNb;	//0x2F4
+		char		Padding10[3];
+		uint32_t	m_UseConcentration;	//0x2F8
+
+		//
+
+		int32_t		m_Master;			//0x2FC (spell_id or value)
+		uint32_t	m_Counter1;			//0x300 (0xFFFFFFFF or value)
+		uint32_t	m_Counter2;			//0x304 (0xFFFFFFFF or value)
+		uint8_t		m_UserType;			//0x308
+		
+		char		Padding11[3];
+
+		uint32_t	m_SpontaneouslyCast;	//0x30C
+
+		uint32_t	Padding12; //?? 0x310
+
+		uint32_t	m_MetaMagic;			//0x314
+		uint32_t	m_AsMetaMagic;			//0x318
+		uint32_t	m_AltMessage;			//0x31C
+		uint32_t	m_HostileSetting;		//0x320
+		uint32_t	m_FeatID;				//0x324
+		uint32_t	m_HasProjectile;		//0x328
+
+
+		uint32_t	m_Available;	//0x32c			If ok, setTo1
+		uint32_t	m_Removed;		//0x330
+
+
+		uint8_t		m_TargetingUI;	//0x334
+		bool		m_CastableOnDead;	//0x335
+
+
+		uint16_t	Padding13;
+
+	};
+	typedef spells2da_line* spells2da;
+
+	struct spells2DAredirect_ {
+		uint32_t		m_NumberOfSpells;
+		spells2da		m_pSpells;
+	};
+	typedef spells2DAredirect_* spells2DAredirect;
+
 	struct access2da {
-		char			Padding[0x140];
+		char			Padding[0x138];
+		spells2DAredirect m_pSpellStrct;	//0x138
+		uint32_t			m_pMetamagic;		//0x13C	TODO
 		feats2DA		m_pFeats;		//0x140
 		MasterFeats2DA	m_MasterFeat;	//0x144  
 
@@ -555,6 +676,7 @@ NWN2DA::racialtypes2DA g_races2da = NULL;
 NWN2DA::racialSubtypes2DA g_subraces2da = NULL;
 NWN2DA::background2da g_backgrounds2da = NULL;
 NWN2DA::domains2da g_domains2da = NULL;
+NWN2DA::spells2da g_spells2da = NULL;
 
 void Init2DAStructs() {
 	g_global2da = *(NWN2DA::access2da**)(0x86443C);
@@ -565,6 +687,7 @@ void Init2DAStructs() {
 	g_subraces2da = g_global2da->m_pRacialSubTypes;
 	g_backgrounds2da = g_global2da->m_pBackground;
 	g_domains2da = g_global2da->m_pDomains;
+	g_spells2da = g_global2da->m_pSpellStrct->m_pSpells;
 }
 
 NWN2DA::background2da GetBackgroundRow(uint32_t iBackgroundRow)
@@ -700,6 +823,19 @@ NWN2DA::skills2DA GetSkillRow(uint32_t iSkill)
 	if (iSkill < g_global2da->m_NumberOfSkills)
 	{
 		return (g_skills2da + iSkill);
+	}
+
+	return NULL;
+}
+
+NWN2DA::spells2da GetSpellRow(uint32_t iSpell)
+{
+	if (g_spells2da == NULL)
+		Init2DAStructs();
+
+	if (iSpell < g_global2da->m_pSpellStrct->m_NumberOfSpells)
+	{
+		return (g_spells2da + iSpell);
 	}
 
 	return NULL;
