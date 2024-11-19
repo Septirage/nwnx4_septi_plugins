@@ -42,6 +42,46 @@ BOOL
 
 SendMessageToPlayer     SendMessageToPlayer_;
 
+typedef
+void
+(__stdcall * OnPlayerConnectionCloseProc)(
+	__in unsigned long PlayerId,
+	__in void * Context
+	);
+
+typedef
+BOOL
+(__stdcall * OnPlayerConnectionReceiveProc)(
+	__in unsigned long PlayerId,
+	__in_bcount( Length ) const unsigned char * Data,
+	__in size_t Length,
+	__in void * Context
+	);
+
+typedef
+BOOL
+(__stdcall * OnPlayerConnectionSendProc)(
+	__in unsigned long PlayerId,
+	__in_bcount( Size ) unsigned char * Data,
+	__in unsigned long Size,
+	__in unsigned long Flags,
+	__in void * Context
+	);
+
+
+typedef
+void
+(__stdcall *
+	SetPacketFilterCallouts)(
+		__in void* Context,
+		__in OnPlayerConnectionCloseProc OnClose,
+		__in OnPlayerConnectionReceiveProc OnReceive,
+		__in OnPlayerConnectionSendProc OnSend
+		);
+
+SetPacketFilterCallouts     SetPacketFilterCallouts_;
+
+
 struct CPlayerCDKeyInfo
 {
 	NWN::CExoString m_Key;
@@ -101,66 +141,6 @@ GetPlayerConnectionInfo GetPlayerConnectionInfo_;
 
 
 	MsgServ* g_msgServ;
-	// 1.23
-	// g_pVirtualMachine
-	constexpr uintptr_t NWN2_OFFSET_CVIRTUALMACHINE = 0x00864424;
-	// CVirtualMachine::ExecuteScript
-	constexpr uintptr_t NWN2_OFFSET_EXECUTESCRIPT = 0x0072B380;
-	constexpr uintptr_t NWN2_OFFSET_EXECUTESCRIPT_ENH = 0x0072B050;
-
-	constexpr uintptr_t NWN2_OFFSET_InitParam = 0x0055EA40;
-	constexpr uintptr_t NWN2_OFFSET_CleanParam = 0x006b5cd0;
-
-	struct CVirtualMachine
-	{
-
-	};
-
-	using CVirtualMachine_ExecuteScript_t = BOOL(__thiscall*)(CVirtualMachine* thisVM,
-		const NWN::CExoString& scriptName, NWN::OBJECTID objectId, uint32_t unknown1, uint32_t unknown2);
-	CVirtualMachine_ExecuteScript_t CVirtualMachine_ExecuteScript =
-		std::bit_cast<CVirtualMachine_ExecuteScript_t>(NWN2_OFFSET_EXECUTESCRIPT);
-
-	using CVirtualMachine_ExecuteScriptEnhanced_t = int(__thiscall*)(CVirtualMachine* thisVM,
-		const NWN::CExoString& scriptName, NWN::OBJECTID objectID, void* ParamList, uint32_t unknow1, uint32_t unknow2);
-	CVirtualMachine_ExecuteScriptEnhanced_t CVirtualMachine_ExecuteScriptEnhanced =
-		std::bit_cast<CVirtualMachine_ExecuteScriptEnhanced_t>(NWN2_OFFSET_EXECUTESCRIPT_ENH);
-
-	using CVirtualMachine_InitParam_t = void(__thiscall*)(void* paramLst, uint32_t iNb);
-	using CVirtualMachine_CleanParam_t = void(__thiscall*)(void* paramLst);
-
-	CVirtualMachine_InitParam_t CVirtualMachine_InitParam =
-		std::_Bit_cast<CVirtualMachine_InitParam_t>(NWN2_OFFSET_InitParam);
-	CVirtualMachine_CleanParam_t CVirtualMachine_CleanParam =
-		std::_Bit_cast<CVirtualMachine_CleanParam_t>(NWN2_OFFSET_CleanParam);
-
-    CVirtualMachine*
-    GetNwn2VirtualMachine()
-    {
-	    const auto vm = std::bit_cast<CVirtualMachine**>(NWN2_OFFSET_CVIRTUALMACHINE);
-	    return *vm;
-    }
-
-	
-
-int(__fastcall* OriginalMS)(void* pThis, void* _, int playerId, unsigned char* Data, int size);
-
-DWORD 
-FindHookMsgServ()
-{
-	// 83 EC 0C 8B 44 24 14 8A 50
-	char* ptr = (char*)0x400000;
-	while (ptr < (char*)0x800000) {
-		if ((ptr[0] == (char)0x83) && (ptr[1] == (char)0xEC) && (ptr[2] == (char)0x0C) &&
-			(ptr[3] == (char)0x8B) && (ptr[4] == (char)0x44) && (ptr[5] == (char)0x24) &&
-			(ptr[6] == (char)0x14) && (ptr[7] == (char)0x8A) && (ptr[8] == (char)0x50) &&
-			(ptr[9] == (char)0x02))
-			return (DWORD)ptr;
-		else
-			ptr++;
-	}
-	return NULL;
-}
 
 //OFFS_g_pAppManager
 //Must be redone to be based on struct instead ugly ptr management
@@ -292,14 +272,8 @@ void MsgServBanPlayerName(std::string playerName)
 }
 
 //Launch the gui, change the text (and hide the respawn button if we use the default panel)
-bool OpenKickGui(unsigned long iMustView, std::string sText, bool bEnforced = true)
+bool OpenKickGui(unsigned long iMustView, std::string sText)
 {
-	//allow to unactive this verification 
-	if (!g_msgServ->bEnforcedBlock && bEnforced)
-	{
-		return false;
-	}
-
 	std::string sName = GetPlayerAccountName_(iMustView);
 	
 	//Let it be blocked. Never allow anything now (until new connexion)
@@ -438,24 +412,37 @@ void OpenPopUp(unsigned long iMustView, std::string sMsg, std::string sBtn)
 	}
 }
 
-//Called for every received msg
-int __fastcall MSHookProc(void* pThis, void* _, int playerId, unsigned char* Data, int size)
+
+void PrintFullMessage(const unsigned char* Data, size_t size, std::string sCharName)
 {
-	try{
+	if(logger->Level() >= LogLevel::info)
+	{
+		std::string sResult = "";
+		char buffer[3];
+		for (size_t i = 0; i < size; ++i) {
+			sprintf(buffer, "%02X ", Data[i]);
+			sResult += buffer;
+		}
+		logger->Info("Message from %s: \n\t %s", sCharName.c_str(), sResult.c_str());
+	}
+}
+
+
+BOOL __stdcall MsgServOnReceive(
+	__in unsigned long playerId,
+	__in_bcount(Length) const unsigned char * Data,
+	__in size_t Length,
+	__in void * Context
+) {
+	try
+	{
 		std::string currentName_(GetPlayerAccountName_(playerId));
 		unsigned long currentIP_ = 0;
 
-		//Only if we want to trace "everything"
-		if(logger->Level() == LogLevel::trace)
+		//Only if we want to trace everything
+		if (g_msgServ->bTraceEveryMsg)
 		{
-			const void * address = static_cast<const void*>(Data);
-			std::stringstream ss;
-			ss << address;  
-			std::string addr = ss.str();
-
-			std::string logTxt =
-				"MsgSrv("+ currentName_ + " send @:" + addr + ", size : " + std::to_string(size) + ", id : " + std::to_string(playerId) + ")";
-			logger->Trace(logTxt.c_str());
+			PrintFullMessage(Data, Length, currentName_);
 		}
 
 		//Only if we want to active loggin module.
@@ -467,367 +454,322 @@ int __fastcall MSHookProc(void* pThis, void* _, int playerId, unsigned char* Dat
 				currentIP_ = sin.sin_addr.s_addr;
 			}
 
-			//The only msg type i manage for now
-			if (Data[0] == 0x70)
+
+			//Will not manage bad message
+			if (Length > 1 && Data[0] == 0x70)
 			{
-				//First msg, reset the step !
-				if (size == 3 && Data[1] == 0x01 && Data[2] == 0x00)
+				//Module.ModuleLoaded. "Initial message"
+				if (Length == 0xA && Data[1] == 0x03 && Data[2] == 0x02 && Data[3] == 0x09 && Data[4] == 0x00 &&
+					Data[5] == 0x00 && Data[6] == 0x00 && Data[7] == 0x0 && Data[8] == 0x00)
 				{
+					
+
+
+					//Do we know this player ?
 					if(g_msgServ->_knowedPlayer.count(currentName_) > 0)
 					{
 						//Banned guy, don't let it came in and reset the step.
-						if(g_msgServ->_knowedPlayer[currentName_].m_step == -2)
+						if(g_msgServ->_knowedPlayer[currentName_].m_status == MsgServPlayerStatus::Ban)
 						{
 							if(OpenKickGui(playerId, g_msgServ->ErrorMsg))
 								return false;
 						}
 					}
-					g_msgServ->_knowedPlayer[currentName_].m_step = 0;
+
+					g_msgServ->_knowedPlayer[currentName_].m_status = MsgServPlayerStatus::Know;
 					g_msgServ->_knowedPlayer[currentName_].m_BadPassword = false;
+
+
+					//First time we come here. Check if the player is in "auto connect" mode
+					{
+						g_msgServ->_knowedPlayer[currentName_].m_BadPassword = false;
+						//Need to see if we need to auto-reconnect the player
+						if(g_msgServ->ScriptStayConnectedScriptName != "")
+						{
+							std::string currentCdKey_ = GetCDKey(playerId);
+							int currentPlayerPriv_ = GetPlayerPrivileges(playerId);
+							int currentValidity_  = 0;
+							bool isExecScriptOk = true;
+
+							NWScript::ClearScriptParams();
+							NWScript::AddScriptParameterString(currentName_.c_str());
+							NWScript::AddScriptParameterInt((int32_t)currentIP_);
+							NWScript::AddScriptParameterString(currentCdKey_.c_str());
+							NWScript::AddScriptParameterInt(currentPlayerPriv_);
+							currentValidity_ = NWScript::ExecuteScriptEnhanced(g_msgServ->ScriptStayConnectedScriptName.c_str(), 0, true, &isExecScriptOk, true);
+
+							if(isExecScriptOk == false || currentValidity_ == SCRIPTRESPONSE_ERROR)
+							{
+								//Error on script, log and continue as not autoconnected.
+								std::string strLog = "Error on StayConnected Script (" +
+									g_msgServ->ScriptStayConnectedScriptName + ") params : " + currentName_ +
+									", " + std::to_string(currentIP_) + ", " + currentCdKey_ +
+									", " + std::to_string(currentPlayerPriv_);
+
+								logger->Err(strLog.c_str());
+							}
+							//Auto connect
+							else if (currentValidity_ == SCRIPTRESPONSE_OK)
+							{
+								g_msgServ->_knowedPlayer[currentName_].m_status = MsgServPlayerStatus::Logged;
+							}
+							//Block/kick/ban
+							else if (currentValidity_ == SCRIPTRESPONSE_KICK || currentValidity_ == SCRIPTRESPONSE_BAN)
+							{
+								OpenKickGui(playerId, g_msgServ->curResponseString_);
+
+								if(currentValidity_ == SCRIPTRESPONSE_BAN)
+									MsgServBanPlayerName(currentName_);
+								return FALSE;
+							}
+						}
+					}
+
+					//If not autologged, show the pannel
+					if(g_msgServ->_knowedPlayer[currentName_].m_status != MsgServPlayerStatus::Logged)
+					{						
+						OpenLoginGui(playerId);
+					}
+
+					//Send welcome/warning pop up here ?
+					if (!g_msgServ->_knowedPlayer[currentName_].m_Know)
+					{
+						if (g_msgServ->bWelcomeScreen)
+						{
+							// A new player ! Welcome ! Suscribe, yadayada !
+							std::string sWelcomeTreated = std::regex_replace(g_msgServ->sWelcome, std::regex("%S"), currentName_);
+							OpenPopUp(playerId, sWelcomeTreated, "Ok");
+						}
+					}
+					else
+					{
+						//Welcome back ?
+					}
 				}
 				else
 				{
 					//Be sure that we know the player (and so, at least, use the reset step)
 					if (g_msgServ->_knowedPlayer.count(currentName_) <= 0)
 					{
-						//Hep ! What are you doing here without even the first step ?!!!
-						if (OpenKickGui(playerId, g_msgServ->ErrorMsg))
-						{
-							return false;
-						} 
-						//In case we don't have enforcedBlock activated, just init it 
-						else {
-							g_msgServ->_knowedPlayer[currentName_].m_step = 0; //make it existant
-							g_msgServ->_knowedPlayer[currentName_].m_BadPassword = false;
-						}
-
+						g_msgServ->_knowedPlayer[currentName_].m_status = MsgServPlayerStatus::Know;
+						g_msgServ->_knowedPlayer[currentName_].m_BadPassword = false;
 					}
 
-					//This player name is set as "banned", don't accept anything from this account
-					if (g_msgServ->_knowedPlayer[currentName_].m_step <= -1)
+					//This player name is set as "kicked" or "banned", don't accept anything from this account
+					if (g_msgServ->_knowedPlayer[currentName_].m_status <= MsgServPlayerStatus::Kick)
 					{
-						if(OpenKickGui(playerId, g_msgServ->ErrorMsg))
-							return false;
+						OpenKickGui(playerId, g_msgServ->ErrorMsg);
+						return FALSE;
 					}
 					
-					//Not logged yet.
-					if(g_msgServ->_knowedPlayer[currentName_].m_step < 4)
+
+					//Not logged yet. 
+					if (g_msgServ->_knowedPlayer[currentName_].m_status != MsgServPlayerStatus::Logged && Length >= 3)
 					{
-						//just to filtering. Will be second step and ask list (prompt)
-						if (size == 3)
+						//Do we try to log ?
+						if (Length >= 31 && Data[1] == 0x06 && Data[2] == 0x30 && Data[7] == 0x13 && Data[8] == 0x00 && Data[9] == 0x00 && Data[10] == 0x00 && Data[11] == 0x67 &&
+						Data[12] == 0x75 && Data[13] == 0x69 && Data[14] == 0x5F && Data[15] == 0x73 && Data[16] == 0x65 && Data[17] == 0x70 && Data[18] == 0x74 && 
+						Data[19] == 0x5F && Data[20] == 0x63 && Data[21] == 0x6F && Data[22] == 0x6E && Data[23] == 0x6E && Data[24] == 0x65 && Data[25] == 0x63 && 
+						Data[26] == 0x74 && Data[27] == 0x69 && Data[28] == 0x6F && Data[29] == 0x6E)
 						{
-							//second connection step //0x70 0x02 0x16 (the player is still on the connexion popup here
-							if (Data[1] == 0x02 && Data[2] == 0x16)
+							//We ask for connection
+							if(Data[30] == 0x03)
 							{
-								//Must be at the first step. Else... Not good !
-								if (g_msgServ->_knowedPlayer[currentName_].m_step == 0)
+								//At least 2 string asked
+								size_t MinimalLength = 39;
+								if (g_msgServ->bAllowAutoConnect)
 								{
-									g_msgServ->_knowedPlayer[currentName_].m_step = 1;
+									//One more option needed
+									MinimalLength = 43;
 								}
-								else
+
+								//Length check
+								if (Length < MinimalLength)
 								{
-									//What are you doing here ? Kick
-									if(OpenKickGui(playerId, g_msgServ->ErrorMsg))
-										return false;
+									//Not a valid login message. No need to continue to check it.
+									//Allow it to continue in the case someone else want to use it. 
+									return TRUE;
 								}
-							}
-							//Load char list. Can't be here without being already logged
-							else if (Data[1] == 0x11 && Data[2] == 0x01)
-							{
-									if (g_msgServ->_knowedPlayer[currentName_].m_step != 4)
-									{
-										if(OpenKickGui(playerId, g_msgServ->ErrorMsg))
-											return false;
-									}
-									//we are connected
-							}
-							//No expulse on script
-							else if(Data[1] == 0x06 && Data[2] == 0x30 && g_msgServ->bEnforcedBlock)
-							{
-								return false;
-							}
-							//Don't bother with other messages. Probably not happens btw.
-							//(or remove them )
-							else
-							{
-								if(OpenKickGui(playerId, g_msgServ->ErrorMsg))
-									return false;
-							}
-						}
-						//Other messages
-						else
-						{
-							//Third step of the connection. Last one.   {0x70 0x03 0x02 0x09 0x00 0x00 0x00 0x00 0x00 0x60}
-							if (size == 10 && Data[1] == 0x03 && Data[2] == 0x02 && Data[3] == 0x09 && Data[4] == 0x00 &&
-								Data[5] == 0x00 && Data[6] == 0x00 && Data[7] == 0x0 && Data[8] == 0x00)
-							{
-								if (g_msgServ->_knowedPlayer[currentName_].m_step == 1)
+
+								std::string currentCdKey_(GetCDKey(playerId));
+								int currentPlayerPriv_ = GetPlayerPrivileges(playerId);
+
+								//Player Nickname currentName_;
+								//Here, split the message and understand it
+								uint32_t sizeText = *(uint32_t*)(Data + 31);
+
+								//Lenght check
+								if (Length < (MinimalLength + sizeText))
 								{
-										//First time we come here. Check if the player is in "auto connect" mode
-										{
-											g_msgServ->_knowedPlayer[currentName_].m_BadPassword = false;
-											//Need to see if we need to auto-reconnect the player
-											if(g_msgServ->ScriptStayConnectedScriptName != "")
-											{
-												std::string currentCdKey_ = GetCDKey(playerId);
-												int currentPlayerPriv_ = GetPlayerPrivileges(playerId);
-												int currentValidity_  = 0;
-												//int isExecScriptOk = 0;
-
-												bool isExecScriptOk = true;
-
-												NWScript::ClearScriptParams();
-												NWScript::AddScriptParameterString(currentName_.c_str());
-												NWScript::AddScriptParameterInt((int32_t)currentIP_);
-												NWScript::AddScriptParameterString(currentCdKey_.c_str());
-												NWScript::AddScriptParameterInt(currentPlayerPriv_);
-												currentValidity_ = NWScript::ExecuteScriptEnhanced(g_msgServ->ScriptStayConnectedScriptName.c_str(), 0, true, &isExecScriptOk);
-
-												//isExecScriptOk = ExecuteEnhancedScript_sp(g_msgServ->ScriptStayConnectedScriptName, 0, currentValidity_, currentName_.c_str(), (int)currentIP_, currentCdKey_.c_str(), currentPlayerPriv_);
-
-												if(isExecScriptOk == false || currentValidity_ == SCRIPTRESPONSE_ERROR)
-												{
-													//Error on script, log and continue as not autoconnected.
-													std::string strLog = "Error on StayConnected Script (" +
-														g_msgServ->ScriptStayConnectedScriptName + ") params : " + currentName_ +
-														", " + std::to_string(currentIP_) + ", " + currentCdKey_ +
-														", " + std::to_string(currentPlayerPriv_);
-
-													logger->Err(strLog.c_str());
-												}
-												//Auto connect
-												else if (currentValidity_ == SCRIPTRESPONSE_OK)
-												{
-													g_msgServ->_knowedPlayer[currentName_].m_step = 4;
-												}
-												//Block/kick/ban
-												else if (currentValidity_ == SCRIPTRESPONSE_KICK || currentValidity_ == SCRIPTRESPONSE_BAN)
-												{
-													OpenKickGui(playerId, g_msgServ->curResponseString_, false);
-
-													if(currentValidity_ == SCRIPTRESPONSE_BAN)
-														MsgServBanPlayerName(currentName_);
-													return false;
-												}
-											}
-										}
-
-									if(g_msgServ->_knowedPlayer[currentName_].m_step != 4)
-									{
-										g_msgServ->_knowedPlayer[currentName_].m_step = 3; //Start the log session
-																					 //Send message to open GUI Here//
-
-										OpenLoginGui(playerId);
-
-										//End of send message..//
-									}
-									//Send welcome/warning pop up here ?
-									if (!g_msgServ->_knowedPlayer[currentName_].m_Know)
-									{
-										if (g_msgServ->bWelcomeScreen)
-										{
-											// A new player ! Welcome ! Suscribe, yadayada !
-											std::string sWelcomeTreated = std::regex_replace(g_msgServ->sWelcome, std::regex("%S"), currentName_);
-											OpenPopUp(playerId, sWelcomeTreated, "Ok");
-										}
-									}
-									else
-									{
-										//Welcome back ?
-									}
-									//g_msgServ->_knowedPlayer[currentName_].m_step = 2;
+									//Not a valid login message. No need to continue to check it.
+									//Allow it to continue in the case someone else want to use it. 
+									return TRUE;
 								}
-								else
+
+
+								std::string currentLog_ = "";
+								std::string currentPwd_ = "";
+								std::string currentOption_ = "";
+								int currentValidity_  = 0;
+								bool isExecScriptOk = false;
+
+
+								for (int i = 0; i < sizeText; i++)
 								{
-									//What are you doing here ?
-									if(OpenKickGui(playerId, g_msgServ->ErrorMsg))
-										return false;
+									currentLog_ += Data[35 + i];
 								}
-							}
-							//Connection verification ! Only logical on step 3 else.. what are you doing ?
-							else if (Data[1] == 0x06 && Data[2] == 0x30 && Data[7] == 0x13 && Data[8] == 0x00 && Data[9] == 0x00 && Data[10] == 0x00 && Data[11] == 0x67 &&
-								Data[12] == 0x75 && Data[13] == 0x69 && Data[14] == 0x5F && Data[15] == 0x73 && Data[16] == 0x65 && Data[17] == 0x70 && Data[18] == 0x74 && 
-								Data[19] == 0x5F && Data[20] == 0x63 && Data[21] == 0x6F && Data[22] == 0x6E && Data[23] == 0x6E && Data[24] == 0x65 && Data[25] == 0x63 && 
-								Data[26] == 0x74 && Data[27] == 0x69 && Data[28] == 0x6F && Data[29] == 0x6E
-								&& g_msgServ->_knowedPlayer[currentName_].m_step == 3)
-							{
-								//We ask for connection
-								if(Data[30] == 0x03)
+
+
+								uint32_t sizeText2 = *(uint32_t*)(Data + sizeText + 35);
+								//Lenght check
+								if (Length < (MinimalLength + sizeText + sizeText2))
 								{
+									//Not a valid login message. No need to continue to check it.
+									//Allow it to continue in the case someone else want to use it. 
+									return TRUE;
+								}
 
-									std::string currentCdKey_(GetCDKey(playerId));
-									int currentPlayerPriv_ = GetPlayerPrivileges(playerId);
-									//Player Nickname currentName_;
-									//Here, split the message and understand it
-									uint32_t taille = *(uint32_t*)(Data + 31);
-									std::string currentLog_ = "";
-									std::string currentPwd_ = "";
-									std::string currentOption_ = "";
-									int currentValidity_  = 0;
-									bool isExecScriptOk = false;
-									for (int i = 0; i < taille; i++)
+
+
+								for (int i = 0; i < sizeText2; i++)
+								{
+									currentPwd_ += Data[35 + sizeText + 4 + i];
+								}
+
+								if (g_msgServ->bAllowAutoConnect)
+								{
+									//One extra option
+									uint32_t sizeText3 = *(uint32_t*)(Data + 39 + sizeText + sizeText2);
+									//Lenght check
+									if (Length < (MinimalLength + sizeText + sizeText2 + sizeText3))
 									{
-										currentLog_ += Data[35 + i];
+										//Not a valid login message. No need to continue to check it.
+										//Allow it to continue in the case someone else want to use it. 
+										return TRUE;
 									}
 
-									uint32_t taille2 = *(uint32_t*)(Data + taille + 35);
-									for (int i = 0; i < taille2; i++)
+									for (int i = 0; i < sizeText3; i++)
 									{
-										currentPwd_ += Data[35 + taille + 4 + i];
+										currentOption_ += Data[39 + sizeText + sizeText2 + 4 + i];
 									}
+								}
 
-									if (g_msgServ->bAllowAutoConnect)
+								if (g_msgServ->ScriptConnectionName == "")
+								{
+									currentValidity_ = 1;
+									currentLog_ = currentName_;
 									{
-										int iPos = 0x27 + taille + taille2;
-										if (!(Data[iPos] == 1 && Data[iPos + 1] == 0 && Data[iPos + 2] == 0 && Data[iPos + 3] == 0))
-										{
-											//erreur !
-											if (OpenKickGui(playerId, g_msgServ->ErrorMsg))
-												return false;
-										}
-										else
-										{
-											iPos += 4;
-											currentOption_ += Data[iPos];
-										}
-									}
-
-									if (g_msgServ->ScriptConnectionName == "")
-									{
-										currentValidity_ = 1;
-										currentLog_ = currentName_;
-										{
-											std::string strLog = "Enforced connection by script asked but no script given for it. Allow " + currentPlayerPriv_;
-											strLog += ", " + std::to_string(currentIP_) + ", " + currentCdKey_;
-											strLog += ", " + std::to_string(currentPlayerPriv_) + " to connect without any further verification.";
-
-											logger->Warn(strLog.c_str());
-										}
-									}
-									else
-									{
-
-										NWScript::ClearScriptParams();
-										NWScript::AddScriptParameterString(currentName_.c_str());
-										NWScript::AddScriptParameterInt((int32_t)currentIP_);
-										NWScript::AddScriptParameterString(currentCdKey_.c_str());
-										NWScript::AddScriptParameterInt(currentPlayerPriv_);
-										NWScript::AddScriptParameterString(currentLog_.c_str());
-										NWScript::AddScriptParameterString(currentPwd_.c_str());
-										NWScript::AddScriptParameterString(currentOption_.c_str());
-										currentValidity_ = NWScript::ExecuteScriptEnhanced(g_msgServ->ScriptConnectionName.c_str(), 0, true, &isExecScriptOk);
-										
-
-										//isExecScriptOk = ExecuteEnhancedScript_sp(g_msgServ->ScriptConnectionName, (NWN::OBJECTID)0,  currentValidity_, currentName_.c_str(), (int)currentIP_,
-										//									currentCdKey_.c_str(), currentPlayerPriv_, currentLog_.c_str(), currentPwd_.c_str(), currentOption_.c_str());
-
-										std::string strLog = "Return of the " + g_msgServ->ScriptConnectionName;
-										strLog += " script : " + std::to_string(isExecScriptOk?1:0) + " = " + std::to_string(currentValidity_);
-
-										logger->Debug(strLog.c_str());
-									}
-
-
-									//ERROR
-									if(isExecScriptOk == false || currentValidity_ == SCRIPTRESPONSE_ERROR)
-									{
-										//Error on script, log and continue as not autoconnected.
-										std::string strLog = "Error on Connection Script (";
-										strLog += g_msgServ->ScriptConnectionName + ") params : " + currentName_;
+										std::string strLog = "Enforced connection by script asked but no script given for it. Allow " + currentPlayerPriv_;
 										strLog += ", " + std::to_string(currentIP_) + ", " + currentCdKey_;
-										strLog += ", " + std::to_string(currentPlayerPriv_);
-										strLog += ", " + currentLog_ + ", (size of given pwd:)" + std::to_string(currentPwd_.length());
-										strLog += ", " + currentOption_;
+										strLog += ", " + std::to_string(currentPlayerPriv_) + " to connect without any further verification.";
 
-										logger->Err(strLog.c_str());
-
+										logger->Warn(strLog.c_str());
 									}
-									//OK !
-									else if (currentValidity_ == SCRIPTRESPONSE_OK)
-									{
-										g_msgServ->_knowedPlayer[currentName_].m_step = 4;
-										CloseLoginGui(playerId);
-									}
-									//NOP
-									else if(currentValidity_ == SCRIPTRESPONSE_NOK)
-									{
-										BadPassword(playerId, g_msgServ->curResponseString_);
-										g_msgServ->_knowedPlayer[currentName_].m_BadPassword = true;
-										return false;
-									}
-									//Kick/block
-									else
-									{
-										OpenKickGui(playerId, g_msgServ->curResponseString_, false);
-										if(currentValidity_ == SCRIPTRESPONSE_BAN)
-											MsgServBanPlayerName(currentName_);
-										return false;
-									}
-								} 
-								//We close the gui to go back
-								else if (Data[30] == 0x00)
+								}
+								else
 								{
+
+									NWScript::ClearScriptParams();
+									NWScript::AddScriptParameterString(currentName_.c_str());
+									NWScript::AddScriptParameterInt((int32_t)currentIP_);
+									NWScript::AddScriptParameterString(currentCdKey_.c_str());
+									NWScript::AddScriptParameterInt(currentPlayerPriv_);
+									NWScript::AddScriptParameterString(currentLog_.c_str());
+									NWScript::AddScriptParameterString(currentPwd_.c_str());
+									NWScript::AddScriptParameterString(currentOption_.c_str());
+									currentValidity_ = NWScript::ExecuteScriptEnhanced(g_msgServ->ScriptConnectionName.c_str(), 0, true, &isExecScriptOk, true);
+
+									std::string strLog = "Return of the " + g_msgServ->ScriptConnectionName;
+									strLog += " script : " + std::to_string(isExecScriptOk?1:0) + " = " + std::to_string(currentValidity_);
+
+									logger->Debug(strLog.c_str());
+								}
+
+
+								//ERROR
+								if(isExecScriptOk == false || currentValidity_ == SCRIPTRESPONSE_ERROR)
+								{
+									//Error on script, log and continue as not connected.
+									std::string strLog = "Error on Connection Script (";
+									strLog += g_msgServ->ScriptConnectionName + ") params : " + currentName_;
+									strLog += ", " + std::to_string(currentIP_) + ", " + currentCdKey_;
+									strLog += ", " + std::to_string(currentPlayerPriv_);
+									strLog += ", " + currentLog_ + ", (size of given pwd:)" + std::to_string(currentPwd_.length());
+									strLog += ", " + currentOption_;
+
+									logger->Err(strLog.c_str());
+
+								}
+								//OK !
+								else if (currentValidity_ == SCRIPTRESPONSE_OK)
+								{
+									g_msgServ->_knowedPlayer[currentName_].m_status = MsgServPlayerStatus::Logged;
 									CloseLoginGui(playerId);
 								}
-							}
-							//No expulse on script
-							else if(Data[1] == 0x06 && Data[2] == 0x30 && g_msgServ->bEnforcedBlock)
+								//NOP
+								else if(currentValidity_ == SCRIPTRESPONSE_NOK)
+								{
+									BadPassword(playerId, g_msgServ->curResponseString_);
+									g_msgServ->_knowedPlayer[currentName_].m_BadPassword = true;
+									return FALSE;
+								}
+								//Kick/block
+								else
+								{
+									OpenKickGui(playerId, g_msgServ->curResponseString_);
+									if(currentValidity_ == SCRIPTRESPONSE_BAN)
+										MsgServBanPlayerName(currentName_);
+									return FALSE;
+								}
+							} 
+							//We close the gui to go back
+							else if (Data[30] == 0x00)
 							{
-								return false;
+								CloseLoginGui(playerId);
 							}
-							//Always refuse to load PC if not logged
-							else if( Data[1] == 0x02 )
+						}
+						//do we try to have an access to charlist, creation or loading ?
+						else
+						{
+							bool bIllegal = false;
+							//CharList, never allow that without login
+							if (Data[1] == 0x11)
 							{
-								OpenKickGui(playerId, g_msgServ->ErrorMsg, false);
-								return false;
+								bIllegal = true;
 							}
-							//What are you tring to do ?
-							else {
-								if(OpenKickGui(playerId, g_msgServ->ErrorMsg))
-									return false;
+							else if (Data[1] == 0x2)
+							{
+								unsigned char cSubType = Data[2];
+								//Don't allow to create or load character
+								if (cSubType == 0x01 || cSubType == 0x02 || cSubType == 0x04 ||
+									cSubType == 0x0e || cSubType == 0x0f || cSubType == 0x11 ||
+									cSubType == 0x13)
+								{
+									bIllegal = true;
+								}
+							}
+							if (bIllegal)
+							{
+								//Not allowed, kick
+								OpenKickGui(playerId, g_msgServ->ErrorMsg);
+								return FALSE;
 							}
 						}
 					}
 				}
 			}
-
 		}
 
-		int i = 0;
-		
 		//Only if we want to active Anticheat module.
-		//if (g_msgServ->bAntiCheat)
 		{
 			//EndOfLevelUp
 			if (Data[0] == 0x70 && Data[1] == 0x1D && Data[2] == 0x00 && g_msgServ->bAnticheatLvlUp)
 			{
-				int iResLvlUp = CheckForLevelUp(playerId, Data, size, currentName_, g_msgServ);
+				int iResLvlUp = CheckForLevelUp(playerId, Data, Length, currentName_, g_msgServ);
 				if (iResLvlUp <= 0)
-					return false;
-			}
-			//End of CreateChar
-			//else if()
-			{
-			//	CheckForValidCharacter(playerId, Data, size);
+					return FALSE;
 			}
 		}
-		
-
-		//If you link with external stuff, call every external and drop as soon as one ask for drop msg
-		if (g_msgServ->bAllowExternal)
-		{
-			for (auto& [key, value]: g_msgServ->_fctList) 
-			{
-				logger->Info("*Launching external function : %s", key);
-				if (!value(playerId, Data, size))
-				{
-					logger->Info("Message dropped.");
-					return false;
-				}
-			}
-
-		}
-
 	}
 	catch (std::exception& e)
 	{
@@ -837,32 +779,12 @@ int __fastcall MSHookProc(void* pThis, void* _, int playerId, unsigned char* Dat
 	}
 	catch (...)
 	{
-		std::string logTxt2 = "Exception ! => " + std::to_string(size) + ", id : " + std::to_string(playerId) + ")";
+		std::string logTxt2 = "Exception ! => " + std::to_string(Length) + ", id : " + std::to_string(playerId) + ")";
 		logger->Err(logTxt2.c_str());
 	}
-	return OriginalMS(pThis, _, playerId, Data, size);
+
+	return TRUE;
 }
-
-int
-HookMsgServ()
-{
-	DetourTransactionBegin();
-	DetourUpdateThread(GetCurrentThread());
-	int msgServ_success, detour_success;
-	DWORD msgSer = FindHookMsgServ();
-	if (msgSer) {
-		logger->Info("o MsgServ located at %x.", msgSer);
-		*(DWORD*)&OriginalMS = msgSer;
-		msgServ_success           = DetourAttach(&(PVOID&)OriginalMS, MSHookProc) == 0;
-	} else {
-		logger->Info("! MsgServ locate failed.");
-		return 0;
-	}
-
-	detour_success = DetourTransactionCommit() == 0;
-	return msgServ_success && detour_success;
-}
-
 
 DLLEXPORT Plugin*
 GetPluginPointerV2()
@@ -936,15 +858,13 @@ MsgServ::Init(char* nwnxhome)
 
 	 logger->Configure(config);
 
-	 int iEnforcedBlock = 0;
 	 int i3CDKey = 0;
 	 int iConnectionProcess = 0;
-	 int iAllowExternal = 0;
+	 int iTraceEveryMsg = 0;
 
 	 config->Read("UseConnectionSystem", &iConnectionProcess, 1);
 	 bConnectionProcess = (iConnectionProcess != 0);
-	 config->Read("EnforcedSecurity", &iEnforcedBlock, 1);
-	 bEnforcedBlock = (iEnforcedBlock != 0);
+
 	 config->Read("RememberMeTxt", &RememberMeText, std::string(""));
 	 config->Read("KickPanelXml", &KickPanelXml, std::string(""));
 	 config->Read("WelcomePanelXml", &PopUpPanelXml, std::string(""));
@@ -952,16 +872,12 @@ MsgServ::Init(char* nwnxhome)
 	 config->Read("AutoAuthenticationScript", &ScriptStayConnectedScriptName, std::string(""));
 	 config->Read("ErrorMsg", &ErrorMsg, std::string(""));
 	 config->Read("WelcomeMsg", &sWelcome, std::string("")); //Welcome on this demo %S !
-	 //config->Read("DownloadScreen", &bDwnloadPanel, false);
-	 config->Read("AllowExternalLibHook", &iAllowExternal, 0);
+	 config->Read("LogEveryMsg", &iTraceEveryMsg, 0);
 
-	 if (iAllowExternal != 0)
+	 if (iTraceEveryMsg != 0)
 	 {
-		 bAllowExternal = true;
-		 logger->Debug("Plugins Hook Allowed.");
-	 }
-	 else {
-		 logger->Debug("Plugins Hook Forbidden.");
+		 bTraceEveryMsg = true;
+		 logger->Debug("Will log every message received");
 	 }
 
 	 config->Read("MCDKey", &i3CDKey, 0);
@@ -972,13 +888,6 @@ MsgServ::Init(char* nwnxhome)
 	 }
 	 else {
 		 logger->Debug("UseConnectionSystem set to false.");
-	 }
-
-	 if (bEnforcedBlock) {
-		 logger->Debug("EnforcedSecurity active.");
-	 }
-	 else {
-		 logger->Debug("EnforcedSecurity unactive.");
 	 }
 
 	 if (RememberMeText != "") {
@@ -1136,9 +1045,6 @@ MsgServ::Init(char* nwnxhome)
 		 int iGrantedCondForEveryFeats = 0;
 		 int iCallScriptOnLvlUpError = 0;
 
-		 //AntiCheatStopFirstViolation
-		 //ACLvlUpStopFirstViolation
-
 		 config->Read("UseAnticheatLvlUp", &iAnticheatLvlUp, 1);
 		 bAnticheatLvlUp = (iAnticheatLvlUp != 0);
 		 config->Read("StopLvlUpFirstViolation", &iACLvlUpStopFirstViolation, 1);
@@ -1147,6 +1053,8 @@ MsgServ::Init(char* nwnxhome)
 		 config->Read("GrantedCondForEveryFeats", &iGrantedCondForEveryFeats, 0);
 		 bGrantedCondForEveryFeats = (iGrantedCondForEveryFeats != 0);
 
+
+		 logger->Debug("UseAnticheatLvlUp : %s", bAnticheatLvlUp ? "TRUE" : "FALSE");
 
 		 //Script on error ?
 		 //config->Read("CallScriptOnLvlUpError", &iCallScriptOnLvlUpError, 0);
@@ -1173,6 +1081,17 @@ MsgServ::Init(char* nwnxhome)
 			 lRangerCombatFeats.push_back(num);
 		 }
 
+		 if (bAnticheatLvlUp)
+		 {
+			 if (bACLvlUpStopFirstViolation)
+				 logger->Debug("StopLvlUp at First Violation");
+			 if (bGrantedCondForEveryFeats)
+				 logger->Debug("GrantedCondition work for every Feats");
+			 if (bCallScriptOnLvlUpError)
+				 logger->Debug("Script on LevelUp error : %s", ScriptLvlUpError.c_str());
+			 logger->Debug("Ranger CombatStyle Feats : %s", RangerCombatFeats.c_str());
+		 }
+
 	 }
 
 
@@ -1189,17 +1108,7 @@ MsgServ::Init(char* nwnxhome)
 
 	if (bIsLoadOk)
 	{
-		if (HookMsgServ())
-			logger->Info("* Hooking successful");
-		else
-		{
-			logger->Info("* Hooking failed");
-			bIsLoadOk = false;
-		}
-	}
-
-	if (bIsLoadOk)
-	{
+		SetPacketFilterCallouts_(nullptr, nullptr, MsgServOnReceive, nullptr);
 		logger->Info("* Plugin initialized.");
 
 		g_msgServ = this;
@@ -1243,38 +1152,13 @@ bool LoadNetLayer()
 		{ true , "SendMessageToPlayer",     (void**)&SendMessageToPlayer_     },
 		{ true , "GetPlayerAccountName",    (void**)&GetPlayerAccountName_    },
 		{ true , "GetPlayerConnectionInfo", (void**)&GetPlayerConnectionInfo_ },
+		{ true , "SetPacketFilterCallouts", (void**)&SetPacketFilterCallouts_ },
 	};
 	XPBugfix = LoadLibraryA("xp_bugfix.dll");
 
 	if (!XPBugfix)
 	{
 		logger->Info("* Failed to load xp_bugfix.dll");
-		return false;
-	}
-
-	//ProcessQueryFunction
-	// Search for V2 plugin function
-	bool bMyBugFixIsOk = false;
-	void* pGetPluginPointer = GetProcAddress(XPBugfix, "GetPluginPointerV2");
-	if (pGetPluginPointer != nullptr) {
-		// Load
-		typedef Plugin*(WINAPI * GetPluginPointer)();
-
-		Plugin* pPlugin = ((GetPluginPointer)pGetPluginPointer)();
-
-		if (pPlugin != nullptr) {
-			std::string sVersion = pPlugin->ProcessQueryFunction("GET VERSION");
-			int iComp = version_compare(sVersion, "1.0.74");
-			if (iComp >= 0)
-			{
-				bMyBugFixIsOk = true;
-			}
-		}
-	}bMyBugFixIsOk = true; //TODO, why the version number dont work ?
-
-	if (!bMyBugFixIsOk)
-	{
-		logger->Info("* Bad Version of xp_bugfix.dll. You need, at least, version 1.0.74");
 		return false;
 	}
 
@@ -1295,6 +1179,7 @@ bool LoadNetLayer()
 			return false;
 		}
 	}
+
 	return true;
 }
 
@@ -1307,12 +1192,6 @@ MsgServ::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nParam2)
 		"MsgServ_GetInt(" + function + "," + sParam1 + "," + std::to_string(nParam2) + ")";
 
 	logger->Trace(logTxt.c_str());
-
-	if (function == "EnforcedSecurity") {
-		logTxt = "Return EnforcedSecurity : " + std::to_string(bEnforcedBlock);
-		logger->Trace(logTxt.c_str());
-		return (bEnforcedBlock ? 1 : 0);
-	}
 
 	return 0;
 }
@@ -1337,21 +1216,11 @@ void MsgServ::SetInt([[maybe_unused]] char* sFunction,
 			logTxt += "FALSE";
 		logger->Trace(logTxt.c_str());
 	}
-	else if (function == "EnforcedSecurity")
-	{
-		bEnforcedBlock = (nValue != 0);
-		logTxt = "Set EnforcedSecurity to : ";
-		if (bEnforcedBlock)
-			logTxt += "TRUE";
-		else
-			logTxt += "FALSE";
-		logger->Trace(logTxt.c_str());
-	}
 	else if (function == "AnticheatCreation")
 	{
 		ChangeCharacterCreationStatus((nValue != 0));
 		logTxt = "Set AnticheatCreation System to : ";
-		if (bEnforcedBlock)
+		if (nValue != 0)
 			logTxt += "TRUE";
 		else
 			logTxt += "FALSE";
@@ -1361,7 +1230,7 @@ void MsgServ::SetInt([[maybe_unused]] char* sFunction,
 	{
 		bAnticheatLvlUp = (nValue != 0);
 		logTxt = "Set AnticheatLevelup System to : ";
-		if (bEnforcedBlock)
+		if (bAnticheatLvlUp)
 			logTxt += "TRUE";
 		else
 			logTxt += "FALSE";
@@ -1426,56 +1295,4 @@ MsgServ::GetFunctionClass(char* fClass)
 {
 	static constexpr auto cls = std::string_view(FunctionClass);
 	strncpy_s(fClass, 128, cls.data(), std::size(cls));
-}
-
-
-void RemoveFromMsgServHook(std::string sDllName, std::string sFunctionName)
-{
-	if (g_msgServ->bAllowExternal)
-	{
-		std::string sName = sDllName+"!"+sFunctionName;
-		g_msgServ->_fctList.erase(sName);
-	}
-}
-
-
-bool AddToMsgServHook(std::string sDllName, std::string sFunctionName)
-{
-
-	std::string sNameAdded = sDllName + "!" + sFunctionName;
-	if (!g_msgServ->bAllowExternal)
-	{	
-		logger->Info("External Hook not allowed. (Asked : [%s])", sNameAdded);
-		return false;
-	}
-
-	MySharedHookFunction myNewFunction;
-	logger->Info("* New Hook (%s) ...", sNameAdded);
-	struct { bool Required; std::string Name; void **Import; } NewDllImports =
-	{ true , sFunctionName,          (void**)&myNewFunction };
-
-	HMODULE NewPlugin = LoadLibraryA(sDllName.c_str());
-	if (!NewPlugin)
-	{
-		logger->Info("* Failed to load %s", sDllName);
-		return false;
-	}
-
-	*NewDllImports.Import = (void *)GetProcAddress(NewPlugin, NewDllImports.Name.c_str());
-
-	if (!*NewDllImports.Import)
-	{
-		if (!NewDllImports.Required)
-		{
-			logger->Info(
-				"* Warning: missing entrypoint %s",
-				sNameAdded);
-		}
-		logger->Info("* Unable to resolve %s",sNameAdded);
-		return false;
-	}
-	logger->Info("* ...%s access Loaded", sNameAdded);
-
-	g_msgServ->_fctList[sNameAdded] = myNewFunction;
-	return true;
 }

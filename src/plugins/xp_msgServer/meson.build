@@ -1,4 +1,4 @@
-plugin_version = '"1.1.1"'
+plugin_version = '"1.2.0B"'
 plugin_name = 'xp_msgServer'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -17,7 +17,6 @@ shared_library_obj = shared_library(plugin_name,
     ],
     cpp_args: ['-DPLUGIN_VERSION='+plugin_version],
     link_args: ['/dynamicbase', '/nxcompat'],
-    vs_module_defs: 'xp_msgServer.def',
     include_directories: include_dirs,
     dependencies: [
     	cppcompiler.find_library('detours', dirs: lib_dirs),

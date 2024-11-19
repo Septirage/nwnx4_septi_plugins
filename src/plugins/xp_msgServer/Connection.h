@@ -36,11 +36,22 @@ bool
 
 bool LoadNetLayer();
 
+
+enum MsgServPlayerStatus
+{
+	Ban = -2,
+	Kick = -1,
+	Unknow = 0,
+	Know = 1,
+	Logged = 2
+};
+
 struct PlayerConnection {
 	bool m_Know = false;
 	std::string m_login;
 	bool m_BadPassword = false;
 	int m_step;
+	MsgServPlayerStatus m_status = MsgServPlayerStatus::Unknow;
 };
 
 class MsgServ final : public Plugin
@@ -74,8 +85,7 @@ class MsgServ final : public Plugin
 	std::unordered_map<std::string, PlayerConnection> _knowedPlayer;
 
 	bool bConnectionProcess	= true;
-	bool bAllowExternal = false;
-	bool bEnforcedBlock = true;
+	bool bTraceEveryMsg = false;
 	bool bAllowAutoConnect = false;
 	bool bWelcomeScreen = false;
 	bool bDwnloadPanel = false;
@@ -141,7 +151,5 @@ class MsgServ final : public Plugin
 
 };
 
-bool AddToMsgServHook(std::string sDllName, std::string sFunctionName);
-void RemoveFromMsgServHook(std::string sDllName, std::string sFunctionName);
 
 
