@@ -865,15 +865,24 @@ MsgServ::Init(char* nwnxhome)
 	 config->Read("UseConnectionSystem", &iConnectionProcess, 1);
 	 bConnectionProcess = (iConnectionProcess != 0);
 
+	 config->Read("KickOutMsg", &ErrorMsg, std::string(""));
 	 config->Read("RememberMeTxt", &RememberMeText, std::string(""));
 	 config->Read("KickPanelXml", &KickPanelXml, std::string(""));
 	 config->Read("WelcomePanelXml", &PopUpPanelXml, std::string(""));
 	 config->Read("ConnectionValidScript", &ScriptConnectionName, std::string(""));
 	 config->Read("AutoAuthenticationScript", &ScriptStayConnectedScriptName, std::string(""));
-	 config->Read("ErrorMsg", &ErrorMsg, std::string(""));
 	 config->Read("WelcomeMsg", &sWelcome, std::string("")); //Welcome on this demo %S !
-	 config->Read("LogEveryMsg", &iTraceEveryMsg, 0);
 
+
+	 /*
+#
+# Mostly for debug purpose. If you are at least in loglevel info, it will 
+# trace every messages received by the server.
+# Should probably not be used in prod
+#
+# LogEveryMsg = 0
+	*/
+	 config->Read("LogEveryMsg", &iTraceEveryMsg, 0);
 	 if (iTraceEveryMsg != 0)
 	 {
 		 bTraceEveryMsg = true;
@@ -907,7 +916,7 @@ MsgServ::Init(char* nwnxhome)
 	 }
 
 	 if (ScriptStayConnectedScriptName != "") {
-		 logger->Debug("AutoAuthentication active active with script %s", ScriptStayConnectedScriptName.c_str());
+		 logger->Debug("AutoAuthentication active with script %s", ScriptStayConnectedScriptName.c_str());
 	 }
 	 else {
 		 logger->Debug("AutoAuthentication un-available (no script passed)");
@@ -1054,7 +1063,7 @@ MsgServ::Init(char* nwnxhome)
 		 bGrantedCondForEveryFeats = (iGrantedCondForEveryFeats != 0);
 
 
-		 logger->Debug("UseAnticheatLvlUp : %s", bAnticheatLvlUp ? "TRUE" : "FALSE");
+		 logger->Debug("UseAnticheatLvlUp set to %s", bAnticheatLvlUp ? "TRUE" : "FALSE");
 
 		 //Script on error ?
 		 //config->Read("CallScriptOnLvlUpError", &iCallScriptOnLvlUpError, 0);

@@ -3963,9 +3963,9 @@ bool ApplyAntiCheatCreationPatch(SimpleIniConfig* config, bool activateIt)
 
 	g_AnticheatActivated = activateIt;
 
-	logger->Debug("AntiCheat on CharacterCreation activated :");
+	logger->Debug("AntiCheat on CharacterCreation %s", activateIt ? "Enable" : "Disable");
 	if (g_ScriptCreationError != "")
-		logger->Debug("With %s script", g_ScriptCreationError.c_str());
+		logger->Debug("Script on CharacterCreation error: %s", g_ScriptCreationError.c_str());
 	logger->Debug("StopOnFirstViolation: %s", gMsgServerStopFirstCreation ? "TRUE" : "FALSE");
 	logger->Debug("Parameters : MinScaleX: %f, MinScaleZ: %f,  MaxScaleX: %f, MaxScaleZ: %f", gfMinScaleX, gfMinScaleZ, gfMaxScaleX, gfMaxScaleZ);
 
