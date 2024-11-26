@@ -164,7 +164,7 @@ bool ParseSpeedModifier(int iRuleNumber, std::string sValue, std::vector<RuleSet
 		RuleSet* rs1 = new RuleSet(bonusCalc, iRuleNumber);
 
 		myRuleList.push_back(rs1);
-	} catch (const std::runtime_error& e) {
+	} catch (const std::exception& e) {
 
 		logger->Err("Error during parse of \"%s\" = %s : %s", sField.c_str(), sValue.c_str(), e.what());
 		logger->Info("Due to the Error, the complete rule will not be applied");

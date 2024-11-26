@@ -23,8 +23,19 @@ const uint32_t OP_OR  = 2;
 const uint32_t OP_XOR = 3;
 const uint32_t OP_NOT = 4;
 
+const uint32_t OP_EQUAL				= 0;
+const uint32_t OP_NOTEQUAL			= 1;
+const uint32_t OP_LESS				= 2;
+const uint32_t OP_LESSEQUAL			= 3;
+const uint32_t OP_GREATER			= 4;
+const uint32_t OP_GREATEREQUAL		= 5;
 
-enum class TokenType { OBJECT, OPERATOR, LPAREN, RPAREN, END, SPECIAL };
+const uint32_t FCT_SKILL = 0;
+const uint32_t FCT_ABILITY = 1;
+const uint32_t FCT_CLASSSUM = 2;
+const uint32_t FCT_CLASSMAX = 3;
+
+enum class TokenType { OBJECT, OPERATOR, LPAREN, RPAREN, END, SPECIAL, FUNCTION, OPNUM, NUM };
 
 const int RULESPECIAL_MONKPOWER = 0;
 const int RULESPECIAL_DETECTMODE = 1;
@@ -47,6 +58,7 @@ struct Rule {
 	Rule* left;
 	Rule* right;
 
+	std::vector<int> params;
 	~Rule();
 };
 

@@ -15,6 +15,15 @@
 extern std::unique_ptr<LogNWNX> logger;
 
 #define OFFS_TUMBLEACFCT				0x005a5360
+#define OFFS_TUMBLECALL					0x005b57b9
+
+#define OFFS_SETTRAPSYN1				0x005bbc23
+#define OFFS_SETTRAPSYN2				0x005bc26a
+#define OFFS_SETTRAPSYN3				0x005bcd22
+#define OFFS_SETTRAPSYN4				0x005bd5e3
+#define OFFS_DISTRAPSYN					0x005ccb2d
+#define OFFS_TRAPSYN					0x005687ce
+
 #define OFFS_SPELLCRAFTSAVE				0x00639546
 
 #define OFFS_SaveThrowTestFumble		0x00639a3c
@@ -395,14 +404,27 @@ Patch* PatchMonkWeaponList = _PatchMonkWeaponList;
 
 Patch _DisableTumbleACPatch[] =
 {
-	Patch(OFFS_TUMBLEACFCT, (char*)"\x31\xC0\xC3", (int)3), //XOR EAX,EAX   RET
+	Patch(OFFS_TUMBLEACFCT, (char*)"\x31\xC0\xC3", (int)3), //XOR EAX,EAX   RET 
+	Patch(OFFS_TUMBLECALL, (char*)"\x32\xC0\x90\x90\x90", (int)5),   //XOR AL, AL  NOP NOP NOP
 
 	Patch()
 };
 
 Patch *DisableTumbleACPatch = _DisableTumbleACPatch;
 
+Patch _DisableTrapSynergy[] =
+{
+	Patch(OFFS_SETTRAPSYN1, (char*)"\x32\xC0\x90\x90", (int)5),		//XOR AL, AL NOP NOP NOP
+	Patch(OFFS_SETTRAPSYN2, (char*)"\x32\xC0\x90\x90", (int)5),		//XOR AL, AL NOP NOP NOP
+	Patch(OFFS_SETTRAPSYN3, (char*)"\x32\xC0\x90\x90", (int)5),		//XOR AL, AL NOP NOP NOP
+	Patch(OFFS_SETTRAPSYN4, (char*)"\x32\xC0\x90\x90", (int)5),		//XOR AL, AL NOP NOP NOP
+	Patch(OFFS_DISTRAPSYN, (char*)"\x32\xC0\x90\x90", (int)5),		//XOR AL, AL NOP NOP NOP
+	Patch(OFFS_TRAPSYN, (char*)"\xEB\x23", (int)2),		//JMP 0x23
 
+
+	Patch()
+};
+Patch* DisableTrapSynergy = _DisableTrapSynergy;
 
 Patch _DisablespellcraftSavePatch[] =
 {
@@ -430,6 +452,7 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 	config->Read("KeepLocalVarOnSplit", &iTest, 0);
 	if (iTest == 1)
 	{
+		i = 0;
 		logger->Info("* LocalVar keept on Split");
 		while (KeepLocalVarOnSplitPatch[i].Apply()) {
 			i++;
@@ -440,7 +463,18 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 	if (iTest == 1)
 	{
 		logger->Info("* AC bonus by Tumble Disabled");
+		i = 0;
 		while (DisableTumbleACPatch[i].Apply()) {
+			i++;
+		}
+	}
+
+	config->Read("DisableTrapSynergy", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* SetTrap, DisableTrap Synergy Disabled");
+		i = 0;
+		while (DisableTrapSynergy[i].Apply()) {
 			i++;
 		}
 	}

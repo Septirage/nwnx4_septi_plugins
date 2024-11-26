@@ -9,55 +9,10 @@
 #include <stdexcept>
 
 #include "BonusParser.h"
+#include "RuleCreatureFct.h"
 
 namespace MathExpressionParser
 {
-
-int FunctionClassBased(const std::vector<int>& params, int creaBlock, FunctionType tType) 
-{
-	int iValue = 0;
-	// For each, check if in params, if yes, summ or take max
-	uint8_t iNbClass   = *(uint8_t*)(creaBlock + 0x14);
-	int iBaseClass = 0x10C;
-
-	for (uint8_t i = 0; i < iNbClass; i++) {
-		uint8_t iClassID = *(uint8_t*)(creaBlock + iBaseClass + 0x4);
-
-		auto it = std::find(params.begin(), params.end(), iClassID);
-
-		// The current class is one of the parameters
-		if (it != params.end()) {
-			// Somme
-			if (tType == FunctionType::CLASSLVLSUM)
-				iValue += *(uint8_t*)(creaBlock + iBaseClass + 0x5);
-			else //Max
-			{
-				uint8_t tVal = *(uint8_t*)(creaBlock + iBaseClass + 0x5);
-				if (iValue < tVal)
-					iValue = tVal;
-			}
-		}
-		iBaseClass += 0x0124;
-	}
-
-	return iValue;
-}
-
-int ClassLevelSum(const std::vector<int>& params, int creaBlock)
-{
-	return FunctionClassBased(params, creaBlock, FunctionType::CLASSLVLSUM);
-}
-
-
-int ClassLevelMax(const std::vector<int>& params, int creaBlock) 
-{ 
-	return FunctionClassBased(params, creaBlock, FunctionType::CLASSLVLMAX);
-}
-
-
-
-
-
 
 //Number Struct Implementation
 Number::Number(double value) : value(value) {}
@@ -86,6 +41,10 @@ double FunctionT::evaluate(int creaBlock) const
 		return ClassLevelSum(params, creaBlock);
 	else if (functionToUse == FunctionType::CLASSLVLMAX)
 		return ClassLevelMax(params, creaBlock);
+	else if (functionToUse == FunctionType::SKILL)
+		return GetBaseSkill(params.back(), creaBlock);
+	else if (functionToUse == FunctionType::ABILITY)
+		return GetBaseAbility(params.back(), creaBlock);
 	return 0;
 }
 
@@ -95,6 +54,10 @@ int FunctionT::evaluateInt(int creaBlock) const
 		return ClassLevelSum(params, creaBlock);
 	else if (functionToUse == FunctionType::CLASSLVLMAX)
 		return ClassLevelMax(params, creaBlock);
+	else if (functionToUse == FunctionType::SKILL)
+		return GetBaseSkill(params.back(), creaBlock);
+	else if (functionToUse == FunctionType::ABILITY)
+		return GetBaseAbility(params.back(), creaBlock);
 
 	return 0;
 }
@@ -215,6 +178,14 @@ Expr* parseFunction(const std::string& expr, size_t& pos)
 		funcChoice = FunctionType::CLASSLVLMAX;
 		sFunction  = "ClassLevelMax";
 		pos += 13;
+	} else if (expr.substr(pos, 5) == "Skill") {
+		funcChoice = FunctionType::SKILL;
+		sFunction = "Skill";
+		pos += 5;
+	} else if (expr.substr(pos, 7) == "Ability") {
+		funcChoice = FunctionType::ABILITY;
+		sFunction = "Ability";
+		pos += 7;
 	} else {
 		throw std::runtime_error("Unknown function");
 	}
@@ -250,6 +221,23 @@ Expr* parseFunction(const std::string& expr, size_t& pos)
 			throw std::runtime_error("Expected ')' after " + sFunction + " parameters");
 		}
 		++pos;
+
+		//Check params number
+		if ((funcChoice == FunctionType::SKILL || funcChoice == FunctionType::ABILITY) && params.size() != 1)
+		{
+			throw std::runtime_error("Expected exactly one paramter for function " + sFunction);
+		}
+		else if (params.size() < 1) {
+			throw std::runtime_error("Expected at least one paramter for function " + sFunction);
+		}
+
+		//Check param values
+		if(funcChoice == FunctionType::ABILITY)
+		{
+			int iAbility = params.back();
+			if (iAbility < 0 || iAbility > 5)
+				throw std::runtime_error("Ability function must have a parameter from 0 to 5, you have put " + std::to_string(iAbility));
+		}
 		return new FunctionT(funcChoice, std::move(params));
 	}
 }

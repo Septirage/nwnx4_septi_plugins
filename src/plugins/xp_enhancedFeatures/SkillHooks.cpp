@@ -247,7 +247,7 @@ bool ParseSkillModifier(int iRuleNumber, std::string sValue, int iSkillId, std::
 		SkillRuleSet* rs1 = new SkillRuleSet(bonusCalc, iRuleNumber);
 
 		myRuleMap[iSkillId].push_back(rs1);
-	} catch (const std::runtime_error& e) {
+	} catch (const std::exception& e) {
 		logger->Err("Error during parse of \"Bonus\" = %s : %s", sValue.c_str(), e.what());
 		logger->Info("Due to the Error, the complete rule will not be applied");
 		return false;

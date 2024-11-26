@@ -11,6 +11,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "RuleCreatureFct.h"
+
 
 
 namespace MathExpressionParser {
@@ -22,22 +24,10 @@ const char OPERATION_MULTIPLICATION = 3;
 const char OPERATION_MODULUS        = 4;
 const char OPERATION_INTDIVISION    = 5;
 
-enum class FunctionType {
-	CLASSLVLSUM,
-	CLASSLVLMAX
-};
-
 enum class Mode {
 	FLOAT,
 	INTEGER
 };
-
-//Functions for FunctionType:
-
-// ClassLevelSum //TODO, add the creature ptr to check class
-int ClassLevelSum(const std::vector<int>& params, int creaBlock);
-// TODO
-int ClassLevelMax(const std::vector<int>& params, int creaBlock);
 
 
 

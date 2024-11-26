@@ -1,4 +1,5 @@
 #include "RuleParser.h"
+#include "RuleCreatureFct.h"
 #include "../../septutil/NwN2DataPos.h"
 
 #include <unordered_map>
@@ -24,6 +25,11 @@ namespace RuleParser
 	std::unordered_map<std::string, uint32_t> operatorValues
 		= {{"&", OP_AND}, {"|", OP_OR}, {"^", OP_XOR}, {"!", OP_NOT}};
 
+	std::unordered_map<std::string, uint32_t> operatorNumValues
+		= { {"==", OP_EQUAL}, {"!=", OP_NOTEQUAL}, {"<", OP_LESS}, {"<=", OP_LESSEQUAL}, {">", OP_GREATER}, {">=", OP_GREATEREQUAL} };
+
+	std::unordered_map<std::string, uint32_t> functionValues
+		= { {"skill", FCT_SKILL}, {"ability", FCT_ABILITY}, {"classlevelsum", FCT_CLASSSUM}, {"classlevelmax", FCT_CLASSMAX} };
 
 
 	std::unordered_map<std::string, uint32_t> m_areaTypeMap;
@@ -31,33 +37,6 @@ namespace RuleParser
 
 	void processCurrentToken(const std::string& currentToken, std::vector<Token>& tokens, RuleType cRuleType, bool bManageRule=true);
 ////////////////////////////////
-/*
-Keep the simple one if the complex one don't work as intended
-
-std::vector<Token> tokenize(const std::string& expression)
-{
-    std::vector<Token> tokens;
-    std::istringstream stream(expression);
-    std::string token;
-
-    while (stream >> token) {
-        if (operatorValues.find(token) != operatorValues.end()) {
-            tokens.push_back({TokenType::OPERATOR, token, operatorValues[token]});
-        } else if (token == "(") {
-            tokens.push_back({TokenType::LPAREN, token, 0});
-        } else if (token == ")") {
-            tokens.push_back({TokenType::RPAREN, token, 0});
-        } else if (m_areaTypeMap.find(token) != m_areaTypeMap.end()) {
-            tokens.push_back({TokenType::OBJECT, token, 0});
-        } else {
-            throw std::invalid_argument("Unknown token: " + token);
-        }
-    }
-
-    tokens.push_back({TokenType::END, "", 0});
-    return tokens;
-}
-*/
 
 Rule::~Rule() 
 {
@@ -114,6 +93,14 @@ void processCurrentToken(const std::string& currentToken, std::vector<Token>& to
 		{
 			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_ENCUMBRANCE2});
 		}
+		else if (operatorNumValues.find(currentToken) != operatorNumValues.end())
+		{
+			tokens.push_back({TokenType::OPNUM, operatorNumValues[currentToken]});
+		}
+		else if (functionValues.find(lowerToken) != functionValues.end())
+		{
+			tokens.push_back({ TokenType::FUNCTION, functionValues[currentToken] });
+		}
 		else
 		{
 			std::regex pattern("(Rule)(\\d+)", std::regex::icase);
@@ -122,7 +109,13 @@ void processCurrentToken(const std::string& currentToken, std::vector<Token>& to
 				int number = std::stoi(match[2].str());
 				tokens.push_back({TokenType::OBJECT, static_cast<uint32_t>(number)});
 			} else {
-				throw std::invalid_argument("Unknow token: " + currentToken);
+				try {
+					int number = std::stoi(currentToken);
+					tokens.push_back({TokenType::NUM, static_cast<uint32_t>(number)});
+				} catch (const std::exception& e) {
+					throw std::invalid_argument("Unknown token: " + currentToken);
+				}
+				//throw std::invalid_argument("Unknow token: " + currentToken);
 			}
 		}
 	}
@@ -135,11 +128,37 @@ std::vector<Token> tokenize(const std::string& expression, RuleType cRuleType, b
 	std::stringstream stream(expression);
 	std::string token;
 	std::string currentToken;
+	bool insideFct = false;
 
 	while (stream >> token) {
 		currentToken.clear();
-		for (char c : token) {
-			if (operatorValues.find(std::string(1, c)) != operatorValues.end()) {
+		for (size_t i = 0; i < token.size(); ++i) {
+			char c = token[i];
+
+			//Just to detect and manage possible case of '<=' and '>=' in case of 
+			if (c == '<' || c == '>') {
+				if (!currentToken.empty()) {
+					processCurrentToken(currentToken, tokens, cRuleType, bManageRule);
+					currentToken.clear();
+				}
+
+				if ( ((i + 1) < token.size()) && token[i+1] == '=')
+				{
+					currentToken += c;
+					i++;
+					c = token[i];
+				}
+			}
+
+			//Really manage tokens here
+			if (insideFct && c == ',')
+			{
+				if (!currentToken.empty()) {
+					processCurrentToken(currentToken, tokens, cRuleType, bManageRule);
+					currentToken.clear();
+				}
+			}
+			else if (operatorValues.find(std::string(1, c)) != operatorValues.end()) {
 				if (!currentToken.empty()) {
 					processCurrentToken(currentToken, tokens, cRuleType, bManageRule);
 					currentToken.clear();
@@ -147,12 +166,25 @@ std::vector<Token> tokenize(const std::string& expression, RuleType cRuleType, b
 				tokens.push_back({TokenType::OPERATOR, operatorValues[std::string(1, c)]});
 			} else if (c == '(') {
 				if (!currentToken.empty()) {  //Cant have an OBJECT dirrectly followed by a (
-
-					throw std::invalid_argument("Bad format for the rule : " + expression);
+					//Only function can (and must) be dirrectly followed by a (
+					processCurrentToken(currentToken, tokens, cRuleType, bManageRule);
+					if (tokens.size() > 0 && tokens.back().type == TokenType::FUNCTION)
+					{
+						currentToken.clear();
+						insideFct = true;
+					}
+					else
+					{
+						throw std::invalid_argument("Bad format for the rule : " + expression);
+					}
 					/*					
 					processCurrentToken(currentToken, token, cRuleType, bManageRule);
 					currentToken.clear();
 					*/
+				}
+				else if (tokens.size() > 0 && tokens.back().type == TokenType::FUNCTION)
+				{
+					insideFct = true;
 				}
 				tokens.push_back({TokenType::LPAREN, 0});
 			} else if (c == ')') {
@@ -160,6 +192,7 @@ std::vector<Token> tokenize(const std::string& expression, RuleType cRuleType, b
 					processCurrentToken(currentToken, tokens, cRuleType, bManageRule);
 					currentToken.clear();
 				}
+				insideFct = false; //No matter if we are in or not, we are no more
 				tokens.push_back({TokenType::RPAREN, 0});
 			} else {
 				currentToken += c;
@@ -176,6 +209,85 @@ std::vector<Token> tokenize(const std::string& expression, RuleType cRuleType, b
 
 Rule* parseExpression(std::vector<Token>& tokens, int& pos)
 {
+	auto parseNumPrimary = [&]() -> Rule* {
+		if (pos < tokens.size() && tokens[pos].type == TokenType::FUNCTION) {
+			uint32_t iFctType = tokens[pos].intValue;
+			pos++;
+			if (pos >= tokens.size() || tokens[pos].type != TokenType::LPAREN)
+				throw std::invalid_argument("Expected '(' after the a function name");
+			pos++; //LParen ok
+
+			std::vector<int> tParams;
+			//Now, add the parameter(s)
+			while (pos < tokens.size() && tokens[pos].type != TokenType::RPAREN)
+			{
+				if(tokens[pos].type != TokenType::NUM)
+					throw std::invalid_argument("Functions parameters should be integer");
+
+				tParams.push_back(tokens[pos].intValue);
+				pos++;
+			}
+
+			//Here, we have the rParen, just pass it
+			if (pos >= tokens.size())
+			{
+				throw std::invalid_argument("Functions should end with ')'");
+			}
+			pos++;
+			
+			//Check tParams number
+			if ((iFctType == FCT_SKILL || iFctType == FCT_ABILITY) && tParams.size() != 1)
+			{
+				throw std::runtime_error("Expected exactly one paramter for function Skill or Ability");
+			}
+			else if (tParams.size() < 1) {
+				throw std::runtime_error("Expected at least one paramter for function");
+			}
+
+			//Check param values
+			if(iFctType == FCT_ABILITY)
+			{
+				int iAbility = tParams.back();
+				if (iAbility < 0 || iAbility > 5)
+					throw std::runtime_error("Ability function must have a parameter from 0 to 5, you have put " + std::to_string(iAbility));
+			}
+
+			Rule* node = new Rule{ TokenType::FUNCTION, iFctType, nullptr, nullptr, tParams};
+
+			return node;
+
+		}
+		else if (pos < tokens.size() && tokens[pos].type == TokenType::NUM) {
+			Rule* node = new Rule{ TokenType::NUM, tokens[pos].intValue, nullptr, nullptr};
+			pos++;
+			return node;
+		} else {
+			throw std::invalid_argument("Expected Function or numeric value around a numerical comparator");
+		}
+	};
+
+	auto parseNumComparaison = [&]() -> Rule* {
+		if (tokens[pos].type == TokenType::FUNCTION || tokens[pos].type == TokenType::NUM)
+		{
+			Rule* left = parseNumPrimary();
+			if (pos >= tokens.size() || tokens[pos].type != TokenType::OPNUM)
+			{
+				throw std::invalid_argument("Numeric value or function can only be used with numeric comparators");
+			}
+
+			Token op = tokens[pos];
+			pos++;
+
+			Rule* right = parseNumPrimary();
+
+			Rule* node = new Rule{ TokenType::OPNUM, op.intValue, left, right };
+			return node;
+		}
+		else {
+			throw std::invalid_argument("Problem during parse of NumComparaison");
+		}
+	};
+
 	auto parsePrimary = [&]() -> Rule* {
 		if (tokens[pos].type == TokenType::OBJECT) {
 			Rule* node = new Rule {TokenType::OBJECT, tokens[pos].intValue, nullptr, nullptr};
@@ -185,6 +297,8 @@ Rule* parseExpression(std::vector<Token>& tokens, int& pos)
 			Rule* node = new Rule {TokenType::SPECIAL, tokens[pos].intValue, nullptr, nullptr};
 			pos++;
 			return node;
+		} else if (tokens[pos].type == TokenType::FUNCTION || tokens[pos].type == TokenType::NUM) {
+			return parseNumComparaison();
 		} else if (tokens[pos].type == TokenType::LPAREN) {
 			pos++;
 			Rule* expr = parseExpression(tokens, pos);
@@ -315,6 +429,29 @@ bool TestSpecial(int iSpecialType, int creaPtr)
 	return bResult;
 }
 
+int evaluateRuleInt(Rule* node, RuleType cRuleType, int iPcAddr, bool& isValid)
+{
+	isValid = true;
+	if (node->type == TokenType::FUNCTION)	//Exist only on extra, so 
+	{
+		int CreaBlockStat = *(int*)(iPcAddr + AmCrtPtrAppBlock);
+		if (node->value == FCT_SKILL)
+			return GetBaseSkill(node->params.back(), CreaBlockStat);
+		else if (node->value == FCT_ABILITY)
+			return GetBaseAbility(node->params.back(), CreaBlockStat);
+		else if (node->value == FCT_CLASSSUM)
+			return ClassLevelSum(node->params, CreaBlockStat);
+		else if (node->value == FCT_CLASSSUM)
+			return ClassLevelMax(node->params, CreaBlockStat);
+	}
+	else if (node->type == TokenType::NUM)
+	{
+		return node->value;
+	}
+	isValid = false;
+	return 0;
+}
+
 bool evaluateRule(Rule* node, RuleType cRuleType, int areaTypeOrPcBlock)
 {
 	if (node->type == TokenType::OBJECT) {
@@ -352,6 +489,27 @@ bool evaluateRule(Rule* node, RuleType cRuleType, int areaTypeOrPcBlock)
 				return 0;
 			}
 		}
+	} else if(cRuleType == RuleType::EXTRA && node->type == TokenType::OPNUM) {
+		bool bValid = true;
+		int iLeft = evaluateRuleInt(node->left, cRuleType, areaTypeOrPcBlock, bValid);
+		if (!bValid)
+			return false;
+		int iRight = evaluateRuleInt(node->right, cRuleType, areaTypeOrPcBlock, bValid);
+		if (!bValid)
+			return false;
+
+		if (node->value == OP_EQUAL)
+			return (iLeft == iRight);
+		else if (node->value == OP_NOTEQUAL)
+			return (iLeft != iRight);
+		else if (node->value == OP_LESS)
+			return (iLeft < iRight);
+		else if (node->value == OP_LESSEQUAL)
+			return (iLeft <= iRight);
+		else if (node->value == OP_GREATER)
+			return (iLeft > iRight);
+		else if (node->value == OP_GREATEREQUAL)
+			return (iLeft >= iRight);
 	} else {
 		//throw std::invalid_argument("Unknown node type");
 		return 0;

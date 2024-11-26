@@ -163,7 +163,7 @@ bool ParseReduceSpeedModifier(int iRuleNumber, std::string sValue, std::vector<R
 		ReduceSpeedRuleSet* rs1 = new ReduceSpeedRuleSet(bonusCalc, iRuleNumber);
 
 		myRuleList.push_back(rs1);
-	} catch (const std::runtime_error& e) {
+	} catch (const std::exception& e) {
 		logger->Err("Error during parse of \"Impact\" = %s : %s", sValue.c_str(), e.what());
 		logger->Info("Due to the Error, the complete rule will not be applied");
 		return false;
