@@ -784,7 +784,7 @@ int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::s
 	std::vector<smallSkill> skillGained;	
 	int totalSkillPointUsed = 0;
 
-	uint8_t maxSkillId = g_global2da->m_NumberOfSkills;
+	uint8_t maxSkillId = GetGlobal2DA()->m_NumberOfSkills;
 
 	for (uint8_t i = 0; i < maxSkillId; i++)
 	{
@@ -981,10 +981,6 @@ int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::s
 	std::unordered_set<uint16_t> myObtainedFeats(takenFeatsList, takenFeatsList + nbNewFeats);
 	uPos += (2 * nbNewFeats);
 
-	//Check the list of feat for this class	
-	NWN2DA::clsFeat2DA* myClassFeatList = myClass2daRow->m_clsFeatTable;
-	uint16_t sizeMyClassFeatList = myClass2daRow->m_sizeFeatTable;
-
 	std::unordered_set<uint16_t> myBonusFeatsOnly;
 	std::unordered_set<uint16_t> myRegularOrBonusFeats;
 	std::unordered_set<uint16_t> myDomainsFeats;
@@ -1047,72 +1043,92 @@ int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::s
 	}
 
 	std::string sAutoFeatNotGranted = "";
+	
+	//Ok, the game will add every autogranted feat from previous level that you don't have:
+	//Example... You are lvl 6 warrior, 2 rogue and take lvl 1 wizard.
+	// If lvl 2 warrior should give you vigilance and you don't have it, the game will grant you vigilance
+	//So, we need to test all lvl for all classes
 
-	for (uint16_t i = 0; i < sizeMyClassFeatList; i++)
+	for (int iClassPos = 0; iClassPos < nb_OwnedClass; iClassPos++)
 	{
-		uint8_t fLType = myClassFeatList[i].m_List;
-		int8_t	grantedOn = myClassFeatList[i].m_GrantedOnLevel;
-
-		bool bValidFeatCond = false;
-
-		//Allow to configure to apply PreReqGranted and GrantedOn for every kind of feats
-		if (g_msgServ->bGrantedCondForEveryFeats)
+		NWN2DA::classes2DA myClass2daRowT = GetClasseRow(myClasses[iClassPos].classId);
+		if (myClass2daRowT != NULL)
 		{
-			if (grantedOn != -1 && grantedOn <= (int16_t)lvlChoosenClass) {
-				//Does it have PreReqGranted?
-				int16_t preReqGranted = myClassFeatList[i].m_GrantedPrereq;
-				bValidFeatCond = (preReqGranted == -1 || myCurrentFeats.count(preReqGranted) != 0 || myAutoGrantedFeats.count(preReqGranted) != 0);
-			}
-		}
-		else {
-			bValidFeatCond = true;
-		}
+			int16_t iLvlClassT = myClasses[iClassPos].classLvl;
+			if (myClasses[iClassPos].classId == nChoosenClass)
+				iLvlClassT = lvlChoosenClass;
 
+			//Check the list of feat for this class	
+			NWN2DA::clsFeat2DA* myClassFeatList = myClass2daRowT->m_clsFeatTable;
+			uint16_t sizeMyClassFeatList = myClass2daRowT->m_sizeFeatTable;
 
-		if (bValidFeatCond) {
-			int16_t curFeat = myClassFeatList[i].m_FeatIndex;
+			for (uint16_t i = 0; i < sizeMyClassFeatList; i++)
+			{
+				uint8_t fLType = myClassFeatList[i].m_List;
+				int8_t	grantedOn = myClassFeatList[i].m_GrantedOnLevel;
 
-			//Automatic granted feat, check and remove !
-			if (fLType == 0) {
-				if(grantedOn == (int16_t)lvlChoosenClass)
+				bool bValidFeatCond = false;
+
+				//Allow to configure to apply PreReqGranted and GrantedOn for every kind of feats
+				if (g_msgServ->bGrantedCondForEveryFeats)
 				{
-					int16_t preReqGranted = myClassFeatList[i].m_GrantedPrereq;
+					if (grantedOn != -1 && grantedOn <= (int16_t)iLvlClassT) {
+						//Does it have PreReqGranted?
+						int16_t preReqGranted = myClassFeatList[i].m_GrantedPrereq;
+						bValidFeatCond = (preReqGranted == -1 || myCurrentFeats.count(preReqGranted) != 0 || myAutoGrantedFeats.count(preReqGranted) != 0);
+					}
+				}
+				else {
+					bValidFeatCond = true;
+				}
 
-					if (preReqGranted == -1 || myCurrentFeats.count(preReqGranted) != 0 || myAutoGrantedFeats.count(preReqGranted) != 0)
-					{
-						//AllPrereqOk 
-						if (myTakenFeats.erase(curFeat) == 0) {
-							//No ? error only if we not already have it
-							//Add check if it is given several time !
-							if (myCurrentFeats.count(curFeat) == 0 && myAutoGrantedFeats.count(curFeat) == 0) {
-								sAutoFeatNotGranted += " " + std::to_string(curFeat);
 
-								if(g_msgServ->bACLvlUpStopFirstViolation)
-									break;
+				if (bValidFeatCond) {
+					int16_t curFeat = myClassFeatList[i].m_FeatIndex;
+
+					//Automatic granted feat, check and remove !
+					if (fLType == 0) {
+						if(grantedOn != -1 && grantedOn <= (int16_t)iLvlClassT)
+						{
+							int16_t preReqGranted = myClassFeatList[i].m_GrantedPrereq;
+
+							if (preReqGranted == -1 || myCurrentFeats.count(preReqGranted) != 0 || myAutoGrantedFeats.count(preReqGranted) != 0)
+							{
+								//AllPrereqOk 
+								if (myTakenFeats.erase(curFeat) == 0) {
+									//No ? error only if we not already have it
+									//Add check if it is given several time !
+									if (myCurrentFeats.count(curFeat) == 0 && myAutoGrantedFeats.count(curFeat) == 0) {
+										sAutoFeatNotGranted += " " + std::to_string(curFeat);
+
+										if(g_msgServ->bACLvlUpStopFirstViolation)
+											break;
+									}
+								}
+								else {
+									myAutoGrantedFeats.insert(curFeat);
+									nbNewFeats--;
+								}
 							}
 						}
-						else {
-							myAutoGrantedFeats.insert(curFeat);
-							nbNewFeats--;
-						}
+					}
+					//Add to bonus feat only !
+					else if (fLType == 2) {
+						myBonusFeatsOnly.insert(curFeat);
+					}
+					//Add to regular feat or bonus feat 
+					else if (fLType == 3) {
+						myRegularOrBonusFeats.insert(curFeat);
+					}
+					//add to Selectable on lvlup
+					else {
+						mySelectableLvlUp.insert(curFeat);
 					}
 				}
 			}
-			//Add to bonus feat only !
-			else if (fLType == 2) {
-				myBonusFeatsOnly.insert(curFeat);
-			}
-			//Add to regular feat or bonus feat 
-			else if (fLType == 3) {
-				myRegularOrBonusFeats.insert(curFeat);
-			}
-			//add to Selectable on lvlup
-			else {
-				mySelectableLvlUp.insert(curFeat);
-			}
+
 		}
 	}
-
 
 	if (sAutoFeatNotGranted != "") {
 		errorsList += "#autofeatNotGranted:{" + sAutoFeatNotGranted + "}";
@@ -3028,7 +3044,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 
 		int totalSkillPointUsed = 0;
 
-		uint8_t maxSkillId = g_global2da->m_NumberOfSkills;
+		uint8_t maxSkillId = GetGlobal2DA()->m_NumberOfSkills;
 
 
 		//Treat everything as cross class skill for now.
@@ -3295,7 +3311,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 		}
 
 		//Check if we have a background feat. Normaly, only one accepted. Remove it
-		for (int i = 0; i < g_global2da->m_NumberOfBackground; i++)
+		for (int i = 0; i < GetGlobal2DA()->m_NumberOfBackground; i++)
 		{
 			NWN2DA::background2da myBackGroundToTest = GetBackgroundRow(i);
 			if (myBackGroundToTest != NULL)
