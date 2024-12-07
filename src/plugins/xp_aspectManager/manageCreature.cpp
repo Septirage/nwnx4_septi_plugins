@@ -1,7 +1,7 @@
 #include "aspectManagerUtils.h"
 #include "manageCreature.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 #include "../../septutil/NwN2DataPos.h"
 
 #include <cstdint>

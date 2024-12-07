@@ -13,10 +13,10 @@
 #include <specstrings.h>
 #endif
 
-#include "../../misc/ini.h"
-#include "../../misc/log.h"
-#include "../plugin.h"
-#include "../../NWN2Lib/NWN2.h"
+#include <misc/ini.h>
+#include <misc/log.h>
+#include <plugins/plugin.h>
+#include <NWN2Lib/NWN2.h>
 #include "appListManagement.h"
 
 #include <codecvt>

@@ -1,6 +1,6 @@
 #include "aspectManagerUtils.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 #include "../../septutil/NwN2DataPos.h"
 
 #include "nwn2heap.h"

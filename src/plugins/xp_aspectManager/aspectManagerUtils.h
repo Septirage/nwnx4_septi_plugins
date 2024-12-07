@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 
 
 const std::string cst_ModelPiece = "ModelPiece";
