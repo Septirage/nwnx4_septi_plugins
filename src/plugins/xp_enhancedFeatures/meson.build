@@ -5,10 +5,10 @@ dllName = plugin_name+'.dll'
 
 shared_library_obj = shared_library(plugin_name,
     [
-        '../plugin.cpp',
-        '../../misc/log.cpp',
-        '../../hook/scriptManagement.cpp',
-        '../../misc/Patch.cpp',
+        nwnx4_repo_path / 'src/plugins/plugin.cpp',
+        nwnx4_repo_path / 'src/misc/log.cpp',
+        nwnx4_repo_path / 'src/hook/scriptManagement.cpp',
+        nwnx4_repo_path / 'src/misc/Patch.cpp',
         'EnhancedFeatures.cpp',
         'MagicFunctions.cpp',
         'SmallPatchFunctions.cpp',
@@ -35,26 +35,26 @@ shared_library_obj = shared_library(plugin_name,
     install_dir: 'plugins',
 )
 
-versionrc_obj = configure_file(
-    input : meson.source_root() / 'Version.rc.in',
-    output : 'Version.rc',
-    configuration : {
-        'PRODUCTVERSION' : plugin_version.replace('"', ''),
-        'FILEVERSION' : plugin_version.replace('"', ''),
-    },
-)
+# versionrc_obj = configure_file(
+#     input : meson.source_root() / 'Version.rc.in',
+#     output : 'Version.rc',
+#     configuration : {
+#         'PRODUCTVERSION' : plugin_version.replace('"', ''),
+#         'FILEVERSION' : plugin_version.replace('"', ''),
+#     },
+# )
 
-custom_target('compileVersion',
-          input : [shared_library_obj, configure_file(
-    input : meson.source_root() / 'Version.rc.in',
-    output : 'Version.rc',
-    configuration : {
-        'PRODUCTVERSION' : plugin_version.replace('"', ''),
-    },
-)],
-          output : 'fake',
-          command : [meson.source_root() / 'version.bat', meson.current_build_dir(), dllName],
-          build_by_default : true)
+# custom_target('compileVersion',
+#           input : [shared_library_obj, configure_file(
+#     input : meson.source_root() / 'Version.rc.in',
+#     output : 'Version.rc',
+#     configuration : {
+#         'PRODUCTVERSION' : plugin_version.replace('"', ''),
+#     },
+# )],
+#           output : 'fake',
+#           command : [meson.source_root() / 'version.bat', meson.current_build_dir(), dllName],
+#           build_by_default : true)
 
           
 install_data('xp_enhancedFeatures.ini', install_dir: 'config.example')

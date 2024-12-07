@@ -1,11 +1,11 @@
 
 
-#include "../../misc/log.h"
-#include "../../septutil/mini.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "..\..\misc\Patch.h"
+#include <misc/log.h>
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <misc/Patch.h>
 
+#include "../../septutil/mini.h"
 #include "../../septutil/NwN2DataPos.h"
 
 #include <unordered_set>

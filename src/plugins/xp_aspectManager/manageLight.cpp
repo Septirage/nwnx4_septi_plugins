@@ -1,8 +1,8 @@
 #include <cstdint>
 #include <string>
 #include "../../septutil/NwN2DataPos.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 #include "aspectManagerUtils.h"
 
 int GetLightIsLerp(GameObject* Object) {

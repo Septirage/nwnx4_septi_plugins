@@ -1,0 +1,2 @@
+
+option('nwnx4_dir', type: 'string', value: 'nwnx4', description: 'NWNX4 repository path. Must contain built VCPKGs')
