@@ -1,6 +1,6 @@
 #include "intern2daMgt.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 #include <cstdint>
 
 namespace NWN2DA

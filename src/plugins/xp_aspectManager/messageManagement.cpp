@@ -3,12 +3,12 @@
 #include "messageManagement.h"
 #include "aspectManagerUtils.h"
 
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "../../misc/log.h"
-#include "nwn2heap.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <misc/log.h>
+#include <misc/Patch.h>
+#include <nwn2heap.h>
 #include "../../septutil/NwN2DataPos.h"
-#include "..\..\misc\Patch.h"
 
 
 #include <string>

@@ -1,11 +1,11 @@
 ﻿#include "Connection.h"
 #include "messageConst.h"
 
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "../../hook/scriptManagement.h"
-#include "../../misc/log.h"
-#include "nwn2heap.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <hook/scriptManagement.h>
+#include <misc/log.h>
+#include <nwn2heap.h>
 #include "Anticheat.h"
 
 #include <bit>

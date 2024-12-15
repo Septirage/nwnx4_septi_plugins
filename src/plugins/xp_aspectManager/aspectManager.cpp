@@ -9,9 +9,9 @@
 #include "aspectManagerUtils.h"
 #include "refreshObject.h"
 
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "..\..\misc\Patch.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <misc/Patch.h>
 
 #include <bit>
 #include <cassert>
@@ -664,6 +664,7 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 		char szPath[MAX_PATH];
 		GetModuleFileNameA(hModule, szPath, MAX_PATH);
 		plugin->SetPluginFullPath(szPath);
+		plugin->RetrieveVersionFromDLL();
 	} else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
 		plugin.reset();
 	}
@@ -1121,8 +1122,7 @@ AspectManager::AspectManager()
 	description = "This plugin provides various script access to manage and modify appareance (item/character/placeable/area/...).";
 
 	subClass = FunctionClass;
-	static std::string stest(PLUGIN_VERSION);
-	version  = stest;
+	version  = "unknown";
 }
 
 AspectManager::~AspectManager(void)
@@ -1304,6 +1304,42 @@ AspectManager::Init(char* nwnxhome)
 
 
 	return true;
+}
+
+// Get the version field from a DLL file
+std::optional<std::string> GetDLLVersion(const char* dllPath)
+{
+	// allocate a block of memory for the version info
+	DWORD dummy;
+	DWORD dwSize = GetFileVersionInfoSizeA(dllPath, &dummy);
+	if (dwSize == 0)
+	{
+		return std::nullopt;
+	}
+	std::vector<uint8_t> fileVersionInfo(dwSize);
+
+	// load the version info
+	if (!GetFileVersionInfoA(dllPath, NULL, dwSize, fileVersionInfo.data()))
+	{
+		return std::nullopt;
+	}
+
+	// get the version string
+	LPVOID pvProductVersion = NULL;
+	unsigned int iProductVersionLen = 0;
+
+	if (!VerQueryValueA(fileVersionInfo.data(), "\\StringFileInfo\\040904b0\\ProductVersion", &pvProductVersion, &iProductVersionLen))
+	{
+		return std::nullopt;
+	}
+
+	return std::string((const char*)pvProductVersion, iProductVersionLen);
+}
+
+void AspectManager::RetrieveVersionFromDLL(){
+	if(auto ver = GetDLLVersion(GetPluginFullPath())){
+		version = ver.value();
+	}
 }
 
 
@@ -1622,7 +1658,9 @@ AspectManager::GetString([[maybe_unused]] char* sFunction,
 	logger->Trace("* Plugin GetString(0x%x, %s, %s, %d)", 0x0, sFunction, sParam1, nParam2);
 
 	//else 
-	if (stFunction == "area")
+	if(auto res = ProcessQueryFunction(stFunction); res != "")
+		sRetVal = res;
+	else if (stFunction == "area")
 		sRetVal = AreaGetString(sParam1, nParam2);
 	else if (stFunction == "creature")
 		sRetVal = CreatureGetString(sParam1, nParam2);

@@ -1,9 +1,9 @@
 
-#include "../../misc/log.h"
+#include <misc/log.h>
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <misc\Patch.h>
 #include "../../septutil/mini.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "..\..\misc\Patch.h"
 
 #include <unordered_map>
 #include <string>
