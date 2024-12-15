@@ -49,9 +49,6 @@ endif
 
 
 # # Target list
-
-nwscript_includes = []
-
 subdir('src/plugins/xp_aspectManager')
 subdir('src/plugins/xp_enhancedFeatures')
 subdir('src/plugins/xp_msgServer')

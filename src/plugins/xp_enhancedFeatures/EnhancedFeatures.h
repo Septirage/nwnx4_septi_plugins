@@ -41,6 +41,8 @@ class EnhancedFeatures final : public Plugin
 
 	std::string GetVersion() { return version; };
 	std::string GetSubClass() { return subClass; };
+	
+  void RetrieveVersionFromDLL();
 
   public:	
 	SimpleIniConfig* config;

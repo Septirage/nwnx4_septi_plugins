@@ -75,8 +75,10 @@ class MsgServ final : public Plugin
 	std::string GetVersion() { return version; };
 	std::string GetSubClass() { return subClass; };
 	
+  void RetrieveVersionFromDLL();
 
   public:
+
 	//LogNWNX* logger;
 	SimpleIniConfig* config;
 	GameObjectManager m_ObjectManager;

@@ -13,6 +13,7 @@
 #include <iostream>
 #include <fstream>
 #include "../../septutil/srvadmin.h"
+#include "../../septutil/win_utils.h"
 #include "RuleParser.h"
 #include "SpeedFeats.h"
 #include "SkillHooks.h"
@@ -537,6 +538,7 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 		char szPath[MAX_PATH];
 		GetModuleFileNameA(hModule, szPath, MAX_PATH);
 		plugin->SetPluginFullPath(szPath);
+		plugin->RetrieveVersionFromDLL();
 	} else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
 		plugin.reset();
 	}
@@ -548,7 +550,7 @@ EnhancedFeatures::EnhancedFeatures()
 	description = "This plugin provides fix and enhanced features.";
 
 	subClass = FunctionClass;
-	version  = PLUGIN_VERSION;
+	version  = "unknown";
 }
 
 EnhancedFeatures::~EnhancedFeatures(void) {}
@@ -560,6 +562,12 @@ DWORD WINAPI LancementTest(LPVOID lpParam)
 	TstVersionPlg testPlugin(enhancedFeats->nwnxStringHome, enhancedFeats->GetVersion(), enhancedFeats->GetSubClass());
 	testPlugin.TestVersionPlugin();
 	return 0;
+}
+
+void EnhancedFeatures::RetrieveVersionFromDLL(){
+	if(auto ver = GetDLLVersion(GetPluginFullPath())){
+		version = ver.value();
+	}
 }
 
 bool
@@ -871,13 +879,9 @@ EnhancedFeatures::GetString([[maybe_unused]] char* sFunction,
 	[[maybe_unused]] char* sParam1,
 	[[maybe_unused]] int nParam2)
 {
-	std::string function{sFunction};
-	std::string ret("");
-	std::string logTxt = "EnhancedFeatures_GetString(" + function + "," + sParam1 + "," +
-		std::to_string(nParam2) + ")";
-
-
-	return (ret.data());
+	static std::string res;
+	res = ProcessQueryFunction(std::string_view{sFunction});
+	return const_cast<char*>(res.c_str());
 }
 
 

@@ -53,11 +53,13 @@ class AspectManager final : public Plugin, public AppearanceListManagement
 	void SetFloat(char* sFunction, char* sParam1, int nParam2, float fValue) override;
 	void GetFunctionClass(char* fClass) override;
 
-    std::string GetVersion() { return version; };
+  std::string GetVersion() { return version; };
 	std::string GetSubClass() { return subClass; };
 
+  void RetrieveVersionFromDLL();
 
   public:
+
 	SimpleIniConfig* config;
 	std::string nwnxStringHome;
 
