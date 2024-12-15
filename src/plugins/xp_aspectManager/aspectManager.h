@@ -58,6 +58,8 @@ class AspectManager final : public Plugin, public AppearanceListManagement
 
 
   public:
+  void RetrieveVersionFromDLL();
+
 	SimpleIniConfig* config;
 	std::string nwnxStringHome;
 

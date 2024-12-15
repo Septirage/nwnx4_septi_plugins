@@ -1,8 +1,7 @@
 set "rootPath=%~dp0"
 set "buildPath=%~1"
-set "pluginName=%~2"
+set "pluginPath=%~2"
 
-set "pluginPath=%buildPath%/%pluginName%"
 set "versionPath=%buildPath%/Version.rc"
 set "resPath=%buildPath%/Version.res"
 
