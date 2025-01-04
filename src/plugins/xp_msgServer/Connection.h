@@ -13,11 +13,11 @@
 #include <windows.h>
 #endif
 
-#include "../../misc/ini.h"
-#include "../../misc/log.h"
-#include "../plugin.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <misc/ini.h>
+#include <misc/log.h>
+#include <plugins/plugin.h>
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 
 #define SCRIPTRESPONSE_BAN		-3
 #define SCRIPTRESPONSE_KICK 	-2
@@ -75,8 +75,10 @@ class MsgServ final : public Plugin
 	std::string GetVersion() { return version; };
 	std::string GetSubClass() { return subClass; };
 	
+  void RetrieveVersionFromDLL();
 
   public:
+
 	//LogNWNX* logger;
 	SimpleIniConfig* config;
 	GameObjectManager m_ObjectManager;

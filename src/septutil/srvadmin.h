@@ -25,8 +25,8 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <specstrings.h>
-#include "../plugin.h"
-#include "../../misc/log.h"
+#include <plugins/plugin.h>
+#include <misc/log.h>
 
 class TstVersionPlg
 {

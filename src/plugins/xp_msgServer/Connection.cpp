@@ -1,11 +1,11 @@
 ﻿#include "Connection.h"
 #include "messageConst.h"
 
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "../../hook/scriptManagement.h"
-#include "../../misc/log.h"
-#include "nwn2heap.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <hook/scriptManagement.h>
+#include <misc/log.h>
+#include <nwn2heap.h>
 #include "Anticheat.h"
 
 #include <bit>
@@ -17,6 +17,7 @@
 #include <iostream>
 #include <fstream>
 #include "../../septutil/srvadmin.h"
+#include "../../septutil/win_utils.h"
 
 #define MAX_PLAYERS               0x60
 
@@ -801,6 +802,7 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 		char szPath[MAX_PATH];
 		GetModuleFileNameA(hModule, szPath, MAX_PATH);
 		plugin->SetPluginFullPath(szPath);
+		plugin->RetrieveVersionFromDLL();
 	} else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
 		plugin.reset();
 	}
@@ -812,12 +814,16 @@ MsgServ::MsgServ()
 	description = "This plugin provides script access to server received msg.";
 
 	subClass = FunctionClass;
-	static std::string stest(PLUGIN_VERSION);
-	version  = stest;
+	version  = "unknown";
 }
 
 MsgServ::~MsgServ(void) {}
 
+void MsgServ::RetrieveVersionFromDLL(){
+	if(auto ver = GetDLLVersion(GetPluginFullPath())){
+		version = ver.value();
+	}
+}
 
 DWORD WINAPI LaunchTestVersion(LPVOID lpParam)
 {
@@ -1265,12 +1271,9 @@ MsgServ::GetString([[maybe_unused]] char* sFunction,
 	[[maybe_unused]] char* sParam1,
 	[[maybe_unused]] int nParam2)
 {
-	std::string function{sFunction};
-	std::string ret("");
-	std::string logTxt = "MsgServ_GetString(" + function + "," + sParam1 + "," +
-		std::to_string(nParam2) + ")";
-
-	return (ret.data());
+	static std::string res;
+	res = ProcessQueryFunction(std::string_view{sFunction});
+	return const_cast<char*>(res.c_str());
 }
 
 

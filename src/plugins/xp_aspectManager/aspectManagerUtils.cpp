@@ -2,8 +2,8 @@
 #include "../../septutil/NwN2DataPos.h"
 
 #include "nwn2heap.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 
 	typedef void(__cdecl* NWN2Heap_Deallocate_Proc)(void* p);
 	extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;

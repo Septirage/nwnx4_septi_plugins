@@ -13,12 +13,12 @@
 #include <windows.h>
 #endif
 
-#include "..\..\misc\Patch.h"
-#include "../../misc/ini.h"
-#include "../../misc/log.h"
-#include "../plugin.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <misc/Patch.h>
+#include <misc/ini.h>
+#include <misc/log.h>
+#include <plugins/plugin.h>
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 
 
 class EnhancedFeatures final : public Plugin
@@ -41,6 +41,8 @@ class EnhancedFeatures final : public Plugin
 
 	std::string GetVersion() { return version; };
 	std::string GetSubClass() { return subClass; };
+	
+  void RetrieveVersionFromDLL();
 
   public:	
 	SimpleIniConfig* config;

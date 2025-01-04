@@ -9,9 +9,9 @@
 #include "aspectManagerUtils.h"
 #include "refreshObject.h"
 
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "..\..\misc\Patch.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <misc/Patch.h>
 
 #include <bit>
 #include <cassert>
@@ -26,6 +26,7 @@
 #include "../../septutil/srvadmin.h"
 #include "nwn2heap.h"
 #include "../../septutil/NwN2DataPos.h"
+#include "../../septutil/win_utils.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
@@ -664,6 +665,7 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 		char szPath[MAX_PATH];
 		GetModuleFileNameA(hModule, szPath, MAX_PATH);
 		plugin->SetPluginFullPath(szPath);
+		plugin->RetrieveVersionFromDLL();
 	} else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
 		plugin.reset();
 	}
@@ -1121,13 +1123,18 @@ AspectManager::AspectManager()
 	description = "This plugin provides various script access to manage and modify appareance (item/character/placeable/area/...).";
 
 	subClass = FunctionClass;
-	static std::string stest(PLUGIN_VERSION);
-	version  = stest;
+	version  = "unknown";
 }
 
 AspectManager::~AspectManager(void)
 {
 	logger->Info("* Plugin unloaded.");
+}
+
+void AspectManager::RetrieveVersionFromDLL(){
+	if(auto ver = GetDLLVersion(GetPluginFullPath())){
+		version = ver.value();
+	}
 }
 
 void
@@ -1622,7 +1629,9 @@ AspectManager::GetString([[maybe_unused]] char* sFunction,
 	logger->Trace("* Plugin GetString(0x%x, %s, %s, %d)", 0x0, sFunction, sParam1, nParam2);
 
 	//else 
-	if (stFunction == "area")
+	if(auto res = ProcessQueryFunction(stFunction); res != "")
+		sRetVal = res;
+	else if (stFunction == "area")
 		sRetVal = AreaGetString(sParam1, nParam2);
 	else if (stFunction == "creature")
 		sRetVal = CreatureGetString(sParam1, nParam2);

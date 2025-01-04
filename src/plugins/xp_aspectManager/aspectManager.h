@@ -13,10 +13,10 @@
 #include <specstrings.h>
 #endif
 
-#include "../../misc/ini.h"
-#include "../../misc/log.h"
-#include "../plugin.h"
-#include "../../NWN2Lib/NWN2.h"
+#include <misc/ini.h>
+#include <misc/log.h>
+#include <plugins/plugin.h>
+#include <NWN2Lib/NWN2.h>
 #include "appListManagement.h"
 
 #include <codecvt>
@@ -53,11 +53,13 @@ class AspectManager final : public Plugin, public AppearanceListManagement
 	void SetFloat(char* sFunction, char* sParam1, int nParam2, float fValue) override;
 	void GetFunctionClass(char* fClass) override;
 
-    std::string GetVersion() { return version; };
+  std::string GetVersion() { return version; };
 	std::string GetSubClass() { return subClass; };
 
+  void RetrieveVersionFromDLL();
 
   public:
+
 	SimpleIniConfig* config;
 	std::string nwnxStringHome;
 

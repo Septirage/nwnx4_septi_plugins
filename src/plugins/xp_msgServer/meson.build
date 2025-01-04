@@ -1,25 +1,23 @@
-plugin_version = '"1.2.1"'
 plugin_name = 'xp_msgServer'+global_name_project_add
-dllName = plugin_name+'.dll'
 
 
-
-shared_library_obj = shared_library(plugin_name,
+plugin_shared_lib = shared_library(plugin_name,
     [
-        '../plugin.cpp',
-        '../../hook/scriptManagement.cpp',
-        '../../misc/log.cpp',
-        '../../misc/Patch.cpp',
+        nwnx4_repo_path / 'src/plugins/plugin.cpp',
+        nwnx4_repo_path / 'src/hook/scriptManagement.cpp',
+        nwnx4_repo_path / 'src/misc/log.cpp',
+        nwnx4_repo_path / 'src/misc/Patch.cpp',
         'Connection.cpp',
         'Anticheat.cpp',
         '../../septutil/crypto.cpp',
         '../../septutil/srvadmin.cpp',
         '../../septutil/intern2daMgt.cpp',
+        '../../septutil/win_utils.cpp',
     ],
-    cpp_args: ['-DPLUGIN_VERSION='+plugin_version],
     link_args: ['/dynamicbase', '/nxcompat'],
     include_directories: include_dirs,
     dependencies: [
+        cppcompiler.find_library('version'),
     	cppcompiler.find_library('detours', dirs: lib_dirs),
     	cppcompiler.find_library('NWN2_MemoryMgr_amdxp', dirs: lib_dirs),
     ],
@@ -27,25 +25,24 @@ shared_library_obj = shared_library(plugin_name,
     install_dir: 'plugins',
 )
 
-versionrc_obj = configure_file(
-    input : meson.source_root() / 'Version.rc.in',
-    output : 'Version.rc',
-    configuration : {
-        'PRODUCTVERSION' : plugin_version.replace('"', ''),
-        'FILEVERSION' : plugin_version.replace('"', ''),
-    },
-)
+# Get version from git tags
+version = run_command('git', 'describe', '--tags', '--match=msgserv-*', check: true).stdout().substring(8, -1)
 
+# Template version file
 custom_target('compileVersion',
-          input : [shared_library_obj, configure_file(
-    input : meson.source_root() / 'Version.rc.in',
-    output : 'Version.rc',
-    configuration : {
-        'PRODUCTVERSION' : plugin_version.replace('"', ''),
-    },
-)],
-          output : 'fake',
-          command : [meson.source_root() / 'version.bat', meson.current_build_dir(), dllName],
-          build_by_default : true)
+    input : [
+        plugin_shared_lib,
+        configure_file(
+            input : meson.source_root() / 'src/Version.rc.in',
+            output : 'Version.rc',
+            configuration : {
+                'PRODUCTVERSION' : version,
+            },
+        ),
+    ],
+    output : 'fake',
+    command : [meson.source_root() / 'version.bat', meson.current_build_dir(), plugin_shared_lib.full_path()],
+    build_by_default : true,
+)
 
 install_data('xp_msgServer.ini', install_dir: 'config.example')

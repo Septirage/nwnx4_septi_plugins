@@ -2,8 +2,8 @@
 #define NWN2_INTERN2DA_H
 
 
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 #include <cstdint>
 
 /*

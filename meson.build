@@ -1,14 +1,16 @@
 project(
-    'NWNX4',
+    'SeptiPlugins',
     ['cpp', 'c'],
     default_options : [
-        # 'default_library=static',
         'cpp_std=c++20',
         'bindir=.',
         'libdir=.',
         'datadir=.',
     ],
 )
+
+fs = import('fs')
+
 
 # Global compiler arguments
 cppcompiler = meson.get_compiler('cpp')
@@ -23,45 +25,32 @@ else
     global_name_project_add='D'
 endif
 
+
+nwnx4_repo_path = get_option('nwnx4_dir')
+if not fs.is_absolute(nwnx4_repo_path)
+    nwnx4_repo_path = meson.global_source_root() / nwnx4_repo_path
+endif
+
 # Include & lib paths
-nwnx4_repo_path = meson.global_source_root()
 include_dirs = include_directories([
-    'lib/NWN2/include',
-    'vcpkg_installed/x86-windows-static-md/include'
+    get_option('nwnx4_dir') / 'lib/NWN2/include',
+    get_option('nwnx4_dir') / 'vcpkg_installed/x86-windows-static-md/include',
+    get_option('nwnx4_dir') / 'src',
 ])
 lib_dirs = [
-    nwnx4_repo_path + '/lib/NWN2'
+    nwnx4_repo_path / 'lib/NWN2'
 ]
 
 if get_option('buildtype') == 'release'
-    lib_dirs += nwnx4_repo_path + '/vcpkg_installed/x86-windows-static-md/lib'
+    lib_dirs += nwnx4_repo_path / 'vcpkg_installed/x86-windows-static-md/lib'
 else
-    lib_dirs += nwnx4_repo_path + '/vcpkg_installed/x86-windows-static-md/debug/lib'
+    lib_dirs += nwnx4_repo_path / 'vcpkg_installed/x86-windows-static-md/debug/lib'
 endif
 
 
-# Target list
-subdir('src')
-subdir('src/hook')
-subdir('src/controller')
-subdir('src/gui')
-
-nwscript_includes = []
-
-subdir('src/plugins/xp_funcs')
-subdir('src/plugins/xp_mysql')
-subdir('src/plugins/xp_pickpocket')
-subdir('src/plugins/xp_msgServer')
-subdir('src/plugins/xp_profiler')
-subdir('src/plugins/xp_sqlite')
-subdir('src/plugins/xp_time')
-subdir('src/plugins/xp_bugfix')
-subdir('src/plugins/xp_fastboot')
-subdir('src/plugins/xp_objectattributes')
-subdir('src/plugins/xp_srvadmin')
-subdir('src/plugins/playerevent')
+# # Target list
 subdir('src/plugins/xp_aspectManager')
 subdir('src/plugins/xp_enhancedFeatures')
-subdir('src/plugins/xp_example_cplugin')
+subdir('src/plugins/xp_msgServer')
 
 install_data('README.md', install_dir: '.')
