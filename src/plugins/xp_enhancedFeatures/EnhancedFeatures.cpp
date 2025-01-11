@@ -582,7 +582,7 @@ EnhancedFeatures::Init(char* nwnxhome)
 	inifile.append(".ini");
 
 	std::string header = "NWNX EnhancedFeatures Plugin v"+version+". \n"
-		"(c) 2023 by Septirage\n"
+		"(c) 2024 by Septirage\n"
 		"visit us at http://septirage.com/nwn2/ \n"
 		"visit nwnx project at http://www.nwnx.org\n";
 

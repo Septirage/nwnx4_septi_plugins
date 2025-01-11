@@ -15,6 +15,7 @@
 extern std::unique_ptr<LogNWNX> logger;
 
 #define OFFS_TUMBLEACFCT				0x005a5360
+#define OFFS_TUMBLEPRECALL				0x005b57aa
 #define OFFS_TUMBLECALL					0x005b57b9
 
 #define OFFS_SETTRAPSYN1				0x005bbc23
@@ -405,7 +406,7 @@ Patch* PatchMonkWeaponList = _PatchMonkWeaponList;
 Patch _DisableTumbleACPatch[] =
 {
 	Patch(OFFS_TUMBLEACFCT, (char*)"\x31\xC0\xC3", (int)3), //XOR EAX,EAX   RET 
-	Patch(OFFS_TUMBLECALL, (char*)"\x32\xC0\x90\x90\x90", (int)5),   //XOR AL, AL  NOP NOP NOP
+	Patch(OFFS_TUMBLEPRECALL, (char*)"\x32\xC0\xEB\x32\x90", (int)5), //XOR AL,AL, JMP  
 
 	Patch()
 };
