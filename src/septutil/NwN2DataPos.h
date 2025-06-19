@@ -104,6 +104,8 @@
 //bloc couleur
 #define AmItmBaseColor          0x6DC
 
+#define AmItmBaseUVScrollB		0x70C
+
 //uint32
 #define AmItmArmorRulesType		0x718 //
 
