@@ -1,0 +1,14 @@
+VS_VERSION_INFO VERSIONINFO
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904b0"
+        {
+                VALUE "ProductVersion",     "@PRODUCTVERSION@\0"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x00000400, 1252
+    }
+}

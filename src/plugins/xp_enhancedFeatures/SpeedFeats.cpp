@@ -677,10 +677,14 @@ void initSpeedFeat(std::string nxhome, std::string sFileName)
 	else if (!bOkRead && isSpeedAlreadyPatched)
 	{
 		isSpeedAlreadyPatched = false;
-		int i = 0;
+		SpeedFeatPatches[1].Remove();
+		SpeedFeatPatches[0].Remove();
+		/*
+		int i = 0;		
 		while(SpeedFeatPatches[i].Remove()) {
 			i++;
 		}
+		*/
 	}
 }
 

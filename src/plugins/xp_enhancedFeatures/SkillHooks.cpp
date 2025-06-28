@@ -593,9 +593,14 @@ void initSkillHooks(std::string nxhome, std::string sFileName)
 	else if (!bHasAbilityRule && isAlreadyPatchedAb)
 	{
 		isAlreadyPatchedAb = false;
+
+		SkillAbilityPatches[1].Remove();
+		SkillAbilityPatches[0].Remove();
+		/*
 		int i = 0;
 		while (SkillAbilityPatches[i].Remove()) {
 			i++;
 		}
+		*/
 	}
 }

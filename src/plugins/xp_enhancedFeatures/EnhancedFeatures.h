@@ -47,6 +47,7 @@ class EnhancedFeatures final : public Plugin
 	GameObjectManager m_ObjectManager;
 	std::string nwnxStringHome;
 	std::string m_sSpeedFeatFile;
+	std::string m_sHitPointFeatFile;
 	std::string m_sSkillHookFile;
 	std::string m_sWeaponFinesseFile;
 	std::string m_sReduceSpeedFile;

@@ -15,6 +15,7 @@
 #include "../../septutil/srvadmin.h"
 #include "RuleParser.h"
 #include "SpeedFeats.h"
+#include "HPFeats.h"
 #include "SkillHooks.h"
 #include "WeaponFinesseHook.h"
 #include "ReduceSpeedHook.h"
@@ -664,6 +665,15 @@ EnhancedFeatures::Init(char* nwnxhome)
 		initReduceSpeedHooks(nxhome, sReduceSpeedFile);
 	}
 
+	std::string sHitPointFeatFile = "";
+	config->Read("HitPointFeatsFile", &sHitPointFeatFile, std::string(""));
+	if(sHitPointFeatFile != "")
+	{
+		std::string nxhome(nwnxhome);
+		m_sHitPointFeatFile = sHitPointFeatFile;
+		initHPFeat(nxhome, sHitPointFeatFile);
+	}
+
 
 	//Call Small Functions. (will be improved latter)
 	SmallPatchFunctions(config);
@@ -839,6 +849,11 @@ void EnhancedFeatures::SetInt([[maybe_unused]] char* sFunction,
 	{
 		desinitReduceSpeedHooks();
 		return initReduceSpeedHooks(nwnxStringHome, m_sReduceSpeedFile);
+	}
+	else if (function == "ReloadHitPointFile" && m_sHitPointFeatFile != "")
+	{
+		desinitHPFeat();
+		return initHPFeat(nwnxStringHome, m_sHitPointFeatFile);
 	}
 
 	return;

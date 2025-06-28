@@ -398,9 +398,14 @@ void initWeaponFinesse(std::string nxhome, std::string sFileName)
 	else if (!bOkRead && isWFAlreadyPatched)
 	{
 		isWFAlreadyPatched = false;
+
+		PatchWeaponFinesse[1].Remove();
+		PatchWeaponFinesse[0].Remove();
+		/*
 		int i = 0;
 		while(PatchWeaponFinesse[i].Remove()) {
 			i++;
 		}
+		*/
 	}
 }

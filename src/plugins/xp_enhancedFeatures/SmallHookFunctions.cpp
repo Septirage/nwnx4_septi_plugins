@@ -8,6 +8,7 @@
 
 #include "../../septutil/NwN2DataPos.h"
 //#include "../../septutil/intern2daMgt.h"
+
 #include "nwn2heap.h"
 
 #include <cstdint>

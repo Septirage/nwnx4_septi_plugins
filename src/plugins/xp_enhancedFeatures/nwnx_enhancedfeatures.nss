@@ -2,7 +2,8 @@
 // nwnx_enhancedfeatures - various functions to interact with EnhancedFeatures Plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified By:    Septirage			2025-04-23	v1.1.8	- Add the EFFECT_TYPE_* constants
+// Last Modified By:    Septirage			2025-06-27	v1.1.10	- Add the XPEnhancedFeatures_ReloadHitPointFile function
+// 					    Septirage			2025-04-23	v1.1.8	- Add the EFFECT_TYPE_* constants
 // 					    Septirage			2024-10-25	v1.1.0	- Add the XPEnhancedFeatures_ReloadReduceSpeedFile function 
 // 					    Septirage			2024-09-16	v1.0.1	- Set the reload Configfile functions
 // 					    Septirage			2023-10-18	v0.9
@@ -36,8 +37,11 @@ void XPEnhancedFeatures_ReloadWpnFinesseFile();
 // Will Reload the configuration of your WeaponFinesseFile
 void  XPEnhancedFeatures_ReloadSkillFile();
 
-// Will Reload the configuration of your ReloadReduceSpeedFile
+// Will Reload the configuration of your ReduceSpeedFile
 void XPEnhancedFeatures_ReloadReduceSpeedFile();
+
+// Will Reload the configuration of your HitPointFile
+void XPEnhancedFeatures_ReloadHitPointFile();
 
 
 void  XPEnhancedFeatures_ReloadSpeedFile()
@@ -58,4 +62,9 @@ void  XPEnhancedFeatures_ReloadSkillFile()
 void  XPEnhancedFeatures_ReloadReduceSpeedFile()
 {
 	NWNXSetInt( "EnhancedFeatures", "ReloadReduceSpeedFile", "", -1, 0);	
+}
+
+void  XPEnhancedFeatures_ReloadHitPointFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadHitPointFile", "", -1, 0);	
 }

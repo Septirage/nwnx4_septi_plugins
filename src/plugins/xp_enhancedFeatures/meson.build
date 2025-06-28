@@ -1,4 +1,4 @@
-plugin_version = '"1.1.9"'
+plugin_version = '"1.1.10"'
 plugin_name = 'xp_enhancedFeatures'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -15,6 +15,7 @@ shared_library_obj = shared_library(plugin_name,
         'SmallHookFunctions.cpp',
         'SkillHooks.cpp',
         'SpeedFeats.cpp',
+        'HPFeats.cpp',
         'RuleCreatureFct.cpp',
         'ReduceSpeedHook.cpp',
         'WeaponFinesseHook.cpp',
@@ -59,5 +60,7 @@ custom_target('compileVersion',
           
 install_data('xp_enhancedFeatures.ini', install_dir: 'config.example')
 install_data('SpeedFeatsEFF.ini', install_dir: 'config.example')
+install_data('ReduceSpeedEFF.ini', install_dir: 'config.example')
+install_data('HitPointFeatsEFF.ini', install_dir: 'config.example')
 install_data('SkillFeatsEFF.ini', install_dir: 'config.example')
 install_data('WeaponFinesseEFF.ini', install_dir: 'config.example')

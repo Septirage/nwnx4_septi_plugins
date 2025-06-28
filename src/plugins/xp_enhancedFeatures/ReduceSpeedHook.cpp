@@ -337,9 +337,16 @@ void initReduceSpeedHooks(std::string nxhome, std::string sFileName)
 	else if (!bOkRead && isAlreadyPatchedReduceSpeed)
 	{
 		isAlreadyPatchedReduceSpeed = false;
+
+		ReduceSpeedPatches[3].Remove();
+		ReduceSpeedPatches[2].Remove();
+		ReduceSpeedPatches[1].Remove();
+		ReduceSpeedPatches[0].Remove();
+		/*
 		int i = 0;
 		while(ReduceSpeedPatches[i].Remove()) {
 			i++;
 		}
+		*/
 	}
 }

@@ -9,10 +9,18 @@
 #include "../../NWN2Lib/NWN2Common.h"
 #include "../../septutil/NwN2DataPos.h"
 #include "../../hook/scriptManagement.h"
+
+
+#include "nwn2heap.h"
+
 #include <unordered_set>
 
 
 extern std::unique_ptr<LogNWNX> logger;
+
+typedef void (__cdecl * NWN2Heap_Deallocate_Proc)(void *p);
+extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
+
 
 #define OFFS_TUMBLEACFCT				0x005a5360
 #define OFFS_TUMBLEPRECALL				0x005b57aa
@@ -58,6 +66,9 @@ extern std::unique_ptr<LogNWNX> logger;
 
 #define OFFS_FixGetEffectType1			0x00656456
 #define OFFS_FixGetEffectType2			0x0065647f
+
+#define OFFS_PatchGetResRef				0x006a2997
+#define OFFS_FixSetFirstName			0x00584cb8
 
 std::unordered_set<uint32_t> g_listMonkWeapon;
 
@@ -719,6 +730,127 @@ __declspec(naked) void FixGetEffectTypePart2() //For cutscenedominated
 	}
 }
 
+unsigned long GoBackGetResRef = 0x006a299c;
+
+void __fastcall CopyAreaResRefToNWString(char* pAreaBaseObject, NWN::CExoString* cExoStringResult)
+{
+	char* pAreaResRef = (pAreaBaseObject - 0x24);
+	int iSize = 0;
+
+	char* pCurChar = pAreaResRef;
+	while (pAreaResRef[iSize] != '\0' && iSize < 0x20)
+	{
+		iSize++;
+	}
+
+	if (cExoStringResult->m_sString != nullptr && ( (cExoStringResult->m_nBufferLength < (iSize + 1)) || (iSize == 0)) )
+	{
+		if (NWN2Heap_Deallocate)
+			NWN2Heap_Deallocate(cExoStringResult->m_sString);
+		cExoStringResult->m_nBufferLength = 0;
+		cExoStringResult->m_sString = nullptr;
+	}
+
+	if (iSize > 0)
+	{
+		if (cExoStringResult->m_nBufferLength == 0)
+		{
+			NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
+			NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
+			cExoStringResult->m_sString = (char*)pHeap->Allocate(iSize+1);
+		}
+
+		int i = 0;
+		while (i < iSize)
+		{
+			cExoStringResult->m_sString[i] = pAreaResRef[i];
+			i++;
+		}
+		cExoStringResult->m_sString[iSize] = '\0';
+	}
+
+	return;
+}
+
+__declspec(naked) void EnhanceGetResRef()
+{
+	__asm
+	{
+		//ECX => osef
+		//EDX => listfct
+		//EAX => ptr obj
+
+		MOV ECX, EAX
+
+		//here we are in the state we want to use after: EDX => lstfct, EAX => ptrobj
+
+		MOVZX EAX, byte ptr[ECX + 0xA4]
+		CMP EAX, 4
+		JNE PrepareLeaveGetResRef
+
+		//Ok, area mode here. Prepare the call
+
+		//Get PTR StringResult
+		LEA EAX, [ESP]
+
+		//Save those
+		PUSH EDX
+		PUSH ECX
+
+		//Second parameter
+		MOV EDX, EAX
+		CALL CopyAreaResRefToNWString
+
+		POP ECX
+		POP EDX
+
+		PrepareLeaveGetResRef :
+		MOV EAX, dword ptr[EDX + 0x3c]
+			JMP dword ptr[GoBackGetResRef]
+	}
+}
+
+unsigned long GoBackSetFirstName = 0x00584cbe;
+
+__declspec(naked) void FixSetFirstNameCode()
+{
+	__asm
+	{
+		PUSH ESI
+		MOV ECX, ESI
+		MOV ESI, [ESI]
+		MOV ESI, [ESI + 0x148]
+		CALL ESI
+
+		POP ESI
+		MOV ECX, EAX
+
+		JMP dword ptr[GoBackSetFirstName]
+	}
+}
+
+Patch _FixSetFirstName[] =
+{
+	Patch(OFFS_FixSetFirstName, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
+	Patch(OFFS_FixSetFirstName + 1, (relativefunc)FixSetFirstNameCode),
+
+	Patch(),
+};
+
+Patch* FixSetFirstName = _FixSetFirstName;
+
+
+Patch _PatchGetResRef[] =
+{
+	Patch(OFFS_PatchGetResRef, (char*)"\xe9", (int)1),
+	Patch(OFFS_PatchGetResRef + 1, (relativefunc)EnhanceGetResRef),
+
+	Patch(),
+};
+
+Patch* PatchGetResRef = _PatchGetResRef;
+
+
 Patch _FixGetEffectType[] =
 {
 	Patch(OFFS_FixGetEffectType1, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
@@ -1031,6 +1163,28 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		logger->Info("* GetEffectType bugfix Enabled");
 		i = 0;
 		while (FixGetEffectType[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("EnhanceGetResRef", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* Patch GetResRef");
+		i = 0;
+		while (PatchGetResRef[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixSetFirstName", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* Fix SetFirstName");
+		i = 0;
+		while (FixSetFirstName[i].Apply())
 		{
 			i++;
 		}
