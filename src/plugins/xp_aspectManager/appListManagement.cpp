@@ -169,26 +169,49 @@ void AppearanceListManagement::addToCategory(std::string sRRG, std::string sCode
 
 
 
+bool AppearanceListManagement::SplitRRGComposedText(char* cRRGComposed, std::string& sRRG, std::string& sSecondPart) {
+	std::string sRRGComposed = cRRGComposed;
+	size_t pos = sRRGComposed.find('#');
+
+	if (pos == std::string::npos)
+		return false;
+
+	sRRG = sRRGComposed.substr(0, pos);
+	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
+	sSecondPart = sRRGComposed.substr(pos + 1);
+
+	return true;
+}
+
+std::string AppearanceListManagement::CharArrayToUpperString(char* cValue)
+{
+	std::string sValue = cValue;
+	std::transform(sValue.begin(), sValue.end(), sValue.begin(), ::toupper);
+	return sValue;
+}
 
 
-
-int AppearanceListManagement::GetNumberOfHairForRRG(char *sRRG) {
+int AppearanceListManagement::GetNumberOfHairForRRG(char *cRRG) {
+	std::string sRRG = CharArrayToUpperString(cRRG);
 	if(m_hairs.count(sRRG) != 0)
 		return m_hairs[sRRG].size();
 	return 0;
 }
 
-int AppearanceListManagement::GetNumberOfHeadForRRG(char *sRRG) {
+int AppearanceListManagement::GetNumberOfHeadForRRG(char *cRRG) {
+	std::string sRRG = CharArrayToUpperString(cRRG);
 	if(m_heads.count(sRRG) != 0)
 		return m_heads[sRRG].size();
 	return 0;
 }
 
-int AppearanceListManagement::GetHairForRRG(char *sRRG, int iIdx) {
+int AppearanceListManagement::GetHairForRRG(char *cRRG, int iIdx) {
 	int iRet = -1;
 
 	if(iIdx < 0)
 		return iRet;
+
+	std::string sRRG = CharArrayToUpperString(cRRG);
 	
 	if(m_hairs.count(sRRG) != 0) {
 		if(m_hairs[sRRG].size() > iIdx) {
@@ -201,11 +224,12 @@ int AppearanceListManagement::GetHairForRRG(char *sRRG, int iIdx) {
 	return iRet;
 }
 
-int AppearanceListManagement::GetHeadForRRG(char *sRRG, int iIdx) {
+int AppearanceListManagement::GetHeadForRRG(char *cRRG, int iIdx) {
 	int iRet = -1;
 
 	if(iIdx < 0)
 		return iRet;
+	std::string sRRG = CharArrayToUpperString(cRRG);
 
 	if(m_heads.count(sRRG) != 0) {
 		if(m_heads[sRRG].size() > iIdx) {
@@ -218,7 +242,8 @@ int AppearanceListManagement::GetHeadForRRG(char *sRRG, int iIdx) {
 	return iRet;
 }
 
-int AppearanceListManagement::GetNumberOfVisualCat(char* sRRG, int iArmorPart) {
+int AppearanceListManagement::GetNumberOfVisualCat(char* cRRG, int iArmorPart) {
+	std::string sRRG = CharArrayToUpperString(cRRG);
 	if (categorizedOutfitsMap.count(sRRG) != 0)
 	{
 		if (categorizedOutfitsMap[sRRG].count(iArmorPart) != 0)
@@ -231,14 +256,12 @@ int AppearanceListManagement::GetNumberOfVisualCat(char* sRRG, int iArmorPart) {
 }
 
 int AppearanceListManagement::GetNumberOfArmorVariation(char* cRRG_Cat, int iArmorPart) {
-	std::string sRRG_Cat = cRRG_Cat;
-	if(sRRG_Cat.size() < 4)
-		return 0;
-	
-	std::string sRRG = sRRG_Cat.substr(0, 3);
-	std::string sVCategory = sRRG_Cat.substr(3);
 
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
+	std::string sRRG;
+	std::string sVCategory;
+
+	if (!SplitRRGComposedText(cRRG_Cat, sRRG, sVCategory))
+		return 0;
 
 	if (categorizedOutfitsMap.count(sRRG) != 0)
 	{
@@ -253,16 +276,12 @@ int AppearanceListManagement::GetNumberOfArmorVariation(char* cRRG_Cat, int iArm
 }
 
 int AppearanceListManagement::GetNumberOfArmorPieceVariation(char* cRRG, int iModelPiece) {
-	std::string sRRG = cRRG;
-	if (sRRG.size() != 3)
-		return 0;
-
 	std::string sPiece = GetModelPieceStr(iModelPiece);
 
 	if (sPiece == "")
 		return 0;
 
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
+	std::string sRRG = CharArrayToUpperString(cRRG);
 	std::transform(sPiece.begin(), sPiece.end(), sPiece.begin(), ::toupper);
 
 	if (accessoriesMap.count(sRRG) != 0) {
@@ -275,10 +294,8 @@ int AppearanceListManagement::GetNumberOfArmorPieceVariation(char* cRRG, int iMo
 }
 
 int AppearanceListManagement::GetArmorPiece(char* cRRG, int iIdx_Piece) {
-	std::string sRRG = cRRG;
+	std::string sRRG = CharArrayToUpperString(cRRG);
 	int iRet = -1;
-	if (sRRG.size() != 3)
-		return -1;
 
 	int iIdx = iIdx_Piece/100;
 	int iModelPiece = iIdx_Piece%100;
@@ -288,7 +305,6 @@ int AppearanceListManagement::GetArmorPiece(char* cRRG, int iIdx_Piece) {
 	if (sArmorPiece == "")
 		return -1;
 
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
 	std::transform(sArmorPiece.begin(), sArmorPiece.end(), sArmorPiece.begin(), ::toupper);
 
 	if (accessoriesMap.count(sRRG) != 0)
@@ -438,24 +454,20 @@ int AppearanceListManagement::GetRestrictedCategory(std::string sCategory) {
 
 
 void AppearanceListManagement::RemoveAppearanceFromCategory(char* cRRG_RCat, int iPart_Var, char* cCategory) {
-	std::string sRRG_RCat = cRRG_RCat;
 	std::string sCategory = cCategory;
 
-	if(sRRG_RCat.size() < 4)
+	std::string sRRG;
+	std::string sRCat;
+
+	if (!SplitRRGComposedText(cRRG_RCat, sRRG, sRCat))
 		return;
 
-	std::string sRRG = sRRG_RCat.substr(0, 3);
-
-	sRRG_RCat = sRRG_RCat.substr(3);
-
-	if(!is_number(sRRG_RCat))
+	if(!is_number(sRCat))
 		return;
 
-	int iRCat = std::stoul(sRRG_RCat);
+	int iRCat = std::stoul(sRCat);
 	int iPart = iPart_Var / 1000;
 	int iVar = iPart_Var % 1000;
-
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
 
 	std::string sCode = CreateCodeApp( iRCat, iVar+1);
 
@@ -464,14 +476,13 @@ void AppearanceListManagement::RemoveAppearanceFromCategory(char* cRRG_RCat, int
 
 //Remove by sCode
 void AppearanceListManagement::RemoveAppearanceFromCategoryC(char* cRRG_sCode, int iPart, char* cCategory) {
-	std::string sRRG_sCode = cRRG_sCode;
 	std::string sCategory = cCategory;
 
-	if(sRRG_sCode.size() < 4)
-		return;
+	std::string sRRG;
+	std::string sCode;
 
-	std::string sRRG = sRRG_sCode.substr(0, 3);
-	std::string sCode = sRRG_sCode.substr(3);
+	if (!SplitRRGComposedText(cRRG_sCode, sRRG, sCode))
+		return;
 
 	std::size_t iIndex = sCode.find_last_of(SEPARATOR_MODEL);
 
@@ -490,20 +501,16 @@ void AppearanceListManagement::RemoveAppearanceFromCategoryC(char* cRRG_sCode, i
 	int iRCat = prefixToIndex[sPrefixRCat];
 	int iVar = std::stoul(sVar);
 
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
-
 	removeFromCategory(sRRG, sCode, iPart, iRCat, iVar, sCategory);
 }
 
 void AppearanceListManagement::AddAppearanceToCategory(char* cRRG_RCat, int iPart_Var, char* cVCategory) {
-	std::string sRRG_RCat = cRRG_RCat;
 	std::string sVCategory = cVCategory;
 
-	if(sRRG_RCat.size() < 4)
-		return;
-
-	std::string sRRG = sRRG_RCat.substr(0, 3);
-	std::string sRCat = sRRG_RCat.substr(3);
+	std::string sRRG;
+	std::string sRCat;
+	if (!SplitRRGComposedText(cRRG_RCat, sRRG, sRCat))
+		return ;
 
 	if(!is_number(sRCat))
 		return;
@@ -512,8 +519,6 @@ void AppearanceListManagement::AddAppearanceToCategory(char* cRRG_RCat, int iPar
 	int iPart = iPart_Var / 1000;
 	int iVar = iPart_Var % 1000;
 
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
-
 	std::string sCode = CreateCodeApp( iRCat, iVar+1);
 
 	addToCategory(sRRG, sCode, iPart, iRCat, iVar+1, sVCategory);
@@ -521,14 +526,12 @@ void AppearanceListManagement::AddAppearanceToCategory(char* cRRG_RCat, int iPar
 
 //Add by sCode
 void AppearanceListManagement::AddAppearanceToCategoryC(char* cRRG_sCode, int iPart, char* cCategory) {
-	std::string sRRG_sCode = cRRG_sCode;
 	std::string sCategory = cCategory;
 
-	if(sRRG_sCode.size() < 4)
+	std::string sRRG;
+	std::string sCode;
+	if (!SplitRRGComposedText(cRRG_sCode, sRRG, sCode))
 		return;
-
-	std::string sRRG = sRRG_sCode.substr(0,3);
-	std::string sCode = sRRG_sCode.substr(3);
 
 	std::size_t iIndex = sCode.find_last_of(SEPARATOR_MODEL);
 
@@ -548,18 +551,18 @@ void AppearanceListManagement::AddAppearanceToCategoryC(char* cRRG_sCode, int iP
 	int iRCat = prefixToIndex[sPrefixRCat];
 	int iVar = std::stoul(sVar);
 
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
 	addToCategory(sRRG, sCode, iPart, iRCat, iVar, sCategory);
 }
 
 
 
 void AppearanceListManagement::CreateNewVisualCategory(char* cRRG, int iPart, char* cVisualCat) {
-	if (categorizedOutfitsMap.count(cRRG) != 0)
+	std::string sRRG = CharArrayToUpperString(cRRG);
+	if (categorizedOutfitsMap.count(sRRG) != 0)
 	{
-		if (categorizedOutfitsMap[cRRG].count(iPart) != 0)
+		if (categorizedOutfitsMap[sRRG].count(iPart) != 0)
 		{
-			categorizedOutfitsMap[cRRG][iPart][cVisualCat];
+			categorizedOutfitsMap[sRRG][iPart][cVisualCat];
 		}
 	}
 }
@@ -569,18 +572,19 @@ void AppearanceListManagement::CreateNewVisualCategory(char* cRRG, int iPart, ch
 void AppearanceListManagement::DeleteVisualCategory(char* cRRG, int iPart, char* cVisualType)
 {
 	bool bCanDelete = true;
+	std::string sRRG = CharArrayToUpperString(cRRG);
 	//rrg exist
-	if (categorizedOutfitsMap.count(cRRG) != 0)
+	if (categorizedOutfitsMap.count(sRRG) != 0)
 	{
 		//ModelPart exist
-		if (categorizedOutfitsMap[cRRG].count(iPart) != 0)
+		if (categorizedOutfitsMap[sRRG].count(iPart) != 0)
 		{
 			//VisualType to Delete exist.
-			if (categorizedOutfitsMap[cRRG][iPart].count(cVisualType) != 0)
+			if (categorizedOutfitsMap[sRRG][iPart].count(cVisualType) != 0)
 			{
-				int iSize = categorizedOutfitsMap[cRRG][iPart][cVisualType].size();
+				int iSize = categorizedOutfitsMap[sRRG][iPart][cVisualType].size();
 
-				for (std::string sCode : categorizedOutfitsMap[cRRG][iPart][cVisualType])
+				for (std::string sCode : categorizedOutfitsMap[sRRG][iPart][cVisualType])
 				{
 					//The sCode is already in the system, we can trust the format
 					int iIndex = sCode.find_last_of(SEPARATOR_MODEL);
@@ -588,7 +592,7 @@ void AppearanceListManagement::DeleteVisualCategory(char* cRRG, int iPart, char*
 					int iVariante = std::stoul(sCode.substr(iIndex + 1));
 
 
-					if (outfitMap[cRRG][iPart][sPrefix][iVariante].size() < 2)
+					if (outfitMap[sRRG][iPart][sPrefix][iVariante].size() < 2)
 					{
 						bCanDelete = false;
 						break;
@@ -598,38 +602,34 @@ void AppearanceListManagement::DeleteVisualCategory(char* cRRG, int iPart, char*
 				if (bCanDelete)
 				{
 					//for (int i = 0; i < iSize; i++)
-					for (std::string sCode : categorizedOutfitsMap[cRRG][iPart][cVisualType])
+					for (std::string sCode : categorizedOutfitsMap[sRRG][iPart][cVisualType])
 					{
 						//The sCode is already in the system, we can trust the format
 						int iIndex = sCode.find_last_of(SEPARATOR_MODEL);
 						std::string sPrefix = sCode.substr(0, iIndex);
 						int iVariante = std::stoul(sCode.substr(iIndex + 1));
 
-						removeFromTenue(cRRG, iPart, sPrefix, iVariante, cVisualType);
+						removeFromTenue(sRRG, iPart, sPrefix, iVariante, cVisualType);
 					}
 
 					//Remove the VisualType
-					categorizedOutfitsMap[cRRG][iPart][cVisualType].clear();
+					categorizedOutfitsMap[sRRG][iPart][cVisualType].clear();
 				}
 			}
 
 			if(bCanDelete)
-				categorizedOutfitsMap[cRRG][iPart].erase(cVisualType);
+				categorizedOutfitsMap[sRRG][iPart].erase(cVisualType);
 		}
 	}
 }
 
 //Rename the RRG,iPart, VisualCat to  RRG,iPart,cNewName
 void AppearanceListManagement::RenameVisualCategory(char* cRRG_VisualCat, int iPart, char* cNewName) {
-	std::string sRRG_VCat = cRRG_VisualCat;
-
-	if(sRRG_VCat.size() < 4)
+	std::string sRRG;
+	std::string sVCat;
+	if (!SplitRRGComposedText(cRRG_VisualCat, sRRG, sVCat))
 		return;
 
-	std::string sRRG = sRRG_VCat.substr(0,3);
-	std::string sVCat = sRRG_VCat.substr(3);
-
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
 	if (categorizedOutfitsMap.count(sRRG) != 0)
 	{
 		if (categorizedOutfitsMap[sRRG].count(iPart) != 0)
@@ -666,13 +666,12 @@ void AppearanceListManagement::RenameVisualCategory(char* cRRG_VisualCat, int iP
 }
 
 void AppearanceListManagement::ChangeVisualCategory(char* cRRG_VisualCat, int iPart, char* cCode_NewVisualCat) {
-	std::string sRRG_VisualC = cRRG_VisualCat;
+	std::string sRRG;
+	std::string sOldVisualCat;
 
-	if(sRRG_VisualC.size() < 4)
+	if (!SplitRRGComposedText(cRRG_VisualCat, sRRG, sOldVisualCat))
 		return;
 
-	std::string sRRG = sRRG_VisualC.substr(0,3);
-	std::string sOldVisualCat = sRRG_VisualC.substr(3);
 
 	std::string sCode_NewVisualCat = cCode_NewVisualCat;
 	std::size_t tPos = sCode_NewVisualCat.find_last_of('#');
@@ -682,9 +681,6 @@ void AppearanceListManagement::ChangeVisualCategory(char* cRRG_VisualCat, int iP
 
 	std::string sNewVisualCat = sCode_NewVisualCat.substr(tPos+1);
 	std::string sCode = sCode_NewVisualCat.substr(tPos);
-
-
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
 
 	//Test the existance
 	if (categorizedOutfitsMap.count(sRRG) != 0)
@@ -741,8 +737,7 @@ std::string AppearanceListManagement::GetVisualCategory(char* cRRG, int iPart_Id
 	int iPart = iPart_Idx / 1000;
 	int iIdx = iPart_Idx % 1000;
 
-	std::string sRRG = cRRG;
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
+	std::string sRRG = CharArrayToUpperString(cRRG);
 
 	if(categorizedOutfitsMap.count(sRRG) != 0)
 	{
@@ -768,18 +763,14 @@ std::string AppearanceListManagement::GetVisualCategory(char* cRRG, int iPart_Id
 
 std::string AppearanceListManagement::GetVariationCode(char* cRRG_VCat, int iPart_Idx) {
 	std::string sResult = "";
-	std::string sRRG_VCat = cRRG_VCat;
-	
-	if(sRRG_VCat.size() < 4)
-		return sResult;
 
-	std::string sRRG = sRRG_VCat.substr(0, 3);
-	std::string sVisualCat = sRRG_VCat.substr(3);
+	std::string sRRG;
+	std::string sVisualCat;
+	if (!SplitRRGComposedText(cRRG_VCat, sRRG, sVisualCat))
+		return sResult;
 
 	int iPart = iPart_Idx / 1000;
 	int iIdx = iPart_Idx % 1000;
-
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
 
 	if(categorizedOutfitsMap.count(sRRG) != 0)
 	{
@@ -799,14 +790,11 @@ std::string AppearanceListManagement::GetVariationCode(char* cRRG_VCat, int iPar
 
 
 int AppearanceListManagement::GetNumberOfVisualCategory(char *cRRG_Prefix, int iPart_Idx) {
-	std::string sRRG_Prefix = cRRG_Prefix;
-	std::string sVisualCat = "";
 
-	if(sRRG_Prefix.size() < 4)
+	std::string sRRG;
+	std::string sPrefixIdx;
+	if (!SplitRRGComposedText(cRRG_Prefix, sRRG, sPrefixIdx))
 		return 0;
-
-	std::string sRRG = sRRG_Prefix.substr(0,3);
-	std::string sPrefixIdx = sRRG_Prefix.substr(3);
 
 	
 	if(!is_number(sPrefixIdx))
@@ -815,8 +803,6 @@ int AppearanceListManagement::GetNumberOfVisualCategory(char *cRRG_Prefix, int i
 	int iPart = iPart_Idx / 1000;
 	int iIdx  = iPart_Idx % 1000;
 	iIdx++; //We sort by name, but in the object file, variation is name -1;
-
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
 
 	if(outfitMap.count(sRRG) != 0)
 	{
@@ -843,14 +829,12 @@ int AppearanceListManagement::GetNumberOfVisualCategory(char *cRRG_Prefix, int i
 }
 
 std::string AppearanceListManagement::GetVisualCategoryOfRealAppearance(char* cRRG_Prefix, int iNum_Part_Idx) {
-	std::string sRRG_Prefix = cRRG_Prefix;
 	std::string sVisualCat = "";
 
-	if(sRRG_Prefix.size() < 4)
+	std::string sRRG;
+	std::string sPrefixIdx;
+	if (!SplitRRGComposedText(cRRG_Prefix, sRRG, sPrefixIdx))
 		return sVisualCat;
-
-	std::string sRRG = sRRG_Prefix.substr(0,3);
-	std::string sPrefixIdx = sRRG_Prefix.substr(3);
 
 	if(!is_number(sPrefixIdx))
 		return sVisualCat;
@@ -861,8 +845,6 @@ std::string AppearanceListManagement::GetVisualCategoryOfRealAppearance(char* cR
 
 	int iIdx = iNum_Part_Idx % 1000;
 	iIdx++; //We sort by name, but in the object file, variation is name -1;
-
-	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
 
 	if(outfitMap.count(sRRG) != 0)
 	{

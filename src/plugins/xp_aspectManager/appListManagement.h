@@ -44,8 +44,8 @@ protected :
 	std::string CreateCodeApp(std::string sRCat, std::string sVar);
 	void removeFromCategory(std::string sRRG, std::string sCode, int iPart, int iRCat, int iVar, std::string sCategory);
 	void addToCategory(std::string sRRG, std::string sCode, int iPart, int iRCat, int iVar, std::string sCategory);
-
-
+	bool SplitRRGComposedText(char* cRRGComposed, std::string& sRRG, std::string& sSecondPart);
+	std::string CharArrayToUpperString(char* cValue);
 
 protected :
 	int GetNumberOfHairForRRG(char *sRRG);
@@ -99,7 +99,7 @@ public:
 	LogNWNX* logger;
 
 	std::string SEPARATOR_MODEL    = "_";
-	std::string SAVEFILE_VERSION	= "1";
+	std::string SAVEFILE_VERSION	= "2";
 
 	std::list<std::string> listHak;
 	std::list<std::string> listZip;
@@ -116,11 +116,13 @@ public:
 	std::unordered_map<std::string, int> prefixToIndex;
 	std::unordered_map<int, std::string> indexToPrefix;
 	//Used to automatically "Rename" an armorType
-	std::unordered_map<std::string, std::string> prefixToVisual; 
+	std::unordered_map<std::string, std::string> prefixToVisual;
+	//used to filter allowed prefix
+	std::string prefixRegexMask;
 
 public:
 
-	//In the following, RRG is the code that represent the Subrace+Gender
+	//In the following, RRG is the code that represent the Subrace+Gender or subrace only for some creatures
 	// Example : HHF for Human Female, EEM for Elf Male, etc.
 	// RRG<iIdxModel>
 	std::unordered_map<std::string, std::list<unsigned int>> m_hairs;

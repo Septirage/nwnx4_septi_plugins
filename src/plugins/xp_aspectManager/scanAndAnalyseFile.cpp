@@ -396,6 +396,7 @@ bool AppearanceListManagement::processSaveFile()
 			//Check the version (allow me to patch old version)
 			bool bFirstLine = true;
 			bool bfirstVersion = true;
+			int uOriginVersion = 0;
 
 			while (getline(fileBuffer, line) && !error)
 			{
@@ -406,6 +407,16 @@ bool AppearanceListManagement::processSaveFile()
 					if (line.size() > 1 && line.substr(0, 1) == "!")
 					{
 						bfirstVersion = false;
+						std::string versionLine = line.substr(1);
+
+						char *pEnd = NULL;
+						uOriginVersion = std::strtol(versionLine.c_str(), &pEnd, 10);
+						if (*pEnd) // error was detected
+						{
+							std::string sVersionError = "Error with version number for (" + line + ") continue as if were version 1.";
+							logger->Err(sVersionError.c_str());
+							uOriginVersion = 1;
+						}
 						continue;
 					}
 					else
@@ -446,6 +457,13 @@ bool AppearanceListManagement::processSaveFile()
 							std::string contenu = subs[0];
 							tokenize(contenu, "@", portion);
 							if (portion.size() == 3) {
+
+								if (uOriginVersion < 2)
+								{
+									//We are before version 2 of the file. We store HHM instead of P_HHM. Fix it.
+									portion[0] = "P_" + portion[0];
+								}
+
 								int iModelPart = std::stoi(portion[1]);
 
 								// This file was a first version file
@@ -511,6 +529,11 @@ bool AppearanceListManagement::processSaveFile()
 					std::vector<std::string> subs;
 					tokenize(line, "#", subs);
 					if (subs.size() == 2) {
+						if (uOriginVersion < 2)
+						{
+							//We are before version 2 of the file. We store HHM instead of P_HHM. Fix it.
+							subs[0] = "P_" + subs[0];
+						}
 						std::vector<std::string> listVar;
 						std::string content = subs[1];
 						tokenize(content, ",", listVar);
@@ -710,20 +733,25 @@ AppearanceListManagement::parseFileName(std::string nom)
 	// Equipment type
 	//std::string pattern = "p_aaf_acme_helm01";
 	std::transform(nom.begin(), nom.end(), nom.begin(), ::toupper);
-	const std::regex r("^P_(.+)_(.+)_([^0-9]+)([0-9]+)");
-	std::smatch m;
 
-	if (std::regex_search(nom, m, r)) {
-		/*
-		m[1]; //the racial code
-		m[2]; //armor type code
-		m[3]; //object type
-		m[4]; //number*/
-
-		//If not a type we want
-		if (prefixToIndex.count(m[2]) == 0)
+	//Armor Part
+	const std::regex regArmor("^(.+)_("+prefixRegexMask+")_(HELM|BODY|BOOTS|GLOVES|CLOAK|BELT)([0-9]+)");
+	std::smatch mArmor;
+	if (std::regex_search(nom, mArmor, regArmor)) {
+		//No prefix, testing more this file is a no-sense
+		if (prefixRegexMask == "")
 			return;
-		std::string sCode = prefixToVisual[m[2]];
+		/*
+		mArmor[1]; //the racial code
+		mArmor[2]; //armor type code
+		mArmor[3]; //object type
+		mArmor[4]; //number
+		*/
+
+		//If not a type we want (should already be managed by regex)
+		if (prefixToIndex.count(mArmor[2]) == 0)
+			return;
+		std::string sCode = prefixToVisual[mArmor[2]];
 
 		// Place the invisible part in a specific restricted VisualType, just to make sure it won't be forgotten by Admin
 		if (nom == "P_HHM_CL_BODY99" || nom == "P_HHM_CL_BOOTS99" ||
@@ -732,24 +760,24 @@ AppearanceListManagement::parseFileName(std::string nom)
 			sCode = "_Invisible";
 			restrictedCat[sCode] = true;
 		}
-		int ret = armorPart(m[1], m[2], m[3], m[4]);
+		int ret = armorPart(mArmor[1], mArmor[2], mArmor[3], mArmor[4]);
 		if (ret == 0) {
 			//New file, we add.
 			if (isNewFile) {
-				std::string arPartLst = CreateCodeApp(m[2], m[4]);
+				std::string arPartLst = CreateCodeApp(mArmor[2], mArmor[4]);
 				/*
 				std::string arPartLst(m[2]);
 				arPartLst.append(SEPARATOR_MODEL);
 				arPartLst.append(m[4]);
 				*/
 				addPresentationArmorList(
-					m[1], getArmorPartCode(m[3]), arPartLst, sCode);
-				addToTenue(m[1], getArmorPartCode(m[3]), m[2], std::stoul(m[4]), sCode);
+					mArmor[1], getArmorPartCode(mArmor[3]), arPartLst, sCode);
+				addToTenue(mArmor[1], getArmorPartCode(mArmor[3]), mArmor[2], std::stoul(mArmor[4]), sCode);
 				//outfitMap[m[1]][getArmorPartCode(m[3])][m[2]][std::stoul(m[4])].push_back(sCode); // = sCode; kriagki
 			} else {
 				// Else... Juste verify if we already have it.
-				std::string sNom = std::string(m[1]) + "@" + std::to_string(getArmorPartCode(m[3])) + "@" + std::string(m[2]) + SEPARATOR_MODEL + std::string(m[4]);
-				std::string sNom2 = std::string(m[1]) + "@" + std::to_string(getArmorPartCode(m[3])) + "@" + CreateCodeApp(m[2], m[4]);
+				std::string sNom = std::string(mArmor[1]) + "@" + std::to_string(getArmorPartCode(mArmor[3])) + "@" + std::string(mArmor[2]) + SEPARATOR_MODEL + std::string(mArmor[4]);
+				std::string sNom2 = std::string(mArmor[1]) + "@" + std::to_string(getArmorPartCode(mArmor[3])) + "@" + CreateCodeApp(mArmor[2], mArmor[4]);
 				if (std::find(armorFileList.begin(), armorFileList.end(), sNom) !=
 					armorFileList.end()) {
 					armorFileList.remove(sNom);
@@ -763,8 +791,8 @@ AppearanceListManagement::parseFileName(std::string nom)
 				} else {
 					//std::string(m[2]) + SEPARATOR_MODEL + std::string(m[4])
 					addPresentationArmorList(
-						m[1], getArmorPartCode(m[3]), CreateCodeApp(m[2], m[4]), sCode);
-					addToTenue(m[1], getArmorPartCode(m[3]), m[2], std::stoul(m[4]), sCode);
+						mArmor[1], getArmorPartCode(mArmor[3]), CreateCodeApp(mArmor[2], mArmor[4]), sCode);
+					addToTenue(mArmor[1], getArmorPartCode(mArmor[3]), mArmor[2], std::stoul(mArmor[4]), sCode);
 					//outfitMap[m[1]][getArmorPartCode(m[3])][m[2]][std::stoul(m[4])].push_back(sCode); //= sCode; //Kriagki
 				}
 			}
@@ -777,8 +805,8 @@ AppearanceListManagement::parseFileName(std::string nom)
 			}
 			else
 			{
-				std::string sNom = std::string(m[1]) + "@" + std::to_string(getArmorPartCode(m[3])) + "@" + std::string(m[2]) + SEPARATOR_MODEL + std::string(m[4]);
-				std::string sNom2 = std::string(m[1]) + "@" + std::to_string(getArmorPartCode(m[3])) + "@" + CreateCodeApp(m[2], m[4]);
+				std::string sNom = std::string(mArmor[1]) + "@" + std::to_string(getArmorPartCode(mArmor[3])) + "@" + std::string(mArmor[2]) + SEPARATOR_MODEL + std::string(mArmor[4]);
+				std::string sNom2 = std::string(mArmor[1]) + "@" + std::to_string(getArmorPartCode(mArmor[3])) + "@" + CreateCodeApp(mArmor[2], mArmor[4]);
 
 				if (std::find(armorFileList.begin(), armorFileList.end(), sNom) !=
 					armorFileList.end()) {
@@ -797,25 +825,31 @@ AppearanceListManagement::parseFileName(std::string nom)
 			std::string log = "Problem with the file " + nom;
 			logger->Info(log.c_str());
 		}
-	} else {
-		// Type de m_hairs/tete
-		const std::regex r2("^P_(.+)_([^0-9]+)([0-9]+)");
-		std::smatch m2;
-		if (std::regex_search(nom, m2, r2)) { /*
-			m2.Groups[1].Value; //racial code
-			m2.Groups[2].Value; //HAIR/HEAD
-			m2.Groups[3].Value; //number */
+	}
+	else {
+		//Head/Hair:
+		const std::regex regHeadHair("^(.+)_(HEAD|HAIR)([0-9]+)");
+		std::smatch mHeadHair;
+		if (std::regex_search(nom, mHeadHair, regHeadHair)) {
+			/*
+				mHeadHair.Groups[1].Value; //racial code
+				mHeadHair.Groups[2].Value; //HAIR/HEAD
+				mHeadHair.Groups[3].Value; //number
+			*/
 
-			bodyPart(m2[1], m2[2], m2[3]);
-		} else {
-			const std::regex r3("^A_(.+)_([^0-9]+)([0-9]+)");
-			std::smatch m3;
-			if (std::regex_search(nom, m3, r3)) { /*
-				m3.Groups[1].Value; //racial code
-				m3.Groups[2].Value; //accessory type
-				m3.Groups[3].Value; //number */
-				accessoryPart(m3[1], m3[2], m3[3]);
-			} else {
+			bodyPart(mHeadHair[1], mHeadHair[2], mHeadHair[3]);
+		}
+		else {
+			//Accessory
+			const std::regex regAccessory("^A_(.+)_(LSHOULDER|RSHOULDER|LBRACER|RBRACER|LELBOW|RELBOW|LUPARM|RUPARM|LHIP|RHIP|FHIP|BHIP|LUPLEG|RUPLEG|LLOWLEG|RLOWLEG|LKNEE|RKNEE|LFOOT|RFOOT|LANKLE|RANKLE)([0-9]+)");
+			std::smatch mAccessory;
+			if (std::regex_search(nom, mAccessory, regAccessory)) { /*
+				mAccessory.Groups[1].Value; //racial code
+				mAccessory.Groups[2].Value; //accessory type
+				mAccessory.Groups[3].Value; //number */
+				accessoryPart(mAccessory[1], mAccessory[2], mAccessory[3]);
+			}
+			else {
 				// weaponsMap
 				const std::regex r4("^W_((SHE_)?([^0-9]+))([0-9]+)(_([A,B,C]))?");
 				std::smatch m4;
@@ -825,9 +859,9 @@ AppearanceListManagement::parseFileName(std::string nom)
 						sousPartie = m4[5];
 
 					/*
-					m3.Groups[1].Value; //weapon type
-					m3.Groups[2].Value; //accessory type
-					m3.Groups[3].Value; //number*/
+					m4.Groups[1].Value; //weapon type
+					m4.Groups[2].Value; //accessory type
+					m4.Groups[3].Value; //number*/
 					std::string mPartMixed = "W_";
 					mPartMixed += m4[1];
 

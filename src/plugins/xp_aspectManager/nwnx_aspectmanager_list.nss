@@ -266,22 +266,22 @@ string XPAspMan_GetExtendedVisualType(string sRR, int iGender, int iModelPart, i
  
 int XPAspMan_GetNumberOfVariation(string sRRG, int iModelPart, string sVisualType)
 {
-	return NWNXGetInt( "AspectManager", "listSystemNumOfVARByRRGPartVAT", sRRG+sVisualType, iModelPart);
+	return NWNXGetInt( "AspectManager", "listSystemNumOfVARByRRGPartVAT", sRRG+"#"+sVisualType, iModelPart);
 }
 
 string XPAspMan_GetVariation(string sRRG, int iModelPart, string sVisualType, int iIdx)
 {
-	return NWNXGetString( "AspectManager", "listSystemVarByRRGPartVatIdx", sRRG+sVisualType, iModelPart*1000+iIdx);
+	return NWNXGetString( "AspectManager", "listSystemVarByRRGPartVatIdx", sRRG+"#"+sVisualType, iModelPart*1000+iIdx);
 }
 
 int XPAspMan_GetRealAppNumberOfVisualType(string sRRG, int iModelPart, int iCategory, int iVariation)
 {
-	return NWNXGetInt( "AspectManager", "listSystemNumberOfVisualCat", sRRG+IntToString(iCategory), iModelPart*1000+iVariation);
+	return NWNXGetInt( "AspectManager", "listSystemNumberOfVisualCat", sRRG+"#"+IntToString(iCategory), iModelPart*1000+iVariation);
 }
 
 string XPAspMan_GetVisualTypeFromRealApp(string sRRG, int iModelPart, int iCategory, int iVariation, int iIdx)
 {
-	return NWNXGetString( "AspectManager", "listSystemRealToVisualCat", sRRG+IntToString(iCategory), (iIdx*1000+iModelPart)*1000+iVariation);
+	return NWNXGetString( "AspectManager", "listSystemRealToVisualCat", sRRG+"#"+IntToString(iCategory), (iIdx*1000+iModelPart)*1000+iVariation);
 }
 
 
@@ -322,12 +322,12 @@ int XPAspMan_GetWeaponPartVariation(string sWeaponType, int iPart, int iIdx)
 
 void XPAspMan_RemoveFromVisualType(string sRRG, int iModelPart, int iCategory, int iVariation, string sVisualType)
 {
-	NWNXSetString("AspectManager", "listSystemRemoveFromCategory", sRRG+IntToString(iCategory), iModelPart*1000+iVariation, sVisualType);
+	NWNXSetString("AspectManager", "listSystemRemoveFromCategory", sRRG+"#"+IntToString(iCategory), iModelPart*1000+iVariation, sVisualType);
 }
 
 void XPAspMan_AddToVisualType(string sRRG, int iModelPart, int iCategory, int iVariation, string sVisualType)
 {
-	NWNXSetString("AspectManager", "listSystemAddToCategory", sRRG+IntToString(iCategory), iModelPart*1000+iVariation, sVisualType);
+	NWNXSetString("AspectManager", "listSystemAddToCategory", sRRG+"#"+IntToString(iCategory), iModelPart*1000+iVariation, sVisualType);
 }
 
 void XPAspMan_CreateNewVisualType(string sRRG, int iModelPart, string sVisualType)
@@ -342,12 +342,12 @@ void XPAspMan_DeleteVisualType(string sRRG, int iModelPart, string sVisualType)
 
 void XPAspMan_RenameVisualType(string sRRG, int iModelPart, string sOldName, string sNewName)
 {
-	NWNXSetString("AspectManager", "listSystemRenameCat", sRRG+sOldName, iModelPart, sNewName);
+	NWNXSetString("AspectManager", "listSystemRenameCat", sRRG+"#"+sOldName, iModelPart, sNewName);
 }
 
 void XPAspMan_ChangeVisualType(string sRRG, int iModelPart, string sVisualType, string sApp, string sNewVisualType)
 {
-	NWNXSetString("AspectManager", "listSystemChangeCat", sRRG+sVisualType, iModelPart, sApp+"#"+sNewVisualType);
+	NWNXSetString("AspectManager", "listSystemChangeCat", sRRG+"#"+sVisualType, iModelPart, sApp+"#"+sNewVisualType);
 }
 
 int XPAspMan_SaveFile()

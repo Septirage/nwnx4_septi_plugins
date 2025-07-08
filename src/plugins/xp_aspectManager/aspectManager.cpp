@@ -1221,10 +1221,13 @@ AspectManager::Init(char* nwnxhome)
 		config->Read("ScanFiles", &iScanFile, 1);
 		if (iScanFile == 2)
 		{
-			if (std::filesystem::exists("AspectManagerScan"))
+			std::string newPath(nwnxhome);
+			newPath.append("\\");
+			newPath.append("AspectManagerScan");
+			if (std::filesystem::exists(newPath))
 			{
 				iScanFile = 1;
-				std::remove("AspectManagerScan");
+				std::remove(newPath.c_str());
 			}
 			else
 			{
@@ -1290,6 +1293,24 @@ AspectManager::Init(char* nwnxhome)
 				indexToPrefix[iCour] = sPref;
 			}
 		}
+
+		//Create the prefixRegexMask
+		{
+			prefixRegexMask = "";
+
+			for (auto kv : prefixToVisual) {
+				prefixRegexMask += kv.first;
+				prefixRegexMask += "|";
+			}
+
+			//We have some
+			if (prefixRegexMask != "") {
+				// remove last |
+				prefixRegexMask.pop_back();
+			}
+		}
+
+
 
 		nwnxhome_ = nwnxhome;
 		Initialisation();
