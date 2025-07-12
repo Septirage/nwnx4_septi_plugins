@@ -2,7 +2,8 @@
 // nwnx_aspectmanager_creature - creature specific functions of the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified By:	Septirage			2024-09-08	Add Test functions Get/SetWeight  (1.4.5)
+// Last Modified By:	Septirage			2025-07-08	Add Get/Set NeverDrawHelmet/NeverShowArmor  (1.4.7)
+//						Septirage			2024-09-08	Add Test functions Get/SetWeight  (1.4.5)
 //						Septirage			2024-07-14	Add Get/SetRace_xpAM (1.4.4)
 //						Septirage           2024-02-28
 //--------------------------------------------------------------------------------------------
@@ -176,6 +177,19 @@ float GetCreaturePersistScale_xpAM(object oCreature, int nAxis);
 /****************************************************************************/
 /****************************** Creature Visual *****************************/
 /****************************************************************************/
+
+//Change the flag NeverShowArmor on oCreature
+void SetCreatureNeverShowArmor_xpAM(object oCreature, int bNeverShow);
+
+//Get the flag NeverShowArmor for oCreature
+int GetCreatureNeverShowArmor_xpAM(object oCreature);
+
+//Change the flag NeverDrawHelmet on oCreature.
+// Note: its recommanded to remove the helm before changing this.
+void SetCreatureNeverDrawHelmet_xpAM(object oCreature, int bNeverDraw);
+
+//Get the flag NeverDrawHelmet for oCreature
+int GetCreatureNeverDrawHelmet_xpAM(object oCreature);
 
 //Change the iModelPart mask, allowing you to show or hide model part on the 
 //  creature visual (so without armor)
@@ -585,6 +599,26 @@ float GetCreaturePersistScale_xpAM(object oCreature, int nAxis)
 /****************************************************************************/
 /****************************** Creature Visual *****************************/
 /****************************************************************************/
+
+void SetCreatureNeverShowArmor_xpAM(object oCreature, int bNeverShow)
+{
+	NWNXSetInt("AspectManager", "creature", "NeverShowArmor", ObjectToInt(oCreature), bNeverShow);
+}
+
+int GetCreatureNeverShowArmor_xpAM(object oCreature)
+{
+	return NWNXGetInt("AspectManager", "creature", "NeverShowArmor", ObjectToInt(oCreature));
+}
+
+void SetCreatureNeverDrawHelmet_xpAM(object oCreature, int bNeverDraw)
+{
+	NWNXSetInt("AspectManager", "creature", "NeverDrawHelmet", ObjectToInt(oCreature), bNeverShow);
+}
+
+int GetCreatureNeverDrawHelmet_xpAM(object oCreature)
+{
+	return NWNXGetInt("AspectManager", "creature", "NeverDrawHelmet", ObjectToInt(oCreature));
+}
 
 void SetCreatureModelPartMask_xpAM(object oCreature, int iMask)
 {

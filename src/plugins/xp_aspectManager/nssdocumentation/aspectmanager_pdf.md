@@ -193,6 +193,10 @@ Other
 [GetCreatureSpecificAC\_xpAM](#getcreaturespecificac_xpam)  
 [SetCreatureTattoos\_xpAM](#setcreaturetattoos_xpam)  
 [GetCreatureTattoos\_xpAM](#getcreaturetattoos_xpam)   
+[GetCreatureNeverShowArmor\_xpAM](#getcreaturenevershowarmor_xpam)   
+[SetCreatureNeverShowArmor\_xpAM](#setcreaturenevershowarmor_xpam)   
+[GetCreatureNeverDrawHelmet\_xpAM](#getcreatureneverdrawhelmet_xpam)   
+[SetCreatureNeverDrawHelmet\_xpAM](#setcreatureneverdrawhelmet_xpam)   
 
   
 
@@ -272,7 +276,7 @@ Area Settings
 [GetAreaModSpotCheck\_xpAM](#getareamodspotcheck_xpam)  
 [SetAreaModListenCheck\_xpAM](#setareamodlistencheck_xpam)  
 [GetAreaModListenCheck\_xpAM](#getareamodlistencheck_xpam)  
-[GetAreaCreatorID\_xpAM](#getareacreatorid_xpam)
+[GetAreaCreatorID\_xpAM](#getareacreatorid_xpam)  
 [SetAreaSkyRing\_xpAM](#setareaskyring_xpam)  
 [GetAreaSkyRing\_xpAM](#getareaskyring_xpam)  
 [SetAreaHasDirectionalLight\_xpAM](#setareahasdirectionallight_xpam)  
@@ -1782,6 +1786,78 @@ Not working for tattoo but can be used to get a stored 16bits value.
 The stored 16bits value.
 
 ---
+
+# GetCreatureNeverShowArmor\_xpAM
+
+```cpp
+int GetCreatureNeverShowArmor_xpAM(
+    object oCreature
+);
+```
+Will return the NeverShowArmor flag
+
+## Parameters
+
+* `oCreature` - The creature to get the value for
+
+## Return Value
+
+The value of NeverShowArmor flag.
+
+---
+
+# SetCreatureNeverShowArmor\_xpAM
+
+```cpp
+void SetCreatureNeverShowArmor_xpAM(
+    object oCreature,
+    int bNeverShowArmor
+);
+```
+Will set the NeverShowArmor flag
+
+## Parameters
+
+* `oCreature` - The creature to get the value for
+* `bNeverShowArmor` - The TRUE/FALSE value for this flag
+
+---
+
+# GetCreatureNeverDrawHelmet\_xpAM
+
+```cpp
+int GetCreatureNeverDrawHelmet_xpAM(
+    object oCreature
+);
+```
+Will return the NeverDrawHelmet flag
+
+## Parameters
+
+* `oCreature` - The creature to get the value for
+
+## Return Value
+
+The value of NeverDrawHelmet flag.
+
+---
+
+# SetCreatureNeverDrawHelmet\_xpAM
+
+```cpp
+int SetCreatureNeverDrawHelmet_xpAM(
+    object oCreature,
+    int bNeverDrawHelmet
+);
+```
+Will set the NeverDrawHelmet flag
+
+## Parameters
+
+* `oCreature` - The creature to get the value for
+* `bNeverDrawHelmet` - The new value for the flag
+
+<div style="page-break-after: always;"></div>
 
 # SetCreatureVisualGender\_xpAM
 
@@ -3398,6 +3474,27 @@ Get the Cloud Cover
 ## Return Value
 
 The cloud cover (value between 0 and 1.5).
+
+<div style="page-break-after: always;"></div>
+
+# GetAreaCreatorID\_xpAM
+
+```cpp
+int GetAreaCreatorID_xpAM(object oArea);
+```
+Get the CreatorID of this Area
+
+## Parameters
+
+* `oArea` - The area to get the CreatorID for
+
+## Note
+
+This is not really used in base game but, with EnhancedFeatures plugin, it will allow you  to get BaseAreaID for ClonedArea
+
+## Return Value
+
+The CreatorID of oArea
 
 ---
 

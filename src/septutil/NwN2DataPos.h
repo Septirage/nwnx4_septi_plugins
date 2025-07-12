@@ -346,6 +346,8 @@ ID table of equiped object ( Inventory_Slot +1)
 
 #define AmCrtPtrAppBlock			0x1FC4
 
+#define AmCrtNeverShowArmor			0x2010
+
 
 /////////////////////////////////////////////////
 

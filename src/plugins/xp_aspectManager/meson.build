@@ -1,4 +1,4 @@
-plugin_version = '"1.4.7"'
+plugin_version = '"1.5.0"'
 plugin_name = 'xp_aspectManager'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -12,6 +12,9 @@ shared_library_obj = shared_library(plugin_name,
         'appListManagement.cpp',
         'aspectManager.cpp',
         'aspectManagerUtils.cpp',
+
+        'objectSpatial.cpp',
+        'functionFixes.cpp',
 
         'manageArea.cpp',
         'manageCreature.cpp',

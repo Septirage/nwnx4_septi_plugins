@@ -1,5 +1,5 @@
-#if !defined(SEPT_REFRESHOBJECT)
-#define SEPT_REFRESHOBJECT
+#if !defined(ASPECT_MANAGER_SEPT_REFRESHOBJECT)
+#define ASPECT_MANAGER_SEPT_REFRESHOBJECT
 
 
 #define FCT_REMOVEFROMAREA              0x00607390
@@ -11,5 +11,6 @@
 void ColisionLoSModelName(void* ptrObjet);
 void AddToArea(void* ptrArea, void* ptrObject);
 void RemoveFromArea(void* ptrArea, void* ptrObject);
+void refreshObject(int nParam2, int nValue, int iOption = 0);
 
 #endif

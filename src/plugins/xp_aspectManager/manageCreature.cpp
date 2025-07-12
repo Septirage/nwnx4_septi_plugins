@@ -196,6 +196,26 @@ void SetVisualGender(GameObject* Object, int iGender) {
 	*((char*)Object + AmCrtGenderVis) = byteGender;
 }
 
+int GetCreatureNeverDrawHelmet(GameObject* Object) {
+	return *((char*)Object + AmCrtHideHelmet);
+}
+
+void SetCreatureNeverDrawHelmet(GameObject* Object, int iNeverDrawHelmet) {
+	uint8_t byteNeverShow = iNeverDrawHelmet & 0xFF;
+
+	*((uint8_t*)Object + AmCrtHideHelmet) = byteNeverShow;
+
+	char* ptrAppBlock = creatureApparenceBlock((char*)Object);
+	*(uint16_t*)(ptrAppBlock + AmCrtABHideHelmet) = byteNeverShow;
+}
+
+int GetCreatureNeverShowArmor(GameObject* Object) {
+	return ((*((char*)Object + AmCrtNeverShowArmor)) & 0x01);
+}
+
+void SetCreatureNeverShowArmor(GameObject* Object, int iNeverShowArmor) {
+	*((uint8_t*)Object + AmCrtNeverShowArmor) = (*((uint8_t*)Object + AmCrtNeverShowArmor) & 0xFE) | (iNeverShowArmor != 0 ? 1 : 0);
+}
 
 int GetCreatureSoundSet(GameObject* Object) { 
 	return *(uint16_t*)((char*)Object + AmCrtSoundSet);
@@ -661,6 +681,10 @@ int CreatureGetInt(char* cCommand, int iObjectID) {
 		return GetWingVariationPersist(Object);
 	else if (sCommand == "SoundSet")
 		return GetCreatureSoundSet(Object);
+	else if (sCommand == "NeverShowArmor")
+		return GetCreatureNeverShowArmor(Object);
+	else if (sCommand == "NeverDrawHelmet")
+		return GetCreatureNeverDrawHelmet(Object);
 
 	else if (sCommand == "WeightTotal")
 		return GetCreatureWeightTotal(Object);
@@ -757,6 +781,10 @@ void CreatureSetInt(char* cCommand, int iObjectID, int iValue) {
 		return SetWingVariationPersist(Object, iValue);
 	else if (sCommand == "SoundSet")
 		return SetCreatureSoundSet(Object, iValue);
+	else if (sCommand == "NeverShowArmor")
+		return SetCreatureNeverShowArmor(Object, iValue);
+	else if (sCommand == "NeverDrawHelmet")
+		return SetCreatureNeverDrawHelmet(Object, iValue);
 
 	else if (sCommand == "WeightTotal")
 		return SetCreatureWeightTotal(Object, iValue);

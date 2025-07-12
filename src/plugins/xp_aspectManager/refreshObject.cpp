@@ -84,3 +84,80 @@ void ColisionLoSModelName(void* ptrObject)
 		ColisionLoSModelName_Intern(ptrObject);
 }
 
+
+
+
+void refreshObject(int nParam2, int nValue, int iOption)
+{
+	//
+	NWN::OBJECTID oToRefresh = (NWN::OBJECTID)nValue;
+	NWN::OBJECTID oToView = (NWN::OBJECTID)nParam2;
+
+	unsigned long iMustView = GetObjectToPlayerId(oToView);
+	if (iMustView == NWN::PLAYERID_INVALIDID)
+		return;
+
+	//Get m_ObjectManager.GetGameObject(idEquipedObject)
+	GameObjectManager m_ObjectManager;
+	GameObject* ObjectToRefr;
+
+	if ((ObjectToRefr = m_ObjectManager.GetGameObject(oToRefresh)) == NULL)
+	{
+		return;
+	}
+
+	//Just be sure to refresh on the same area.
+	{
+		//For now, dont allow area, creature, item, waypoint
+		NWN::OBJECT_TYPE tObjToRefresh = (NWN::OBJECT_TYPE)*((char*)ObjectToRefr + AmObjectType);
+
+		//For now.. Some object cannot be refreshed. Nothing impossible. Will come with time
+		if (tObjToRefresh == NWN::OBJECT_TYPE_AREA || tObjToRefresh == NWN::OBJECT_TYPE_CREATURE || tObjToRefresh == NWN::OBJECT_TYPE_ITEM || tObjToRefresh == NWN::OBJECT_TYPE_WAYPOINT)
+			return;
+		NWN::OBJECTID oArea1 = *(NWN::OBJECTID*)((char*)ObjectToRefr + AmCommonArea);
+		GameObject* ObjectToView;
+		if ((ObjectToView = m_ObjectManager.GetGameObject(oToView)) == NULL)
+		{
+			return;
+		}
+
+		NWN::OBJECTID oArea2 = *(NWN::OBJECTID*)((char*)ObjectToView + AmCommonArea);
+
+		//Be sure that the ObjectToView and ObjectToRefresh are on the same Area
+		if (oArea1 != oArea2)
+			return;
+	}
+
+
+	//Remove the previous view (only if we don't ask for "show only"
+	if(iOption != 2)
+	{
+
+		uint8_t objectType = ((uint8_t*)ObjectToRefr)[0xA4];
+		uint8_t RemoveMsg[0xE] = { 0x50, 0x05, 0x01, 0x0D, 0x00, 0x00, 0x00, 0x44, objectType, 0x00, 0x00, 0x00, 0x00, 0x75 };
+		uint32_t* RemoveMsgOID = (uint32_t*)(RemoveMsg + 0x9);
+
+
+		*RemoveMsgOID = oToRefresh;
+
+		RemoveMsg[0xC] |= 0x80;
+		PrepaSendMessageToPlayer(iMustView, (unsigned char*) RemoveMsg, 0xE, 0);
+
+		//If we ask for "mask only", stop here 
+		if (iOption == 1)
+			return; 
+	}
+
+	uint8_t myMessage[0x500] = {};
+	uint32_t sizeToSend = addObjectToWorld(oToView, ObjectToRefr, myMessage);
+
+
+	/*
+	// Tree ... No
+	// Environment object : No
+	// Sound ... : No
+	*/
+	PrepaSendMessageToPlayer(iMustView, myMessage, sizeToSend, 0);
+
+	return;
+}

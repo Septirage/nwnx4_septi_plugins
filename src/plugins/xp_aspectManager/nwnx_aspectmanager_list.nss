@@ -2,7 +2,8 @@
 // nwnx_aspectmanager_list - appearance list functions of the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified By:	Septirage           2024-02-28
+// Last Modified By:	Septirage			2025/07/08	Update to AspectManager v1.5
+//						Septirage           2024-02-28
 //--------------------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////////////////////
 #include "nwnx_aspectmanager"
@@ -11,11 +12,11 @@
 /****************************** HairVariation *******************************/
 
 //Return the number of Hair variation for the selected RRG code
-// sRRG: 3 char code, RaceRaceGender : eg HHM
+// sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 int XPAspMan_GetNumberOfHairVariation(string sRRG);
 
 //Return the Hair Variation Int 
-//sRRG: sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iIdx: Internal List Index
 int XPAspMan_GetHairVariation(string sRRG, int iIdx);
 
@@ -23,11 +24,11 @@ int XPAspMan_GetHairVariation(string sRRG, int iIdx);
 /****************************** HeadVariation *******************************/
 
 //Return the number of Head variation for the selected RRG code
-// sRRG: 3 char code, RaceRaceGender : eg HHM
+// sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 int XPAspMan_GetNumberOfHeadVariation(string sRRG);
 
 //Return the Head Variation Int 
-//sRRG: sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iIdx: Internal List Index
 int XPAspMan_GetHeadVariation(string sRRG, int iIdx);
 
@@ -43,12 +44,12 @@ void XPAspMan_SetRestrictedVisualType(string sVisualType, int bRestricted);
 int XPAspMan_GetRestrictedVisualType(string sVisualType);
 
 //Get the Number of existing VisualType for this specific sRRG-ModelPart
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPart: ARMOR_MODEL_PART_* constant
 int XPAspMan_GetNumberOfVisualType(string sRRG, int iModelPart);
 
 //Get the specific VisualType
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPart: ARMOR_MODEL_PART_* constant
 //iIdx: Internal List Index
 string XPAspMan_GetVisualType(string sRRG, int iModelPart, int iIdx);
@@ -77,24 +78,24 @@ string XPAspMan_GetExtendedVisualType(string sRR, int iGender, int iModelPart, i
 /*************************** ModelPart Variation ****************************/
 
 //Return Number of Variation in the choosen VisualType
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPart: ARMOR_MODEL_PART_* constant
 int XPAspMan_GetNumberOfVariation(string sRRG, int iModelPart, string sVisualType);
 
 
 //Get the unique Variation Name
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPart: ARMOR_MODEL_PART_* constant
 //iIdx: Internal List Index
 string XPAspMan_GetVariation(string sRRG, int iModelPart, string sVisualType, int iIdx);
 
 //Get the Number of VisualType for this specific Appearance
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPart: ARMOR_MODEL_PART_* constant
 int XPAspMan_GetRealAppNumberOfVisualType(string sRRG, int iModelPart, int iCategory, int iVariation);
 
 //Return the specified VisualType for this specific Appearance
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPart: ARMOR_MODEL_PART_* constant
 //iIdx: if this Appearance have several VisualType, allow you to choose which one get
 string XPAspMan_GetVisualTypeFromRealApp(string sRRG, int iModelPart, int iCategory, int iVariation, int iIdx = 0); //RealToVisualCat
@@ -103,12 +104,12 @@ string XPAspMan_GetVisualTypeFromRealApp(string sRRG, int iModelPart, int iCateg
 /******************************** ModelPiece ********************************/
 
 //Number of Variation for this ModelPiece
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPiece: ARMOR_MODEL_PIECE_* constant
 int XPAspMan_GetNumberOfModelPieceVariation(string sRRG, int iModelPiece);
 
 //Get the Real ModelPiece Appearance Variation
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPiece: ARMOR_MODEL_PIECE_* constant
 //iIdx: Internal List Index
 int XPAspMan_GetModelPieceVariation(string sRRG, int iModelPiece, int iIdx);
@@ -131,18 +132,18 @@ int XPAspMan_GetWeaponPartVariation(string sWeaponType, int iPart, int iIdx);
 
 //Remove the choosen appearance from sVisualType. 
 // Will do nothing if sVisualType is the only Visual for this appearance
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPiece: ARMOR_MODEL_PIECE_* constant
 void XPAspMan_RemoveFromVisualType(string sRRG, int iModelPart, int iCategory, int iVariation, string sVisualType); 
 
 //Add the choosen appearance in sVisualType
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPiece: ARMOR_MODEL_PIECE_* constant
 void XPAspMan_AddToVisualType(string sRRG, int iModelPart, int iCategory, int iVariation, string sVisualType);
  
 //Delete the selected sVisualType
 //Will do nothing if, in this VisualType, it exists some Apperance that don't have any other VisualType
-//sRRG: 3 char code, RaceRaceGender : eg HHM
+//sRRG: race-gender code from appearance.2DA RaceRaceGender : eg P_HHM
 //iModelPiece: ARMOR_MODEL_PIECE_* constant
 void XPAspMan_DeleteVisualType(string sRRG, int iModelPart, string sVisualType);
 
