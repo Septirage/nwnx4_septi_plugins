@@ -52,5 +52,6 @@ endif
 subdir('src/plugins/xp_aspectManager')
 subdir('src/plugins/xp_enhancedFeatures')
 subdir('src/plugins/xp_msgServer')
+subdir('src/plugins/xp_threadSynchro')
 
 install_data('README.md', install_dir: '.')
