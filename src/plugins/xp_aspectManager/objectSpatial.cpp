@@ -2,9 +2,9 @@
 #include <vector>
 #include <sstream>
 
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "..\..\misc\Patch.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <misc/Patch.h>
 
 #include "../../septutil/NwN2DataPos.h"
 #include "refreshObject.h"

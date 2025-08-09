@@ -9,12 +9,12 @@
 #endif
 
 #include "EnhancedFeatures.h"
-#include "..\..\misc\Patch.h"
-#include "../../misc/ini.h"
-#include "../../misc/log.h"
-#include "../plugin.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <misc/Patch.h>
+#include <misc/ini.h>
+#include <misc/log.h>
+#include <plugins/plugin.h>
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 
 
 bool SpeedHookConfigAndApply(SimpleIniConfig* config, LogNWNX* logger);

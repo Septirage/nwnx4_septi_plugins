@@ -1,0 +1,28 @@
+/bin/*/*
+!/bin/dist/nss
+!/bin/dist/demo
+*.obj
+*.dll
+*.pdb
+*.lib
+*.exp
+!/lib/*/lib/*
+
+# vs2019 files
+.vs/
+
+# vs2005 files
+*.user
+*.suo
+*.ncb
+*.filters
+
+/src/packages/
+/src/*/Debug/
+/src/*/Release/
+/src/plugins/*/Debug/
+/src/plugins/*/Release/
+
+.idea/
+vcpkg_installed/
+dist/

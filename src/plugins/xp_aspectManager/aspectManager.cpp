@@ -11,9 +11,9 @@
 #include "objectSpatial.h"
 #include "functionFixes.h"
 
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "..\..\misc\Patch.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <misc/Patch.h>
 
 #include <bit>
 #include <cassert>
@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <locale>
 #include "../../septutil/srvadmin.h"
-#include "nwn2heap.h"
+#include <nwn2heap.h>
 #include "../../septutil/NwN2DataPos.h"
 
 typedef void (__cdecl * NWN2Heap_Deallocate_Proc)(void *p);

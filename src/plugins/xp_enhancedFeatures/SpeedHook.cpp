@@ -1,8 +1,8 @@
 #include "EnhancedFeatures.h"
 #include "SpeedHook.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "..\..\misc\Patch.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <misc/Patch.h>
 #include <bit>
 #include <cassert>
 #include <charconv>

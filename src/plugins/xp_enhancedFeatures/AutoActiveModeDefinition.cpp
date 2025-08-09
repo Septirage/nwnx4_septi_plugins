@@ -1,12 +1,12 @@
 
 #include "SmallPatchFunctions.h"
 
-#include "..\..\misc\Patch.h"
-#include "../../misc/ini.h"
-#include "../../misc/log.h"
-#include "../plugin.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <misc/Patch.h>
+#include <misc/ini.h>
+#include <misc/log.h>
+#include <plugins/plugin.h>
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 #include "../../septutil/NwN2DataPos.h"
 #include <unordered_set>
 

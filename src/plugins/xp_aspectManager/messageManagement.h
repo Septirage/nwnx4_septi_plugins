@@ -11,9 +11,9 @@
 #endif
 
 #include <string>
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
-#include "../../misc/log.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
+#include <misc/log.h>
 
 static unsigned char ramasserEquipement[] = {
 	0x50, 0x05, 0x01, 0x24, 0x00, 0x00, 0x00, 0x44, 0x06, 0xDD, 0x00, 0x00, 0x80, 0x55, 0x05, 0xFE,

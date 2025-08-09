@@ -2,8 +2,8 @@
 #include <string>
 #include "../../septutil/NwN2DataPos.h"
 #include "manageObject.h"
-#include "../../NWN2Lib/NWN2.h"
-#include "../../NWN2Lib/NWN2Common.h"
+#include <NWN2Lib/NWN2.h>
+#include <NWN2Lib/NWN2Common.h>
 #include "aspectManagerUtils.h"
 
 //HP Stuff

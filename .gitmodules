@@ -1,0 +1,3 @@
+[submodule "nwnx4"]
+	path = nwnx4
+	url = https://github.com/nwn2dev/nwnx4.git
