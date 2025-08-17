@@ -42,9 +42,13 @@ struct smallSkill {
 	int8_t skillCost;
 };
 
-#define FEAT_QUICKT_TO_MASTER	0x102
+#define FEAT_QUICK_TO_MASTER	0x102
+#define FEAT_EXTRA_RAGE			0x53D
 #define FEAT_ABLE_LEARNER		0x6EE
 #define FEAT_SKILLED			0x6ED
+
+#define SKILL_ID_SURVIVAL		29
+
 
 //TestIfClassOK 5a3c80 (creaAppBloc, classID);
 #define FUNC_TestIfClassOK						0x005a3c80
@@ -832,6 +836,11 @@ int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::s
 		}
 	}
 
+	//Extra rage give SkillSurvival as ClassSkill
+	if (myCurrentFeats.count(FEAT_EXTRA_RAGE) > 0) {
+		skillsCurrent[SKILL_ID_SURVIVAL].maxRank = (currentLevel + 4);
+		skillsCurrent[SKILL_ID_SURVIVAL].skillCost = 1;
+	}
 
 	//Need to check wich skill are "skill class" for maxRank (and currentSkill class for allowing/reduce cost)
 	for(int iClass = 0; iClass < nb_OwnedClass; iClass++) {
@@ -3105,6 +3114,12 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 					skillsTaken[cClassSkillID].skillCost = 1;
 				}
 			}
+
+			//Extra rage give SkillSurvival as ClassSkill
+			if (myCurrentFeats.count(FEAT_EXTRA_RAGE) > 0) {
+				skillsTaken[SKILL_ID_SURVIVAL].maxRank = 4;
+				skillsTaken[SKILL_ID_SURVIVAL].skillCost = 1;
+			}
 		}
 
 		std::string sListSkillTooHigh = "";
@@ -3238,7 +3253,7 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 		int iNumberBonusFeat = myClass->m_BonusFeat[0];
 		int iNumberGeneralFeat = 1 + myClass->m_NormalBFeat[0];
 
-		if (myCurrentFeats.count(FEAT_QUICKT_TO_MASTER) > 0)
+		if (myCurrentFeats.count(FEAT_QUICK_TO_MASTER) > 0)
 		{
 			iNumberGeneralFeat++;
 		}

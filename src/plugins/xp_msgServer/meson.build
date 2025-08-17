@@ -1,4 +1,4 @@
-plugin_version = '"1.2.1"'
+plugin_version = '"1.2.2"'
 plugin_name = 'xp_msgServer'+global_name_project_add
 dllName = plugin_name+'.dll'
 
