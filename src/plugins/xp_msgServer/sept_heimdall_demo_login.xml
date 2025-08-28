@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+	<!-- added screen for Heimdall, using the xp_MsgServ Plugin
+	Original XML code by: Septirage, included in the SEPTI pack : http://septirage.com/nwn2/
+	Last edition by Septirage, 2023-01-31 : version 1.0 	
+	Inspired by playerlogin.xml from  Obsidian Entertainment -->
+
+	<UIScene name="SCREEN_SEPT_CONNECTION" fadeout="0.3" fadein="0.3" fullscreen=true idleexpiretime="1.0" scriptloadable="true" 
+		priority="SCENE_FE_FULLSCREEN" 
+		OnAdd0=UIObject_Misc_SetLocalVarString(local:20,"0")
+		/>
+
+    <UIPane name="CONTENTS_PANE" x=0 y=0 width=PARENT_WIDTH height=PARENT_HEIGHT usescalar=true >
+
+		<!-- "Community Name" field   -->
+		<UIText name="PlayerNameTX" strref=89 x=320 y="276" width="394" height="26" valign="middle" fontfamily="Body_Font" style=3/>
+		<UIText name="PlayerName" x=320 y="303" width="394" height="26" valign="middle" editable=true maxlength=40 multiline=false
+			update=true OnUpdate=UIObject_Misc_SetLocalVarString(local:0) 
+			OnReturn='UIObject_Misc_ExecuteServerScript("gui_sept_heimdall_demo",local:0,local:1,local:20)'																	
+			selectable=true allowspace="true" nextcontrol="Password" prevcontrol="Password" />
+		<UIFrame x=310	y=302 width=405 height=28 topleft="tp_frame_tl.tga" topright="tp_frame_tr.tga" bottomleft="tp_frame_bl.tga"
+			bottomright="tp_frame_BR.tga" top="tp_frame_t.tga" bottom="tp_frame_b.tga"
+			left="tp_frame_l.tga" right="tp_frame_r.tga" fillstyle="stretch" fill="tp_frame_bg.tga"
+			border=5 />
+
+		<!-- "Enter Password" Field -->
+		<UIText name="PasswordTX" strref=2643 x=320 y="340" width="394" height="26" valign="middle" fontfamily="Body_Font" style=3 />
+		<UIText name="Password" x=320 y="367" width="394" height="26" valign="middle" editable=true maxlength=32 multiline=false
+			update=true OnUpdate=UIObject_Misc_SetLocalVarString(local:1)  
+			OnReturn='UIObject_Misc_ExecuteServerScript("gui_sept_heimdall_demo",local:0,local:1,local:20)'																
+			selectable=true nextcontrol="PlayerName" prevcontrol="PlayerName" password="true" />
+		<UIFrame x=310	y=366 width=405 height=28 topleft="tp_frame_tl.tga" topright="tp_frame_tr.tga" bottomleft="tp_frame_bl.tga"
+			bottomright="tp_frame_BR.tga" top="tp_frame_t.tga" bottom="tp_frame_b.tga"
+			left="tp_frame_l.tga" right="tp_frame_r.tga" fillstyle="stretch" fill="tp_frame_bg.tga"
+			border=5 />
+
+		<!-- Remember Password Text and Checkbox -->
+		<UIButton name="SavePasswordCB" x=310 y=410 style="SQUARE_CHECKBOX_BUTTON"  
+			OnSelected=UIObject_Misc_SetLocalVarString(local:20,"1") 
+			OnUnselected=UIObject_Misc_SetLocalVarString(local:20,"0") >
+		</UIButton>
+		<UIText name="SavePasswordTX" text="Remember Me"  fontfamily="Body_Font" style=3 x=340 y=410 width="400" height=18 
+			valign="middle" align="left" /> 
+		
+		<UIText name="ErrorTX" text="" x=320 y="436" width="394" height="26" valign="middle" fontfamily="Body_Font" style=3  color=red />
+		
+		<!-- "Connection" -->
+		<UIButton name="Connect" strref="99" x=280 y="463" style="STYLE_SMALL_BUTTON"
+			OnLeftClick0='UIObject_Misc_ExecuteServerScript("gui_sept_heimdall_demo",local:0,local:1,local:20)' 
+		/>
+
+
+		<!-- "Cancel" -->
+		<UIButton name="Cancel0" strref="67" x=625 y="463" style="STYLE_SMALL_BUTTON" 		
+			OnLeftClick=UIButton_Input_ExitToMainMenu()
+		/>
+		<!-- Main Window -->
+		<UIFrame x=262	y=230 width=504 height=282 topleft="frame1_tl.tga" topright="frame1_tr.tga" bottomleft="frame1_bl.tga"
+			bottomright="frame1_BR.tga" top="frame1_t.tga" bottom="frame1_b.tga"
+			left="frame1_l.tga" right="frame1_r.tga" border=32 />	
+		
+		<!-- Title: "Heimdall Login" -->
+        <UIText name="TITLE" strref=99 x="280" y="237" width="475" height="25" align="center" valign="middle" fontfamily="Title_Font" style="2" />
+        <UIIcon img="title_medium02.tga" x=270 y=237 width=488 height=35 />
+		<UIFrame x=268	y=239 width=492 height=267 fillstyle="tile" fill="cloth_bg.tga" />
+	</UIPane>
+
+	<UIIcon img="main_sub_bg_nx2.tga" x=0 width=1024 y=0 height=768 scalewithscene=true />
+	

@@ -1,4 +1,4 @@
-plugin_version = '"1.2.2"'
+plugin_version = '"1.3.0"'
 plugin_name = 'xp_msgServer'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -9,6 +9,7 @@ plugin_shared_lib = shared_library(plugin_name,
         nwnx4_repo_path / 'src/hook/scriptManagement.cpp',
         nwnx4_repo_path / 'src/misc/log.cpp',
         nwnx4_repo_path / 'src/misc/Patch.cpp',
+        'playerIDManager.cpp',
         'Connection.cpp',
         'Anticheat.cpp',
         '../../septutil/crypto.cpp',

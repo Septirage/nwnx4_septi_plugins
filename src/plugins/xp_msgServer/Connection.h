@@ -7,7 +7,9 @@
 
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
+#include <string_view>
 
 #ifdef WIN32
 #include <windows.h>
@@ -19,19 +21,13 @@
 #include <NWN2Lib/NWN2.h>
 #include <NWN2Lib/NWN2Common.h>
 
+#include "playerIDManager.h"
+
 #define SCRIPTRESPONSE_BAN		-3
 #define SCRIPTRESPONSE_KICK 	-2
 #define SCRIPTRESPONSE_ERROR	-1
 #define SCRIPTRESPONSE_NOK		0
 #define SCRIPTRESPONSE_OK		1
-
-typedef
-bool
-(__stdcall*
-	MySharedHookFunction) (
-		__in int,
-		__in unsigned char*,
-		__in int);
 
 
 bool LoadNetLayer();
@@ -77,18 +73,15 @@ class MsgServ final : public Plugin
 	
 
   public:
-	//LogNWNX* logger;
 	SimpleIniConfig* config;
-	GameObjectManager m_ObjectManager;
 	std::string nwnxStringHome;
-
-	std::unordered_map<std::string, PlayerConnection> _knowedPlayer;
+	PlayerIDManager idManager;
 
 	bool bConnectionProcess	= true;
 	bool bTraceEveryMsg = false;
 	bool bAllowAutoConnect = false;
 	bool bWelcomeScreen = false;
-	bool bDwnloadPanel = false;
+
 	bool b3CDKey = false;
 
 
@@ -102,53 +95,29 @@ class MsgServ final : public Plugin
 	std::string ScriptCreationError = "";
 	std::list<int> lRangerCombatFeats;
 
+	struct {
+		enum ScriptRet{
+			WAIT  = 1,
+			ALLOW = 2,
+			KICK  = 3,
+		};
 
-	std::string ScriptConnectionName = "";
-	std::string ScriptStayConnectedScriptName = "";
-	std::string ErrorMsg = "";
-	std::string sWelcome = "";
+		bool enabled;
+		std::string onConnectionScript;
 
-	/*
-	int currentPlayerPriv_;
-	std::string currentName_;
-	unsigned long currentIP_;
-	std::string currentLog_;
-	std::string currentPwd_;
-	std::string currentOption_;
-	std::string currentCdKey_;
-	int currentValidity_ ;
-	*/
-
-
-	std::string curResponseString_;
+		//std::unordered_map<unsigned long, std::string> connectionGUIScripts;
+		std::unordered_set<std::string> connectionGUIScripts;
+		std::unordered_set<unsigned long> authorizedPlayerIDs;
+		std::unordered_set<unsigned long> kickedPlayerIDs;
+	} m_connection;
 
 
-
-
-	
-	std::unordered_map<std::string, MySharedHookFunction> _fctList;
-	//std::unordered_map<std::string, std::function<bool(int, unsigned char*, int)>> _fctList;
-
-	//unsigned char* DataLogSetTitleText = NULL;
-	//unsigned char* DataLogSetLogText = NULL;
-	//unsigned char* DataLogSetPwdText = NULL;
-	//unsigned long LengthLogTitle = 0;
-	//unsigned long LengthLogLog = 0;
-	//unsigned long LengthLogPwd = 0;
-	unsigned char* DataLogSetRememberMeText = NULL;
-	unsigned long LengthLogRememberMe = 0;
-	std::string RememberMeText = "";
-
-	unsigned char* DataKickOpen = NULL;
-	unsigned long LengthKickPanelOpen = 0;
-	std::string KickPanelXml = "";
-
-	unsigned char* DataPopUpOpen = NULL;
-	unsigned long LengthPopUpPanelOpen = 0;
-	std::string PopUpPanelXml = "";
-
-
-
+	void NWNX_DisplayGUIScreen(uint32_t uniquePlayerID, const std::string_view& sceneName, const std::string_view& xmlName);
+	void NWNX_CloseGUIScreen(uint32_t uniquePlayerID, const std::string_view& sceneName);
+	void NWNX_SetGUIObjectText(uint32_t uniquePlayerID, const std::string_view& sceneName, const std::string_view& objectName, std::string_view text);
+	void NWNX_SetGUIObjectHidden(uint32_t uniquePlayerID, const std::string_view& sceneName, const std::string_view& objectName, bool hidden);
+	void NWNX_SetGUIObjectDisabled(uint32_t uniquePlayerID, const std::string_view& sceneName, const std::string_view& objectName, bool hidden);
+	void NWNX_SendDisplayMessageInfo(uint32_t uniquePlayerID, const std::string_view& sceneName, const std::string_view& sText, const std::string_view& sOk);
 };
 
 

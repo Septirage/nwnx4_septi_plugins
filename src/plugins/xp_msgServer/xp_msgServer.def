@@ -1,6 +1,0 @@
-LIBRARY	"xp_msgServer"
-
-EXPORTS
-
-	AddToMsgServHook
-	RemoveFromMsgServHook
