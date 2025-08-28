@@ -716,6 +716,7 @@ type gff!
 //uint8
 #define AmDTransitionType       0x47C
 #define AmDTransitionDest       0x480
+#define AmDTransitionObject		0x488
 #define AmDIsGroupTransition    0x48C
 #define AmDLoadScreenId         0x49F
 

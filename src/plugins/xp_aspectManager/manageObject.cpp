@@ -228,8 +228,11 @@ int GetTransitionFlags(GameObject* Object) {
 void SetTransitionFlags(GameObject* Object, int transitionFlags) {
 	int iType = Object->GetObjectType();
 
-	if (iType == NWN::OBJECT_TYPE_DOOR)
+	if (iType == NWN::OBJECT_TYPE_DOOR) {
 		*((uint8_t*)Object + AmDTransitionType) = (uint8_t)(transitionFlags & 0xFF);
+		if((transitionFlags & 0xFF) == 0)
+			*(uint32_t*)(((char*)Object) + AmDTransitionObject) = 0x7F000000;
+	}
 	else if(iType == NWN::OBJECT_TYPE_TRIGGER)
 		*((uint8_t*)Object + AmTrigTransitionType) = (uint8_t)(transitionFlags & 0xFF);
 }
@@ -283,8 +286,10 @@ void SetTransitionDestination(GameObject* Object, char* cValue) {
 
 	char* ptrExo = NULL;
 
-	if (iType == NWN::OBJECT_TYPE_DOOR)
+	if (iType == NWN::OBJECT_TYPE_DOOR) {
 		ptrExo = (((char*)Object) + AmDTransitionDest);
+		*(uint32_t*)(((char*)Object) + AmDTransitionObject) = 0x7F000000;
+	}
 	else if (iType == NWN::OBJECT_TYPE_TRIGGER)
 		ptrExo = (((char*)Object) + AmTrigTransitionDest);
 
