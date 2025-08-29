@@ -15,9 +15,6 @@
 #include <misc/Patch.h>
 #include <misc/ini.h>
 
-
-#include <nwn2heap.h>
-
 NWN::OBJECTID GetModuleID_()
 {
 	int ptr = *(int*)OFFS_g_pAppManager;
@@ -43,7 +40,6 @@ static uint32_t* pPointerTable;
 
 //Contexts handling
 static uint32_t currentHandlerId = 0;
-static bool willBePersistant     = true;
 
 
 
@@ -67,7 +63,7 @@ struct ActionVMScript {
 	uint32_t field_04; // +0x04
 	uint32_t field_08; // +0x08
 	uint32_t field_0C; // +0x0C
-	uint8_t* unknowArray; // +0x10		// ?????? verifier ce qu'il peut contenir !
+	uint8_t* unknowArray; // +0x10		// ??????
 	uint32_t uSizeUknArray; // +0x14
 	NWN::CExoString scriptName; // +0x18
 	uint32_t field_20; // +0x20
@@ -77,51 +73,9 @@ struct ActionVMScript {
 
 struct ContextData {
 	ActionVMScript* data; // ObjActionPtr
-	bool isPersistent; // true = persistant, false = oneshotn
 };
 
 static std::unordered_map<uint32_t, ContextData> contexts;
-
-/*
-NWN2_MemoryPoolMgr stuff :
-*/
-
-__declspec(naked) uint8_t* __cdecl MemPoolMgrAllocateVMScript(uint32_t uSize)
-{
-	__asm
-	{
-		mov edx, 0x00730570
-		jmp edx
-	}
-}
-
-__declspec(naked) uint8_t* __cdecl MemPoolMgrAllocateVMStack(uint32_t uSize)
-{
-	__asm
-	{
-		mov edx, 0x00730500
-		jmp edx
-	}
-}
-
-void __declspec(naked) __cdecl MemPoolMgrFreeVMStack(ActionVMStack* pToFree)
-{
-	__asm
-	{
-		mov edx, 0x00730550
-		jmp edx
-	}
-}
-
-void __declspec(naked) __cdecl MemPoolMgrFreeVMScript(ActionVMScript* pToFree)
-{
-	__asm
-	{
-		mov edx, 0x007305c0
-		jmp edx
-	}
-}
-
 
 
 // Synchronisation mechanism
@@ -132,10 +86,11 @@ static std::atomic<bool> mainThreadWaiting {false};
 //Shutting down mechanism
 static std::atomic<bool> g_is_shutting_down {false};
 static std::atomic<bool> g_UseThreadingSystem {false};
+static std::atomic<int> waitingThreadsCount{0};
 
 
 // Exports for External usages
-extern "C" __declspec(dllexport) int BeginContextInsertion()
+extern "C" __declspec(dllexport) int __cdecl BeginContextInsertion()
 {
 	//Avoid possibility of deadlock by faultly calling it from main thread
 	if (isMainThread)
@@ -155,7 +110,10 @@ extern "C" __declspec(dllexport) int BeginContextInsertion()
 		return 0;
 	}
 
+	waitingThreadsCount++;
 	g_sharedMutex.lock();
+	waitingThreadsCount--;
+
 	if (g_is_shutting_down.load())
 	{
 		g_sharedMutex.unlock();
@@ -167,107 +125,6 @@ extern "C" __declspec(dllexport) int BeginContextInsertion()
 	return 1;
 }
 
-//Will allocate and fill ListTypeParam and ListParam and all others data
-__declspec(naked) int __fastcall CopyActionParamList(ActionVMStack* pDest, void* Unused, ActionVMStack* pOrigin, uint32_t iParam, uint32_t iParam2)
-{
-	__asm
-	{
-		mov edx, 0x00727a50
-		jmp edx
-	}
-}
-
-
-ActionVMScript* CopyAssignCommandContext(ActionVMScript* pOriginal)
-{
-	//Start will be close to ForPersist, we will just use MemPoolMgr Allocation function instead of new.
-
-	ActionVMScript* pCopy = (ActionVMScript*)MemPoolMgrAllocateVMScript(0x28);
-	memcpy(pCopy, pOriginal, 0x28);
-
-	//Copy the CExoString with NWN2Heap Allocate memory
-	NWN2_HeapMgr* pHeapMgr = NWN2_HeapMgr::Instance();
-	NWN2_Heap* pHeap       = pHeapMgr->GetDefaultHeap();
-	pCopy->scriptName.m_sString     = (char*)pHeap->Allocate(pCopy->scriptName.m_nBufferLength);
-
-	memcpy(pCopy->scriptName.m_sString, pOriginal->scriptName.m_sString, pCopy->scriptName.m_nBufferLength);
-
-
-	//Copy UnknowArray if needed
-	if (pOriginal->uSizeUknArray > 0)
-	{
-		pCopy->unknowArray = (uint8_t*)pHeap->Allocate(pOriginal->uSizeUknArray);
-		memcpy(pCopy->unknowArray, pOriginal->unknowArray, pOriginal->uSizeUknArray);
-	}
-
-	if (pOriginal->pParamObj) 
-	{
-		// Create a new ParamObj
-		pCopy->pParamObj = (ActionVMStack*)MemPoolMgrAllocateVMStack(0x18);
-
-		// Prepare quick access pointers
-		ActionVMStack* pOrigParam = pOriginal->pParamObj;
-		ActionVMStack* pCopyParam = pCopy->pParamObj;
-
-		//Clean it because we will use the NWN2 CopyParam function
-		std::memset(pCopyParam, 0, 0x18);
-
-		//This is constant, keep it
-		pCopyParam->ptrToVMScriptObj = pOrigParam->ptrToVMScriptObj;
-
-		//Use basic params
-		CopyActionParamList(pCopyParam, NULL, pOrigParam, 0, 0);
-	}
-
-	return pCopy;
-}
-
-ActionVMScript* CopyAndCleanAssignCommandCtxForPersist(ActionVMScript* pOriginal)
-{
-	ActionVMScript* pCopy = new ActionVMScript();
-	memcpy(pCopy, pOriginal, 0x28);
-
-	// CopyExoStringForPersistant(&pCopy->scriptName, &pOriginal->scriptName);
-
-	if (pOriginal->pParamObj) {
-		// Create a new ParamObj
-		pCopy->pParamObj = new ActionVMStack();
-
-		// Prepare quick access pointers
-		ActionVMStack* pOrigParam = pOriginal->pParamObj;
-		ActionVMStack* pCopyParam = pCopy->pParamObj;
-
-		memcpy(pCopyParam, pOrigParam, 0x18);
-
-		/* Need to reverse the complexe type before doing that
-		if(pOrigParam->typeList)
-		{
-		pCopyParam->typeList = new uint8_t[pCopyParam->paramSize];
-		memcpy(pCopyParam->typeList, pOrigParam->typeList, pOrigParam->paramSize);
-		}
-
-		if(pOrigParam->paramList)
-		{
-		pCopyParam->typeList = new uint32_t[pCopyParam->paramSize];
-
-		for(uint32_t i = 0; i < pCopyParam->paramCount; i++)
-		{
-
-		}
-		}
-		*/
-
-		//Free the MemoryPool for pOrigParam to give back some memory to NWN2MemoryPool
-		MemPoolMgrFreeVMStack(pOrigParam);
-	}
-
-	// Free the MemoryPool for pOriginal to give back some memory to NWN2MemoryPool
-	MemPoolMgrFreeVMScript(pOriginal);
-
-
-	return pCopy;
-}
-
 __declspec(naked) int __fastcall PutContextInQueue(uint32_t* pThis, void* Unused, uint32_t dateDelay, uint32_t timeDelay, uint32_t uiObject, uint32_t uiObject2, int iPAram, ActionVMScript* pActionObj, int iParam2, int iParm3)
 {
 	__asm
@@ -277,7 +134,7 @@ __declspec(naked) int __fastcall PutContextInQueue(uint32_t* pThis, void* Unused
 	}
 }
 
-extern "C" __declspec(dllexport) int InsertContext(uint32_t iHandler)
+extern "C" __declspec(dllexport) int __cdecl InsertContext(uint32_t iHandler)
 {
 	// will garanty that we use threading system and are right context
 	if (!isThreadLocked)
@@ -286,22 +143,17 @@ extern "C" __declspec(dllexport) int InsertContext(uint32_t iHandler)
 	if (contexts.count(iHandler) != 0)
 	{
 		ActionVMScript* pContext = contexts[iHandler].data;
-		if (contexts[iHandler].isPersistent)
-		{
-			pContext = CopyAssignCommandContext(pContext);
-		}
 		//Grab the module objectID instead of presume it is 0 TODO
 		PutContextInQueue(pPointerTable, NULL, 0, 0, GetModuleID_(), GetModuleID_(), 1, pContext, 10, 1);
 
-		if (!contexts[iHandler].isPersistent)
-			contexts.erase(iHandler);
+		contexts.erase(iHandler);
 
 		return 1;
 	}
 	return -2;
 }
 
-extern "C" __declspec(dllexport) int EndContextInsertion()
+extern "C" __declspec(dllexport) int __cdecl EndContextInsertion()
 {
 	//will garanty that we use threading system and are right context
 	if (!isThreadLocked)
@@ -329,6 +181,9 @@ void __fastcall PutMutexLock()
 {
 	mainThreadWaiting.store(true);
 	g_sharedMutex.unlock();
+	while (waitingThreadsCount.load() > 0) {
+		std::this_thread::yield();
+	}
 	g_sharedMutex.lock();
 	mainThreadWaiting.store(false);
 }
@@ -420,11 +275,7 @@ int __fastcall SaveAssignCommandContext(uint32_t* pThis, void* Unused, uint32_t 
 
 	ContextData ctx;
 
-	if (willBePersistant)
-		pActionObj       = CopyAndCleanAssignCommandCtxForPersist(pActionObj);
 	ctx.data = pActionObj;
-	ctx.isPersistent = willBePersistant;
-
 
 	contexts[currentHandlerId]       = ctx;
 
@@ -456,14 +307,10 @@ void __fastcall RemoveAssignCommandHooks()
 	}
 }
 
-// Exports for External usages
-int PrepareSaveContext(int bPersistant)
-{
+extern "C" __declspec(dllexport) int __cdecl PrepareSaveContext() {
 	//Can be done only from main thread
 	if (!isMainThread)
 		return 0;
-
-	willBePersistant = (bPersistant != 0);
 
 	//Patch everything
 	int i = 0;
@@ -474,13 +321,9 @@ int PrepareSaveContext(int bPersistant)
 	return 1;
 }
 
-extern "C" __declspec(dllexport) int PrepareSaveContext() {
-	return PrepareSaveContext(0);
-}
-
 
 // Exports for External usages
-extern "C" __declspec(dllexport) uint32_t GetContextHandler() 
+extern "C" __declspec(dllexport) uint32_t __cdecl GetContextHandler() 
 {
 	// Can be done only from main thread
 	if (!isMainThread)

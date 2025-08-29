@@ -1,4 +1,4 @@
-plugin_version = '"1.0.0"'
+plugin_version = '"1.0.1"'
 plugin_name = 'xp_threadSynchro'+global_name_project_add
 dllName = plugin_name+'.dll'
 
