@@ -128,16 +128,122 @@ unsigned long ReturnItemPropertyFix = 0x005C7F4C;
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+
+	int __fastcall SearchInsertPositionAfterTag(void* param1, void* Unused, char* tagWanted)
+	{
+		int iLeft, iRight, iMiddle, iMax;
+		char* pTagLUT = *(char**)((int)param1 + 0x260);
+		char* pCurrentLine;
+		char* pSearchTagPtr;
+
+		char currentChar;
+		int iVar3;
+
+		iLeft = 0;
+		iMax = *(int*)((int)param1 + 0x264) - 1;
+		iRight = iMax;
+		
+		do 
+		{
+			if ((iRight <= iLeft) && (iLeft != iMax)) {
+				return iLeft;
+			}
+
+			iMiddle = (iLeft + iRight) / 2;
+			pCurrentLine = pTagLUT + (iMiddle * 0x48);
+			pSearchTagPtr = tagWanted;
+
+			do {
+				currentChar = *pCurrentLine;
+
+				if (currentChar == *pSearchTagPtr)
+				{
+					iVar3 = 0;
+				}
+				else
+				{
+					if (currentChar < *pSearchTagPtr)
+					{
+						iVar3 = -1;
+					}
+					else
+					{
+						iVar3 = 1;
+					}
+					break;
+				}
+
+				if (currentChar == 0)
+				{
+					break;
+				}
+
+
+				currentChar = pCurrentLine[1];
+
+				if (currentChar == pSearchTagPtr[1])
+				{
+					iVar3 = 0;
+				}
+				else
+				{
+					if (currentChar < pSearchTagPtr[1])
+					{
+						iVar3 = -1;
+					}
+					else
+					{
+						iVar3 = 1;
+					}
+					break;
+				}
+
+				if (currentChar == 0)
+				{
+					break;
+				}
+
+
+				pCurrentLine += 2;
+				pSearchTagPtr += 2;
+
+			} while (currentChar != 0);
+
+			if (iVar3 <= 0) {
+				iLeft = iMiddle + 1;
+			}
+			else {
+				if (iMiddle == iRight)
+				{
+					return iMiddle;
+				}
+				iRight = iMiddle;
+			}
+		} while (true);
+
+		return 0;
+	}
+
+#define OFFS_SetTagPatch2 0x00616d69
+
+
 #define OFFS_SetTagPatch 0x006abbd4
 	//Patch SetTag
 	Patch _SetTagPatch[] =
 	{
 		/*PatchContext(true, (char*)"\x8d\x54\x24\x14", */Patch((DWORD)OFFS_SetTagPatch, (char*)"\x8D\x54\x24\x1C", (int)4),
-
 		Patch()
 	};
 
 	Patch *SetTagPatch = _SetTagPatch;
+
+	Patch _SetTagPatch2[] =
+	{
+		Patch(OFFS_SetTagPatch2 + 1, (relativefunc)SearchInsertPositionAfterTag),
+		Patch()
+	};
+
+	Patch *SetTagPatch2 = _SetTagPatch2;
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////// End SetTag Patch ////////////////////////////////////////////
@@ -727,11 +833,22 @@ EnhancedFeatures::Init(char* nwnxhome)
 				i++;
 			}
 
-			i = 0;
-			while (SetFirstNameAreaPatch[i].Apply()) {
-				i++;
-			}
 		}
+	}
+	config->Read("PatchAddNewTag", &iTest, 0);
+	if (iTest != 0)
+	{
+		logger->Info("* PatchAddNewTag");
+
+		i = 0;
+		while (SetTagPatch2[i].Apply()) {
+			i++;
+		}
+	}
+
+	i = 0;
+	while (SetFirstNameAreaPatch[i].Apply()) {
+		i++;
 	}
 
 	//Patch CloneArea
