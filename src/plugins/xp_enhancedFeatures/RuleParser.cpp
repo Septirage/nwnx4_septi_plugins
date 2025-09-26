@@ -99,7 +99,7 @@ void processCurrentToken(const std::string& currentToken, std::vector<Token>& to
 		}
 		else if (functionValues.find(lowerToken) != functionValues.end())
 		{
-			tokens.push_back({ TokenType::FUNCTION, functionValues[currentToken] });
+			tokens.push_back({ TokenType::FUNCTION, functionValues[lowerToken] });
 		}
 		else
 		{
@@ -441,7 +441,7 @@ int evaluateRuleInt(Rule* node, RuleType cRuleType, int iPcAddr, bool& isValid)
 			return GetBaseAbility(node->params.back(), CreaBlockStat);
 		else if (node->value == FCT_CLASSSUM)
 			return ClassLevelSum(node->params, CreaBlockStat);
-		else if (node->value == FCT_CLASSSUM)
+		else if (node->value == FCT_CLASSMAX)
 			return ClassLevelMax(node->params, CreaBlockStat);
 	}
 	else if (node->type == TokenType::NUM)

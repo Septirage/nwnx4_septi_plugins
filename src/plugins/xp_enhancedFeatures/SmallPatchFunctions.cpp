@@ -70,6 +70,59 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 #define OFFS_PatchGetResRef				0x006a2997
 #define OFFS_FixSetFirstName			0x00584cb8
 
+#define OFFS_FixItmPrpDmgBonus			0x0067e5e9
+#define OFFS_FixItmPrpDmgBonusVsAlign	0x0067e62a
+#define OFFS_FixItmPrpDmgBonusVsRace	0x0067e66b
+#define OFFS_FixItmPrpDmgBonusVsSAlign	0x0067e6ac
+
+unsigned long EndOfFixItmPrpDmgBonus = 0x0067e5ee;
+unsigned long EndOfFixItmPrpDmgBonusXXX = 0x0067e62f;
+
+
+__declspec(naked) void FixItmPrpDmgBonus()
+{
+	__asm
+	{
+		MOV		EAX, dword ptr[ESP + 0x30]
+
+		MOV 	ECX, EAX
+		SAR 	ECX, 31
+		AND 	ECX, 1
+		MOV		dword ptr[ESP + 0x34], ECX
+
+		AND		EAX, 0x7FFFFFFF
+
+		MOV		dword ptr[ESP + 0x30], EAX
+
+		PUSH	EAX
+
+		jmp dword ptr[EndOfFixItmPrpDmgBonus]
+	}
+}
+
+
+__declspec(naked) void FixItmPrpDmgBonusXXX()
+{
+	__asm
+	{
+		MOV		EAX, dword ptr[ESP + 0x34]
+
+		MOV 	ECX, EAX
+		SAR 	ECX, 31
+		AND 	ECX, 1
+		MOV		dword ptr[ESP + 0x38], ECX
+
+		AND		EAX, 0x7FFFFFFF
+
+		MOV		dword ptr[ESP + 0x34], EAX
+
+		PUSH	EAX
+
+		jmp dword ptr[EndOfFixItmPrpDmgBonusXXX]
+	}
+}
+
+
 std::unordered_set<uint32_t> g_listMonkWeapon;
 
 
@@ -976,6 +1029,21 @@ Patch _PatchMonkWeaponList[] =
 Patch* PatchMonkWeaponList = _PatchMonkWeaponList;
 
 
+Patch _PatchFixItmPrpDmgBonus[] =
+{
+	Patch(OFFS_FixItmPrpDmgBonus, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(OFFS_FixItmPrpDmgBonus + 1, (relativefunc)FixItmPrpDmgBonus),
+	Patch(OFFS_FixItmPrpDmgBonusVsAlign, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(OFFS_FixItmPrpDmgBonusVsAlign + 1, (relativefunc)FixItmPrpDmgBonusXXX),
+	Patch(OFFS_FixItmPrpDmgBonusVsRace, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(OFFS_FixItmPrpDmgBonusVsRace + 1, (relativefunc)FixItmPrpDmgBonusXXX),
+	Patch(OFFS_FixItmPrpDmgBonusVsSAlign, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(OFFS_FixItmPrpDmgBonusVsSAlign + 1, (relativefunc)FixItmPrpDmgBonusXXX),
+
+	Patch()
+};
+Patch* PatchFixItmPrpDmgBonus = _PatchFixItmPrpDmgBonus;
+
 
 Patch _DisableTumbleACPatch[] =
 {
@@ -1188,6 +1256,17 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		{
 			i++;
 		}
+	}
+
+	config->Read("FixItmPrpDmgBonus", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* Fix ItemPropertyDamageBonusXXX");
+		i = 0;
+		while (PatchFixItmPrpDmgBonus[i].Apply())
+		{
+			i++;
+		}			
 	}
 
 	std::string sList = "";

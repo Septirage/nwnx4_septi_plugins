@@ -34,6 +34,8 @@ const uint32_t FCT_SKILL = 0;
 const uint32_t FCT_ABILITY = 1;
 const uint32_t FCT_CLASSSUM = 2;
 const uint32_t FCT_CLASSMAX = 3;
+const uint32_t FCT_MAX = 4;
+const uint32_t FCT_MIN = 5;
 
 enum class TokenType { OBJECT, OPERATOR, LPAREN, RPAREN, END, SPECIAL, FUNCTION, OPNUM, NUM };
 

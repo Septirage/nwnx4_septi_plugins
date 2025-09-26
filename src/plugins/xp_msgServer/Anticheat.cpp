@@ -276,8 +276,8 @@ uint32_t Preparation2DA(NWN::CExoString* cTable)
 	p2DATable = Prepare2DA_intern(&lowerTable, NULL);
 
 	//Unpatch here
-	tempPatch2DAmsgServ[0].Remove();
 	tempPatch2DAmsgServ[1].Remove();
+	tempPatch2DAmsgServ[0].Remove();
 
 
 	return p2DATable;

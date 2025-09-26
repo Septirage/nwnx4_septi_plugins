@@ -286,6 +286,19 @@ struct AmItmProperty
 //uint32
 #define AmCrtMonkSpeed			0x778
 
+
+///////
+
+
+#define AmCrtSavedDice1			0xE2C
+#define AmCrtSavedDice2			0xE2D
+#define AmCrtSavedDice3			0xE2E
+#define AmCrtSavedDice4			0xE2F
+
+//
+// 0xF1E ??? (with in combat?)
+////
+
 //uint32
 #define AmCrtGoldPiece			0xEE8
 
