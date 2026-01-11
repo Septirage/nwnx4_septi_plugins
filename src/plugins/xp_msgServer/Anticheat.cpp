@@ -43,6 +43,7 @@ struct smallSkill {
 };
 
 #define FEAT_QUICK_TO_MASTER	0x102
+#define FEAT_SPELLCASTING_PROD	0x45A
 #define FEAT_EXTRA_RAGE			0x53D
 #define FEAT_ABLE_LEARNER		0x6EE
 #define FEAT_SKILLED			0x6ED
@@ -940,7 +941,11 @@ int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::s
 		iIntelBonus = (iIntel - 10) / 2;
 	}
 
-	uint32_t skillPointAllowed = skillPointForMyClass + keepedSkillPoints + (bHasSkilled ? 1 : 0) + iIntelBonus;
+	skillPointForMyClass = skillPointForMyClass + iIntelBonus;
+	if (skillPointForMyClass <= 0)
+		skillPointForMyClass = 1;
+
+	uint32_t skillPointAllowed = skillPointForMyClass + keepedSkillPoints + (bHasSkilled ? 1 : 0);
 
 	if (skillPointAllowed < skillPointUsed) {
 		errorsList += "#toomany_skillPoint:{" + std::to_string(skillPointAllowed) + "," + std::to_string(skillPointUsed) + "}";
@@ -1809,6 +1814,9 @@ int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::s
 						}
 						else if (nClassSpellToTest == 0x9 || nClassSpellToTest == 0xA) {
 							levelOfSpell = spellLine->m_WizSorc;
+						}
+						else if (nClassSpellToTest == 0x27) {
+							levelOfSpell = spellLine->m_Warlock;
 						}
 						else {
 							levelOfSpell = spellLine->m_Innate;
@@ -3036,6 +3044,10 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 		}
 
 		int iNumberOfSkillPoints = myClass->m_SkillPointBase + iIntBonus;
+
+		if (iNumberOfSkillPoints <= 0)
+			iNumberOfSkillPoints = 1;
+
 		iNumberOfSkillPoints *= 4;
 
 		int8_t crossClassCost = 2;
@@ -3713,6 +3725,9 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 						else if (iClass == 0x9 || iClass == 0xA) {
 							levelOfSpell = spellLine->m_WizSorc;
 						}
+						else if (iClass == 0x27) {
+							levelOfSpell = spellLine->m_Warlock;
+						}
 						else {
 							levelOfSpell = spellLine->m_Innate;
 						}
@@ -3750,6 +3765,8 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 				int lvl1Nb = 3;
 				if (iIntBonus > 0)
 					lvl1Nb += iIntBonus;
+				if (myCurrentFeats.count(FEAT_SPELLCASTING_PROD) > 0)
+					lvl1Nb++;
 
 
 				uint32_t iSpellTIdx = 0;
