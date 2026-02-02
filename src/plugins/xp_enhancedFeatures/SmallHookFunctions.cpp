@@ -7,6 +7,7 @@
 #include <hook/scriptManagement.h>
 
 #include "../../septutil/NwN2DataPos.h"
+#include "../../septutil/NwN2Utilities.h"
 //#include "../../septutil/intern2daMgt.h"
 
 #include <nwn2heap.h>
@@ -38,16 +39,6 @@ unsigned long ReturnEndICanStack = 0x005d3ab9;
 unsigned long ReturnICantStack = 0x005d39ad;
 
 unsigned long ReturnCalculateBaseCost = 0x005d49b1;
-
-
-NWN::OBJECTID GetModuleID_()
-{
-	int ptr = *(int*)OFFS_g_pAppManager;
-	ptr = *(int*)(ptr + 4);
-	ptr = *(int*)(ptr + 4);
-	NWN::OBJECTID result = *(NWN::OBJECTID*)(ptr + 0x10088);
-	return result;
-}
 
 // 1.23
 // g_pVirtualMachine
@@ -453,7 +444,7 @@ int __fastcall CallCalculateBaseCost(int iCurrentBaseCost, NWN::CNWSItem* pItem)
 		NWScript::ClearScriptParams();
 		NWScript::AddScriptParameterObject(pObj->GetObjectId());
 		NWScript::AddScriptParameterInt(iCurrentBaseCost);
-		int iRet = NWScript::ExecuteScriptEnhanced(sItemBaseCostScript.c_str(), GetModuleID_(), false, &isExecScriptOk, true);
+		int iRet = NWScript::ExecuteScriptEnhanced(sItemBaseCostScript.c_str(), GetModuleID(), false, &isExecScriptOk, true);
 	}
 
 	return iCurrentBaseCost;
@@ -539,7 +530,7 @@ uint32_t __fastcall CanIStackUpgraded(char* pItem1, char* pItem2)
 		NWScript::ClearScriptParams();
 		NWScript::AddScriptParameterObject(ob1->GetObjectId());
 		NWScript::AddScriptParameterObject(ob2->GetObjectId());
-		int iRet = NWScript::ExecuteScriptEnhanced(g_sCanIStackScript.c_str(), GetModuleID_(), false, &isExecScriptOk, true);
+		int iRet = NWScript::ExecuteScriptEnhanced(g_sCanIStackScript.c_str(), GetModuleID(), false, &isExecScriptOk, true);
 
 		iRet = (iRet != 0) ? 1 : 0;
 
@@ -606,7 +597,7 @@ void __fastcall CallOnSplitStack(char* pOrigin, char* pNew)
 		NWScript::ClearScriptParams();
 		NWScript::AddScriptParameterObject(ob1->GetObjectId());
 		NWScript::AddScriptParameterObject(ob2->GetObjectId());
-		int iRet = NWScript::ExecuteScriptEnhanced(g_sOnSplitScript.c_str(), GetModuleID_(), false, &isExecScriptOk, true);
+		int iRet = NWScript::ExecuteScriptEnhanced(g_sOnSplitScript.c_str(), GetModuleID(), false, &isExecScriptOk, true);
 	}
 }
 

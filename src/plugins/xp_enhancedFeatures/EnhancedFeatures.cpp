@@ -24,6 +24,8 @@
 #include "StoreRetrievePatch.h"
 
 #include "MagicFunctions.h"
+#include "TalkFunctions.h"
+#include "TimeFeatures.h"
 
 std::unique_ptr<LogNWNX> logger;
 
@@ -862,6 +864,15 @@ EnhancedFeatures::Init(char* nwnxhome)
 		}
 	}
 
+	InitTalkFunctions();
+
+	config->Read("AllowSetAreaTime", &iTest, 0);
+	if (iTest != 0)
+	{
+		logger->Info("* Patch Time to allow SetTimeForArea");
+		InitTimeFeatures();
+	}
+
 	logger->Info("* Plugin initialized.");
 
 	enhancedFeats = this;
@@ -923,6 +934,11 @@ EnhancedFeatures::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nP
 	{
 		return GetIntMagicFunctions(function.substr(sMagicFunc.length()), sParam1, nParam2);
 	}
+	else if (function == "TimeFunction")
+	{
+		return GetIntTimeFunction(sParam1, nParam2);
+	}
+
 	
 	if(function == "SecretDelete")
 		DeleteObjectById(nParam2);
@@ -972,6 +988,10 @@ void EnhancedFeatures::SetInt([[maybe_unused]] char* sFunction,
 		desinitHPFeat();
 		return initHPFeat(nwnxStringHome, m_sHitPointFeatFile);
 	}
+	else if (function == "TimeFunction")
+	{
+		SetIntTimeFunction(sParam1, nParam2, nValue);
+	}
 
 	return;
 }
@@ -988,6 +1008,11 @@ EnhancedFeatures::SetFloat([[maybe_unused]] char* sFunction,
 		"EnhancedFeatures_SetFloat(" + function + "," + sParam1 + "," + std::to_string(nParam2) + "," + std::to_string(fValue) + ")";
 
 	logger->Trace(logTxt.c_str());
+
+	if (function == "TalkFunction")
+	{
+		SetFloatTalkFunction(sParam1, nParam2, fValue);
+	}
 }
 
 float
@@ -995,6 +1020,12 @@ EnhancedFeatures::GetFloat([[maybe_unused]] char* sFunction,
 	[[maybe_unused]] char* sParam1,
 	[[maybe_unused]] int nParam2)
 {
+	std::string function{ sFunction };
+	if (function == "TalkFunction")
+	{
+		return GetFloatTalkFunction(sParam1, nParam2);
+	}
+
 	return 1.0f;
 }
 
@@ -1023,6 +1054,11 @@ EnhancedFeatures::SetString([[maybe_unused]] char* sFunction,
 	std::string ret("");
 	std::string logTxt = "EnhancedFeatures_SetString(" + function + "," + sParam1 + "," +
 		std::to_string(nParam2) + "," + sValue + ")";
+
+	if (function == "TalkFunction")
+	{
+		SetStringTalkFunction(sParam1, nParam2, sValue);
+	}
 
 	return;
 }

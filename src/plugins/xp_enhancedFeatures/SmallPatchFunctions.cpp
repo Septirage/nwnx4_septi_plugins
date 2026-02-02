@@ -9,6 +9,7 @@
 #include <NWN2Lib/NWN2Common.h>
 #include <hook/scriptManagement.h>
 #include "../../septutil/NwN2DataPos.h"
+#include "../../septutil/intern2daMgt.h"
 
 
 #include <nwn2heap.h>
@@ -20,6 +21,11 @@ extern std::unique_ptr<LogNWNX> logger;
 
 typedef void (__cdecl * NWN2Heap_Deallocate_Proc)(void *p);
 extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
+
+
+#define OFFS_FIXHASINFINITESP1			0x005a05b9
+#define OFFS_FIXHASINFINITESP2			0x005aa97c
+#define OFFS_FIXHASINFINITESP3			0x005a8772
 
 
 #define OFFS_TUMBLEACFCT				0x005a5360
@@ -74,6 +80,127 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 #define OFFS_FixItmPrpDmgBonusVsAlign	0x0067e62a
 #define OFFS_FixItmPrpDmgBonusVsRace	0x0067e66b
 #define OFFS_FixItmPrpDmgBonusVsSAlign	0x0067e6ac
+
+
+
+unsigned long EndFixHasInfiniteSP3 = 0x005a877a;
+unsigned long EndFixHasInfiniteSP2 = 0x005aa983;
+unsigned long EndFixHasInfiniteSP1 = 0x005a05C0;
+
+uint8_t infiniteSpellPossibility[256][11] = { 0 };
+
+
+void RemoveSpaces(std::string& s)
+{
+	s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c){ return std::isspace(c); }), s.end());
+}
+
+void ParseAndManageInfiniteSpells(std::string sIllimitedSpells)
+{
+	RemoveSpaces(sIllimitedSpells); // retire tous les espaces
+
+	std::stringstream ss(sIllimitedSpells);
+	std::string token;
+
+	while (std::getline(ss, token, ';')) {
+		int cls, lvl;
+		if (sscanf(token.c_str(), "%d:%d", &cls, &lvl) == 2) {
+			if (cls >= 0 && cls < 256) {
+				if (lvl < 0) lvl = 0;
+				if (lvl > 10) lvl = 10;
+				infiniteSpellPossibility[cls][lvl] = 1;
+			}
+		}
+	}
+}
+
+
+uint32_t __fastcall TestIfHasInfiniteSpell(uint32_t uClassID, int32_t spellLvl)
+{
+	uClassID &= 0xFF;
+	NWN2DA::classes2DA myClass2daRow = GetClasseRow( uClassID);
+
+	if (myClass2daRow == NULL)
+		return 1;
+	else if (myClass2daRow->m_HasInfiniteSpells)
+		return 1;
+
+
+	if (spellLvl < 0 || spellLvl > 10)
+		return 0;
+
+	return infiniteSpellPossibility[uClassID][spellLvl];
+}
+
+__declspec(naked) void FixHasInfiniteSP3()
+{
+	__asm
+	{
+		PUSH EAX
+		PUSH ECX
+		PUSH EDX
+
+		MOV ECX, dword ptr [EDX+EDI*0x1+0x110]
+		MOV EDX, [ESP + 0x2C]
+
+		CALL TestIfHasInfiniteSpell
+
+		CMP EAX, 0x1
+		POP EDX
+		POP ECX
+		POP EAX
+
+		jmp dword ptr[EndFixHasInfiniteSP3]
+	}
+}
+
+__declspec(naked) void FixHasInfiniteSP2()
+{
+	__asm
+	{
+		PUSH EAX
+		PUSH ECX
+		PUSH EDX
+
+		MOV ECX, dword ptr [EAX+0x110]
+		MOV EDX, [ESP + 0x1C]
+
+		CALL TestIfHasInfiniteSpell
+
+		CMP EAX, 0x1
+		POP EDX
+		POP ECX
+		POP EAX
+
+		jmp dword ptr[EndFixHasInfiniteSP2]
+	}
+}
+
+__declspec(naked) void FixHasInfiniteSP1()
+{
+	__asm
+	{
+		PUSH EAX
+		PUSH ECX
+		PUSH EDX
+
+		MOV ECX, dword ptr [EAX+0x110]
+		MOV EDX, [ESP + 0x14]
+
+		CALL TestIfHasInfiniteSpell
+
+		CMP EAX, 0x1
+		POP EDX
+		POP ECX
+		POP EAX
+
+		jmp dword ptr[EndFixHasInfiniteSP1]
+	}
+}
+
+
+
+
 
 unsigned long EndOfFixItmPrpDmgBonus = 0x0067e5ee;
 unsigned long EndOfFixItmPrpDmgBonusXXX = 0x0067e62f;
@@ -1044,6 +1171,21 @@ Patch _PatchFixItmPrpDmgBonus[] =
 };
 Patch* PatchFixItmPrpDmgBonus = _PatchFixItmPrpDmgBonus;
 
+Patch _PatchFixHasInfiniteSpell[] =
+{
+	Patch(OFFS_FIXHASINFINITESP1, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
+	Patch(OFFS_FIXHASINFINITESP1 +1, (relativefunc)FixHasInfiniteSP1),
+
+	Patch(OFFS_FIXHASINFINITESP2, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
+	Patch(OFFS_FIXHASINFINITESP2 +1, (relativefunc)FixHasInfiniteSP2),
+
+	Patch(OFFS_FIXHASINFINITESP3, (char*)"\xe9\x00\x00\x00\x00\x90\x90\x90", (int)8),
+	Patch(OFFS_FIXHASINFINITESP3 +1, (relativefunc)FixHasInfiniteSP3),
+
+	Patch()
+};
+Patch* PatchFixHasInfiniteSpell = _PatchFixHasInfiniteSpell;
+
 
 Patch _DisableTumbleACPatch[] =
 {
@@ -1267,6 +1409,25 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		{
 			i++;
 		}			
+	}
+
+	config->Read("FixHasInfiniteSpellClass", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* Fix HasInfiniteSpellClass");
+		i = 0;
+		while (PatchFixHasInfiniteSpell[i].Apply())
+		{
+			i++;
+		}
+
+		std::string sIllimitedSpells = "";
+		config->Read("DefineInfiniteSpells", &sIllimitedSpells, std::string(""));
+		if (sIllimitedSpells != "")
+		{
+			ParseAndManageInfiniteSpells(sIllimitedSpells);
+		}
+
 	}
 
 	std::string sList = "";

@@ -1,4 +1,4 @@
-plugin_version = '"1.1.13"'
+plugin_version = '"1.1.14"'
 plugin_name = 'xp_enhancedFeatures'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -10,6 +10,8 @@ plugin_shared_lib = shared_library(plugin_name,
         nwnx4_repo_path / 'src/misc/Patch.cpp',
         'EnhancedFeatures.cpp',
         'MagicFunctions.cpp',
+        'TalkFunctions.cpp',
+        'TimeFeatures.cpp',
         'SmallPatchFunctions.cpp',
         'SmallHookFunctions.cpp',
         'SkillHooks.cpp',
@@ -22,6 +24,7 @@ plugin_shared_lib = shared_library(plugin_name,
         'BonusParser.cpp',
         'StoreRetrievePatch.cpp',
         '../../septutil/intern2daMgt.cpp',
+        '../../septutil/NwN2Utilities.cpp',
         '../../septutil/crypto.cpp',
         '../../septutil/srvadmin.cpp',
     ],
