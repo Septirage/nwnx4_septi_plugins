@@ -46,8 +46,10 @@ xp_aspectManager.nss
  <tr>
 <td style="vertical-align:top;">
       
-Hit Points Functions  
+[SetIsDestroyable\_xpAM](#setisdestroyable_xpam)  
+[GetIsDestroyable\_xpAM](#getisdestroyable_xpam)  
 
+Hit Points Functions  
 [SetCurrentHitPoints\_xpAM](#setcurrenthitpoints_xpam)  
 [GetCurrentHitPoints\_xpAM](#getcurrenthitpoints_xpam)  
 [SetTemporaryHitPoints\_xpAM](#settemporaryhitpoints_xpam)  
@@ -75,10 +77,6 @@ Inventory
 [SetInventoryMaxSize\_xpAM](#setinventorymaxsize_xpam)  
 [GetInventoryMaxSize\_xpAM](#getinventorymaxsize_xpam)  
 [GetInventoryNbItem\_xpAM](#getinventorynbitem_xpam)  
-
-Lock  
-[SetAutoRemoveKey\_xpAM](#setautoremovekey_xpam)  
-[GetAutoRemoveKey\_xpAM](#getautoremovekey_xpam)  
 </td>
 <td style="vertical-align:top">
 
@@ -118,6 +116,10 @@ Visual
 
 </td>
 <td style="vertical-align:top">
+
+Lock  
+[SetAutoRemoveKey\_xpAM](#setautoremovekey_xpam)  
+[GetAutoRemoveKey\_xpAM](#getautoremovekey_xpam)  
 
 Position and facing    
 [SetFacing\_xpAM](#setfacing_xpam)  
@@ -178,12 +180,6 @@ xp_aspectManager_creature.nss
 [SetCreatureSubRace\_xpAM](#setcreaturesubrace_xpam)  
 [GetCreatureSubRace\_xpAM](#getcreaturesubrace_xpam)  
 
-Weight  
-[RecalculateCreatureTotalWeight\_xpAM](#recalculatecreaturetotalweight_xpam)  
-[GetCreatureTotalWeight\_xpAM](#getcreaturetotalweight_xpam)  
-[GetCreatureEquipmentWeight\_xpAM](#getcreatureequipmentweight_xpam)  
-[SetCreatureEquipmentWeight\_xpAM](#setcreatureequipmentweight_xpam)  
-
 Other  
 [SetCreatureAge\_xpAM](#setcreatureage_xpam)  
 [GetCreatureAge\_xpAM](#getcreatureage_xpam)  
@@ -193,10 +189,14 @@ Other
 [GetCreatureSpecificAC\_xpAM](#getcreaturespecificac_xpam)  
 [SetCreatureTattoos\_xpAM](#setcreaturetattoos_xpam)  
 [GetCreatureTattoos\_xpAM](#getcreaturetattoos_xpam)   
-[GetCreatureNeverShowArmor\_xpAM](#getcreaturenevershowarmor_xpam)   
 [SetCreatureNeverShowArmor\_xpAM](#setcreaturenevershowarmor_xpam)   
-[GetCreatureNeverDrawHelmet\_xpAM](#getcreatureneverdrawhelmet_xpam)   
+[GetCreatureNeverShowArmor\_xpAM](#getcreaturenevershowarmor_xpam)   
 [SetCreatureNeverDrawHelmet\_xpAM](#setcreatureneverdrawhelmet_xpam)   
+[GetCreatureNeverDrawHelmet\_xpAM](#getcreatureneverdrawhelmet_xpam)   
+[SetCreatureIsRaiseable\_xpAM](#setcreatureisraiseable_xpam)   
+[GetCreatureIsRaiseable\_xpAM](#getcreatureisraiseable_xpam)   
+[SetCreatureIsDeadSelectable\_xpAM](#setcreatureisdeadselectable_xpam)   
+[GetCreatureIsDeadSelectable\_xpAM](#getcreatureisdeadselectable_xpam)   
 
   
 
@@ -252,6 +252,12 @@ Visual ModelPiece
 [GetCreatureVisualModelPieceUScroll\_xpAM](#getcreaturevisualmodelpieceuscroll_xpam)  
 [SetCreatureVisualModelPieceVScroll\_xpAM](#setcreaturevisualmodelpiecevscroll_xpam)  
 [GetCreatureVisualModelPieceVScroll\_xpAM](#getcreaturevisualmodelpiecevscroll_xpam)  
+
+Weight  
+[RecalculateCreatureTotalWeight\_xpAM](#recalculatecreaturetotalweight_xpam)  
+[GetCreatureTotalWeight\_xpAM](#getcreaturetotalweight_xpam)  
+[GetCreatureEquipmentWeight\_xpAM](#getcreatureequipmentweight_xpam)  
+[SetCreatureEquipmentWeight\_xpAM](#setcreatureequipmentweight_xpam)  
    </td>
  </tr>
 </table><div style="page-break-after: always;"></div>
@@ -405,6 +411,7 @@ xp_aspectManager_item.nss
 [GetItemDescription\_xpAM](#getitemdescription_xpam)  
 [SetItemColor\_xpAM](#setitemcolor_xpam)  
 [GetItemColor\_xpAM](#getitemcolor_xpam)  
+[SetItemCharges\_xpAM](#setitemcharges_xpam)  
   
 WeaponSpecific  
 [SetItemWeaponFX\_xpAM](#setitemweaponfx_xpam)  
@@ -533,6 +540,35 @@ Constants List
   - [PVP Setting (PVP\_SETTING\_*)](#pvp-setting-pvp_setting_)
   - [Area Flag (AREA\_FLAG\_*)](#area-flag-area_flag_)
   - [DayNights (DAYNIGHT\_*)](#daynights-daynight_)
+
+<div style="page-break-after: always;"></div>
+
+# SetIsDestroyable\_xpAM
+```cpp
+void SetIsDestroyable_xpAM(object oObject, int bDestroyable);
+```
+
+Set the destroyable status of oObject.
+
+## Parameters
+
+* `oObject` - The object to set the bDestroyable status for.
+* `bDestroyable` - TRUE or FALSE
+
+---
+
+# GetIsDestroyable\_xpAM
+```cpp
+int GetIsDestroyable_xpAM(object oObject);
+```
+Get CurrentHitPoints of oObject.
+
+## Parameters
+
+* `oObject` - The object to get the IsDestroyable status.
+
+## Return Value
+The IsDestroyable status of the object.
 
 <div style="page-break-after: always;"></div>
 
@@ -804,7 +840,7 @@ The value of the HasInventory flag for the object (TRUE if enabled, FALSE if dis
 ```cpp
 void SetInventoryMaxSize_xpAM(object oObject, int iMaxSize);
 ```
-Set the MaximumInventorySize of Inventory for oObject Placeable to iMaxSize.
+Set the MaximumInventorySize of Inventory for oObject to iMaxSize. Work for Placeable, Item and Creature
 
 ## Parameters
 
@@ -821,7 +857,7 @@ iMaxSize max value is 142.
 ```cpp
 int GetInventoryMaxSize_xpAM(object oObject);
 ```
-Get the MaximumInventorySize of Inventory for oObject Placeable.
+Get the MaximumInventorySize of Inventory for oObject Placeable, Item and Creature.
 
 ## Parameters
 
@@ -836,7 +872,7 @@ The MaximumInventorySize of the object.
 ```cpp
 int GetInventoryNbItem_xpAM(object oObject);
 ```
-Get the number of objects in the oObject inventory. Work for placeable.
+Get the number of objects in the oObject inventory. Work for Placeable, Item and Creature.
 
 ## Parameters
 
@@ -1856,6 +1892,80 @@ Will set the NeverDrawHelmet flag
 
 * `oCreature` - The creature to get the value for
 * `bNeverDrawHelmet` - The new value for the flag
+
+---
+
+# SetCreatureIsRaiseable\_xpAM
+
+```cpp
+int SetCreatureIsRaiseable_xpAM(
+    object oCreature,
+    int bIsRaiseable
+);
+```
+Will set the IsRaiseable flag
+
+## Parameters
+
+* `oCreature` - The creature to set the value for
+* `bIsRaiseable` - If this is TRUE, the creature can be raised via resurrection.
+
+---
+
+# GetCreatureIsRaiseable\_xpAM
+
+```cpp
+int GetCreatureIsRaiseable_xpAM(
+    object oCreature
+);
+```
+Will return the IsRaiseableFlag flag
+
+## Parameters
+
+* `oCreature` - The creature to get the value for
+
+## Return Value
+
+The value of isRaiseable flag.
+
+---
+
+# SetCreatureIsDeadSelectable\_xpAM
+
+```cpp
+int SetCreatureIsDeadSelectable_xpAM(
+    object oCreature,
+    int bSelectableWhenDead
+);
+```
+Will set the IsSelectableWhenDead flag
+
+## Parameters
+
+* `oCreature` - The creature to set the value for
+* `bSelectableWhenDead` - If this is TRUE, the creature is selectable after death.
+
+---
+
+# GetCreatureIsDeadSelectable\_xpAM
+
+```cpp
+int GetCreatureIsDeadSelectable_xpAM(
+    object oCreature
+);
+```
+Will return the IsSelectableWhenDead flag
+
+## Parameters
+
+* `oCreature` - The creature to get the value for
+
+## Return Value
+
+The value of IsSelectableWhenDead flag.
+
+---
 
 <div style="page-break-after: always;"></div>
 
@@ -4313,6 +4423,34 @@ Get the oItem Color.
 ## Return Value
 
 The color of oItem in RGB string format
+
+---
+
+# SetItemCharges\_xpAM
+
+```cpp
+void SetItemCharges_xpAM(
+    object oItem,
+    int nCharges
+);
+```
+Sets charges left on an item.
+
+## Parameters
+
+* `oItem` - The item to change
+* `nCharges` -  number of charges
+
+## Note
+
+If a nCharges below 0 is passed, # charges will be set to 0.
+
+Unless the original SetItemCharges function:
+* the item will not be destroyed if the # of charges drops to 0.
+* this function allow you to set a # of charges greater to 50.
+
+Note that, some context menu can show an invalid usage amount if the # of charges is greater than 255.
+But, the right # of charge will still properly be managed and this is only a visual bug.
 
 ---
 

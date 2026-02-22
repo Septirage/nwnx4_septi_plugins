@@ -475,6 +475,64 @@ void RemoveDmgRedct(char* ItemPtr, uint32_t iDmgRedctIdx)
 }
 
 
+#define FUNC_PREPAREMSGITEMPROPERTY 0x5d8090
+__declspec(naked) void __fastcall  CallPrepareMsgItemProperty(void* pItem, void* Unused, int iValue)
+{
+	__asm
+	{
+		mov		edx, FUNC_PREPAREMSGITEMPROPERTY;
+		jmp		edx;
+	}
+}
+
+void ChargesNumber(char* ItemPtr, int iCharges)
+{
+	if (iCharges < 0)
+		iCharges = 0;
+
+	int iPrevious =  *(int *)((int)ItemPtr + AmItmCharges);
+	*(uint32_t *)((int)ItemPtr + AmItmCharges) = iCharges;
+
+
+	int iNumberOfProp = *(int*)((int)ItemPtr + AmItmProperty0Nb);
+	if ((iPrevious < iCharges) && (0 < iNumberOfProp))
+	{
+		int iProp = 0;
+		for(int iProp=0; iProp < iNumberOfProp; iProp++)
+		{
+			AmItmProperty* myProperty = &(((AmItmProperty*)((int)ItemPtr + AmItmProperty0Ptr))[iProp]);
+			int iTest = 0;
+			//If castspell property
+			if (myProperty->uPropertyName == 0xF)
+			{
+				switch (myProperty->uCostValue)
+				{
+					case 2:
+						iTest = 5;
+						break;
+					case 3 :
+						iTest = 4;
+						break;
+					case 4 : 
+						iTest = 3;
+						break;
+					case 5:
+						iTest = 2;
+						break;
+					case 6:
+						iTest = 1;
+						break;
+				}
+
+				if (iTest > 0 && iCharges >= iTest)
+					myProperty->uUseable = 1;
+			}
+		}
+	}
+	CallPrepareMsgItemProperty(ItemPtr, NULL, 0);
+}
+
+
 
 
 void SetItemBaseItem(char* ItemPtr, int iValue) {
@@ -796,6 +854,8 @@ void ItemSetInt(char* cCommand, int iObjectID, int iValue) {
 		SetItemModifyCost(ItemPtr, iValue);
 	else if (sCommand == "RemoveDmgRedct")
 		RemoveDmgRedct(ItemPtr, iValue);
+	else if (sCommand == "Charges")
+		ChargesNumber(ItemPtr, iValue);
 	else if (sCommand.rfind(cst_ModelPiece, 0) == 0) {
 		sCommand = sCommand.substr(cst_ModelPiece.size());
 		char* pEnd;

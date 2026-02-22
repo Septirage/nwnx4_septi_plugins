@@ -1,4 +1,4 @@
-plugin_version = '"1.5.1"'
+plugin_version = '"1.5.3"'
 plugin_name = 'xp_aspectManager'+global_name_project_add
 dllName = plugin_name+'.dll'
 

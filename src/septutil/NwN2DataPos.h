@@ -48,6 +48,11 @@
 //int32
 #define AmModMaxHP              0x170
 
+//bool
+#define AmIsDestroyable			0x174
+#define AmIsRaiseable			0x178
+#define AmIsDeadSelectable		0x17C
+
 //Float 
 #define AmCommonPosX			0x70
 #define AmCommonPosY			0x74
@@ -197,6 +202,18 @@ struct AmItmProperty
 //uint8
 #define AmItmWpnPart3           0xAA6
 
+#define AmItmContainerObj		0xAAC
+
+//Inventory (Placeable & container item )
+struct amObjectContainerStruct
+{
+	uint32_t itemId;
+	uint32_t maxSize;                       //Problem when creating message for > 0x8E. Need more investigation
+	uint32_t* contentArray;
+	uint32_t allocatedContent;
+	uint32_t allocatedSize; //Same as the allocatedContent for now.
+};
+
 #define AmItmDescIdentifiedRef	0xAB0
 //Pointer to exoString
 #define AmItmDescrIdent         0xAB4
@@ -321,7 +338,7 @@ ID table of equiped object ( Inventory_Slot +1)
 */
 #define AmCrtCSEquipedObjectTable	0x0F7C
 
-//ptr to "uint32:id , ???? , ptr:list of id, number, size"
+//ptr to amObjectContainerStruct
 #define AmCrtPtInventory			0x0F80
 
 //uint32

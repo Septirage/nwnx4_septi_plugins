@@ -240,6 +240,27 @@ void SetCreatureTattoo(GameObject* Object, int iValue) {
 }
 
 
+int GetCreatureIsDeadSelectable(GameObject* Object)
+{
+	return *(uint8_t*)((uint8_t*)Object + AmIsDeadSelectable);
+}
+
+void SetCreatureIsDeadSelectable(GameObject* Object, int iValue)
+{
+	*(int*)((uint8_t*)Object + AmIsDeadSelectable) = (iValue!=0?1:0);
+}
+
+int GetCreatureIsRaiseable(GameObject* Object)
+{
+	return *(uint8_t*)((uint8_t*)Object + AmIsRaiseable);
+}
+
+void SetCreatureIsRaiseable(GameObject* Object, int iValue)
+{
+	*(int*)((uint8_t*)Object + AmIsRaiseable) = (iValue!=0?1:0);
+}
+
+
 
 //Persistant Scale
 float GetCreaturePersistScaleX(GameObject* Object) {
@@ -699,6 +720,11 @@ int CreatureGetInt(char* cCommand, int iObjectID) {
 	else if (sCommand == "Tattoo")
 		return GetCreatureTattoo(Object);
 
+	else if (sCommand == "IsRaiseable")
+		return GetCreatureIsRaiseable(Object);
+	else if (sCommand == "IsDeadSelectable")
+		return GetCreatureIsDeadSelectable(Object);
+
 	else if (sCommand.rfind("AC", 0) == 0) {
 		int iAC = strtol(sCommand.substr(2).c_str(), NULL, 10);
 		return GetCreatureAC(Object, iAC);
@@ -798,6 +824,11 @@ void CreatureSetInt(char* cCommand, int iObjectID, int iValue) {
 
 	else if (sCommand == "Tattoo")
 		return SetCreatureTattoo(Object, iValue);
+
+	else if (sCommand == "IsRaiseable")
+		return SetCreatureIsRaiseable(Object, iValue);
+	else if (sCommand == "IsDeadSelectable")
+		return SetCreatureIsDeadSelectable(Object, iValue);
 
 	else if (sCommand.rfind("AC", 0) == 0) {
 		int iAC = strtol(sCommand.substr(2).c_str(), NULL, 10);

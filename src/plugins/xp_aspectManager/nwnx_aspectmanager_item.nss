@@ -2,7 +2,8 @@
 // nwnx_aspectmanager_item - item specific functions of the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified by:	Septirage			2024-10-29  Add Get/set Cost Function + DmgReduction (1.4.6)
+// Last Modified by:	Septirage			2026-02-22  Add SetItemCharges (1.5.3)
+//						Septirage			2024-10-29  Add Get/set Cost Function + DmgReduction (1.4.6)
 //						Septirage			2024-05-18	Add Get/SetItemModelPartMask_xpAM (1.4.2)
 //						Septirage           2024-02-28
 //--------------------------------------------------------------------------------------------
@@ -45,6 +46,17 @@ void SetItemColor_xpAM(object oItem, int iColor, string sRGB);
 //Get the oItem Color.
 // iColor : 1,2 or 3
 string GetItemColor_xpAM(object oItem, int iColor);
+
+// Sets charges left on an item.
+// - oItem: item to change
+// - nCharges: number of charges.  If value below 0 is passed, # charges will
+//   be set to 0.  
+// Note: Unless the original SetItemCharges, the item will not be destroyed if 
+//		the # of charges drops to 0.
+//		And this function also allow you to set a number of charge greater than 50.
+// Note: Some context menu can show an invalid amount of usage if the # is greater than 255.
+//			But the setted amount will still work correctly.
+void SetItemCharges_xpAM(object oItem, int nCharges);
 
 
 /****************************** WeaponSpecific ******************************/
@@ -167,10 +179,10 @@ int GetItemBaseCost_xpAM(object oItem);
 //Set the NonIdentified Cost of oItem to iCost.
 //Note: this NonIdentifiedCost will be recalculated by game in same time as BaseCost
 //			See xp_EnhancedFeature pluginfor more information
-void SetItemNonIdentifiedCost(object oItem, int iCost);
+void SetItemNonIdentifiedCost_xpAM(object oItem, int iCost);
 
 //Get the NonIdentified Vost of oItem.
-int GetItemNonIdentifiedCost(object oItem);
+int GetItemNonIdentifiedCost_xpAM(object oItem);
 
 //Set the CostModifier of oItem to iCost
 void SetItemCostModifier_xpAM(object oItem, int iCost);
@@ -354,6 +366,11 @@ string GetItemColor_xpAM(object oItem, int iColor)
 	return NWNXGetString("AspectManager", "item", "BaseColor"+IntToString(iColor), ObjectToInt(oItem));
 }
 
+void SetItemCharges_xpAM(object oItem, int nCharges)
+{
+	NWNXSetInt("AspectManager", "item", "Charges", ObjectToInt(oItem), nCharges);
+}
+
 
 /****************************** WeaponSpecific ******************************/
 
@@ -491,12 +508,12 @@ int GetItemBaseCost_xpAM(object oItem)
 	return NWNXGetInt("AspectManager", "item", "BaseCost", ObjectToInt(oItem));
 }
 
-void SetItemNonIdentifiedCost(object oItem, int iCost)
+void SetItemNonIdentifiedCost_xpAM(object oItem, int iCost)
 {
 	NWNXSetInt("AspectManager", "item", "NonIdentifiedCost", ObjectToInt(oItem), iCost);
 }
 
-int GetItemNonIdentifiedCost(object oItem)
+int GetItemNonIdentifiedCost_xpAM(object oItem)
 {
 	return NWNXGetInt("AspectManager", "item", "NonIdentifiedCost", ObjectToInt(oItem));
 }

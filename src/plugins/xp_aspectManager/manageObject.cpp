@@ -86,15 +86,29 @@ void SetIsAutoRemoveKey(GameObject* Object, int bAutoRemK) {
 		*(int*)((char*)Object + AmDIsAutoRemoveKey) = bAutoRemK;
 }
 
-
-//Inventory (Placeable only)
-struct inventoryStruct
+amObjectContainerStruct* GetContainerInventoryStructPtr(GameObject* Object)
 {
-	int32_t id;
-	int32_t maxSize; //Funny stuff, the hard max size is due to client bad implementation.
-	int32_t* contentArray;
-	int32_t allocatedContent;
-};
+	int iType = Object->GetObjectType();
+	amObjectContainerStruct* invS = NULL;
+
+	//Get the proper InventoryStructPtr
+	if (iType == NWN::OBJECT_TYPE_PLACEABLE)
+	{
+		invS = *(amObjectContainerStruct**)((char*)Object + AmPlcInventory);
+	}
+	else if (iType == NWN::OBJECT_TYPE_ITEM)
+	{
+		char* ItemPtr = (char*)Object->AsItem();
+		invS = *(amObjectContainerStruct**)(ItemPtr + AmItmContainerObj);
+	}
+	else if (iType == NWN::OBJECT_TYPE_CREATURE)
+	{
+		invS = *(amObjectContainerStruct**)((char*)Object + AmCrtPtInventory);
+	}
+
+	return invS;
+}
+
 
 int GetHasInventory(GameObject* Object) {
 	int iType = Object->GetObjectType();
@@ -110,11 +124,10 @@ void SetHasInventory(GameObject* Object, int bHasInventory) {
 }
 
 int GetInventoryMaxSize(GameObject* Object) {
-	int iType = Object->GetObjectType();
-	if (iType == NWN::OBJECT_TYPE_PLACEABLE) {
-		inventoryStruct* invS = *(inventoryStruct**)((char*)Object + AmPlcInventory);
+	amObjectContainerStruct* invS = GetContainerInventoryStructPtr(Object);
+
+	if (invS != NULL)
 		return invS->maxSize;
-	}
 
 	return 0;
 }
@@ -122,26 +135,26 @@ int GetInventoryMaxSize(GameObject* Object) {
 void SetInventoryMaxSize(GameObject* Object, int iSize) {
 	if (iSize > 0x8E)
 		iSize = 0x8E;
+	if (iSize > 0x80 && Object->GetObjectType() == NWN::OBJECT_TYPE_CREATURE)
+		iSize = 0x80;
 
-	int iType = Object->GetObjectType();
-	if (iType == NWN::OBJECT_TYPE_PLACEABLE) {
-		inventoryStruct* invS = *(inventoryStruct**)((char*)Object + AmPlcInventory);
+	amObjectContainerStruct* invS = GetContainerInventoryStructPtr(Object);
+
+	//Change the MaxSize
+	if (invS != NULL)
+	{
 		invS->maxSize = iSize;
 	}
 }
 
 int GetNumberItemInInventory(GameObject* Object) {
+	amObjectContainerStruct* invS = GetContainerInventoryStructPtr(Object);
 
-	int iType = Object->GetObjectType();
-	if (iType != NWN::OBJECT_TYPE_PLACEABLE)
-		return 0;
-
-	inventoryStruct* invS = *(inventoryStruct**)((char*)Object + AmPlcInventory);
 	if(invS == NULL)
 		return 0;
 
 	int32_t maxCount = invS->allocatedContent;
-	int32_t* arrayItem = invS->contentArray;
+	uint32_t* arrayItem = invS->contentArray;
 	int count = 0;
 
 	if (arrayItem != 0)
@@ -153,7 +166,7 @@ int GetNumberItemInInventory(GameObject* Object) {
 		}
 	}
 
-	return 0;
+	return count;
 }
 
 
@@ -617,6 +630,26 @@ void SetTriggerType(GameObject* Object, int iValue) {
 		*(((uint8_t*)Object) + AmTrigTypeTrap) = 1;
 }
 
+int GetIsDestroyable(GameObject* Object)
+{
+	if (Object->GetObjectType() >= 5)
+	{
+		if (*(((uint8_t*)Object) + AmIsDestroyable) == 1)
+			return 1;
+	}
+
+	return 0;
+}
+
+void SetIsDestroyable(GameObject* Object, int iValue)
+{
+	if (Object->GetObjectType() >= 5)
+	{
+		uint8_t bValue = (iValue != 0 ? 1 : 0);
+		*(((uint8_t*)Object) + AmIsDestroyable) = bValue;
+	}
+}
+
 
 int ObjectGetInt(char* cCommand, int iObjectID) {
 	NWN::OBJECTID       ObjectId;
@@ -677,6 +710,9 @@ int ObjectGetInt(char* cCommand, int iObjectID) {
 
 	else if (sCommand == "TriggerType")
 		return GetTriggerType(Object);
+
+	else if (sCommand == "IsDestroyable")
+		return GetIsDestroyable(Object);
 	return -1;
 }
 
@@ -743,6 +779,9 @@ void ObjectSetInt(char* cCommand, int iObjectID, int iValue) {
 
 	else if (sCommand == "TriggerType")
 		SetTriggerType(Object, iValue);
+
+	else if (sCommand == "IsDestroyable")
+		SetIsDestroyable(Object, iValue);
 }
 
 

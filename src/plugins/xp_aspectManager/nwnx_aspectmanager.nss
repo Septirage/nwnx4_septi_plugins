@@ -2,13 +2,21 @@
 // nwnx_aspectmanager - various functions for accessing the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified By:	Septirage           2024-04-27  Big Rework for xp_aspectManager v1.4
+// Last Modified By:	Septirage           2026-02-22  Add Set/Get IsDestroyable (1.5.3)
+//                      Septirage           2024-04-27  Big Rework for xp_aspectManager v1.4
 //                      Septirage			2023-06-04	Add NoArmor management
 //						Septirage			2023-03-21  Add getter setter for armormodelpart
 // 					   	Septirage           2023-03-08  Add some access as weaponvfx and item desc
 // 						Septirage           2022-11-21
 //--------------------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//Set the isDestroyable flag of oObject.
+void SetIsDestroyable_xpAM(object oObject, int bDestroyable);
+
+//Get the isDestroyable flag of oObject
+int GetIsDestroyable_xpAM(object oObject);
 
 /*************************** Hit Points Functions ***************************/
 
@@ -89,18 +97,18 @@ void SetHasInventory_xpAM(object oObject, int bHasInventory);
 // Return the value of HasInventory Flag for oObject Placeable
 int GetHasInventory_xpAM(object oObject);
 
-//Set the MaximumInventorySize of Inventory for oObject Placeable to iMaxSize
+//Set the MaximumInventorySize of Inventory for oObject to iMaxSize. Work for Placeable, Item and Creature
 // iMaxSize max value is 142
 void SetInventoryMaxSize_xpAM(object oObject, int iMaxSize);
 
 
-//Get the MaximumInventorySize of Inventory for oObject Placeable
+//Get the MaximumInventorySize of Inventory for oObject Placeable, Item and Creature
 int GetInventoryMaxSize_xpAM(object oObject);
 
 
 
 //Get the number of objects in the oObject inventory
-// Work for placeable
+// Work for placeable, Item and Creature
 int GetInventoryNbItem_xpAM(object oObject);
 
 
@@ -344,6 +352,16 @@ const int TRIGGER_TYPE_TRAP						= 2;
 
 /*****************************************************************************/
 
+
+void SetIsDestroyable_xpAM(object oObject, int bDestroyable)
+{
+	NWNXSetInt("AspectManager", "IsDestroyable", "", ObjectToInt(oObject), bDestroyable);
+}
+
+int GetIsDestroyable_xpAM(object oObject)
+{
+	return NWNXGetInt("AspectManager", "IsDestroyable", "", ObjectToInt(oObject));
+}
 
 
 /*************************** Hit Points Functions ***************************/
