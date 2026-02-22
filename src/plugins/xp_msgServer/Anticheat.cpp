@@ -1772,7 +1772,8 @@ int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::s
 
 
 		NWN2DA::classes2DA mySpellClass = GetClasseRow(nClassSpellToTest);
-		if (mySpellClass != NULL && mySpellClass->m_SpellCaster == 1 && mySpellClass->m_AllSpellsKnow != 1)
+		//if (mySpellClass != NULL && mySpellClass->m_SpellCaster == 1 && mySpellClass->m_AllSpellsKnow != 1) //The client don't look at this... 
+		if (mySpellClass != NULL && mySpellClass->m_SpellCaster == 1 && ((uint32_t)mySpellClass->m_SpellKnowTable != 0)) //But we test if we have a spellknowtable  
 		{
 			//Test if we can take those spells (don't care about the number right now)
 			for (uint8_t i = 0; i < 10; i++)
@@ -3680,7 +3681,8 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 		}
 	
 		//Spell choose list
-		if (myClass->m_SpellCaster == 1 && myClass->m_AllSpellsKnow != 1)
+		//if (myClass->m_SpellCaster == 1 && myClass->m_AllSpellsKnow != 1) //The client don't look at this...
+		if(myClass->m_SpellCaster == 1 && ((uint32_t)myClass->m_SpellKnowTable != 0)) //But we test if we have a spellknowtable 
 		{
 			//First, check spells validity
 			for (int i = 0; i < 10; i++)
