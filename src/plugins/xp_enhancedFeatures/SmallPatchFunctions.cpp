@@ -22,6 +22,7 @@ extern std::unique_ptr<LogNWNX> logger;
 typedef void (__cdecl * NWN2Heap_Deallocate_Proc)(void *p);
 extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 
+#define OFFS_FIXBLEEDINGWOUND			0x0063d58a
 
 #define OFFS_FIXHASINFINITESP1			0x005a05b9
 #define OFFS_FIXHASINFINITESP2			0x005aa97c
@@ -81,6 +82,38 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 #define OFFS_FixItmPrpDmgBonusVsRace	0x0067e66b
 #define OFFS_FixItmPrpDmgBonusVsSAlign	0x0067e6ac
 
+#define OFFS_UPDATEIMMUNITY				0x00579a10
+
+#define OFFS_DAMAGEBONUSCAP				0x005f674d
+#define OFFS_DAMAGEMALUSCAP				0x005f675b
+
+unsigned long EndFixUpdateImmunity = 0x00579a29;
+
+__declspec(naked) void FixUpdateImmunity()
+{
+	__asm
+	{
+		MOV  EDX, dword ptr[ESP + 0x8]
+		CMP  EDX, 0xFFFFFFC0
+		
+		PUSH EBX
+		PUSH ESI
+		PUSH EDI
+		MOV  EDI,ECX
+		
+		JGE  NotTooLow
+		MOV  EDX, 0xFFFFFFC0
+		JMP  EndUpdateImmunity
+
+		NotTooLow:
+		CMP  EDX, 0x64
+		JLE  EndUpdateImmunity
+		MOV  EDX, 0x64
+
+		EndUpdateImmunity:
+		JMP dword ptr[EndFixUpdateImmunity]
+	}
+}
 
 
 unsigned long EndFixHasInfiniteSP3 = 0x005a877a;
@@ -1228,6 +1261,32 @@ Patch _KeepLocalVarOnSplitPatch[] =
 };
 Patch* KeepLocalVarOnSplitPatch = _KeepLocalVarOnSplitPatch;
 
+Patch _PatchFixImmunityOverflow[] =
+{
+	Patch(OFFS_UPDATEIMMUNITY, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
+	Patch(OFFS_UPDATEIMMUNITY +1, (relativefunc)FixUpdateImmunity),
+
+	Patch()
+};
+Patch* PatchFixImmunityOverflow = _PatchFixImmunityOverflow;
+
+
+Patch _PatchDisableDamageBonusCap[] =
+{
+	Patch(OFFS_DAMAGEBONUSCAP, (char*)"\xeb", (int)1),
+	Patch(OFFS_DAMAGEMALUSCAP, (char*)"\xeb", (int)1),
+
+	Patch()
+};
+Patch* PatchDisableDamageBonusCap = _PatchDisableDamageBonusCap;
+
+Patch _PatchFixBleedingWound[] =
+{
+	Patch(OFFS_FIXBLEEDINGWOUND, (char*)"\x6a\x01", (int)2), //Push 01
+
+	Patch()
+};
+Patch* PatchFixBleedingWound = _PatchFixBleedingWound;
 
 bool SmallPatchFunctions(SimpleIniConfig* config)
 {
@@ -1428,6 +1487,39 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 			ParseAndManageInfiniteSpells(sIllimitedSpells);
 		}
 
+	}
+
+	config->Read("FixImmunityOverflow", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixImmunityOverflow");
+		i = 0;
+		while (PatchFixImmunityOverflow[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("DisableDamageBonusCap", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* DisableDamageBonusCap");
+		i = 0;
+		while (PatchDisableDamageBonusCap[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixBleedingWound", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixBleedingWound");
+		i = 0;
+		while (PatchFixBleedingWound[i].Apply())
+		{
+			i++;
+		}
 	}
 
 	std::string sList = "";
