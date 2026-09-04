@@ -77,6 +77,7 @@ static unsigned char refreshNudeP2[] = {
 	bool refreshBelt(int iAffected, int mustView);
 	//unsigned char monTrucMsg[0x700];
 	bool sendMusicMessage(int iType, int iOption, int iValue, int mustView);
+	bool SendUpdatePCName(uint32_t oChanged, uint32_t oReceiver, std::string sFirstName, std::string sLastName, bool bSetName);
 	bool PrepaSendMessageToPlayer(unsigned long PlayerId, unsigned char* Data, unsigned long Size, unsigned long Flags);
 	uint32_t getArmorEquiped(int iAffected);
 
@@ -89,5 +90,6 @@ static unsigned char refreshNudeP2[] = {
 
 	void setLoggerMsg(LogNWNX* myLogger);
 
+	void __fastcall SendIconUpdateMessage(uint8_t* pItem, uint32_t uNewIcon);
 
 #endif

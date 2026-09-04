@@ -1,4 +1,4 @@
-plugin_version = '"1.1.16"'
+plugin_version = '"1.1.17"'
 plugin_name = 'xp_enhancedFeatures'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -23,8 +23,10 @@ plugin_shared_lib = shared_library(plugin_name,
         'RuleParser.cpp',
         'BonusParser.cpp',
         'StoreRetrievePatch.cpp',
+        'CustomValues.cpp',
         '../../septutil/intern2daMgt.cpp',
         '../../septutil/NwN2Utilities.cpp',
+        '../../septutil/nwn2gff.cpp',
         '../../septutil/crypto.cpp',
         '../../septutil/srvadmin.cpp',
     ],

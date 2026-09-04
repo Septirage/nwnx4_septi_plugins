@@ -9,6 +9,7 @@
 #include <nwn2heap.h>
 #include <misc/Patch.h>
 #include "../../septutil/NwN2DataPos.h"
+#include "../../septutil/NwN2Utilities.h"
 
 
 #include <string>
@@ -36,6 +37,7 @@
 #define FUNC_UPDATEMSGHASH  0x74e530
 #define FUNC_BUILDMSGITEM   0x551090
 
+#define FUNC_ADDLOCALIZEDNAMETOMSG	0x5b7010
 
 
 void AddX8ToMsg(uint8_t uData, unsigned char* msgBlock)
@@ -54,6 +56,29 @@ void AddX32ToMsg(uint32_t uData, unsigned char* msgBlock)
 	*(uint32_t*)(msgData + accessMBlock[3]) = uData;
 	accessMBlock[3] += 4;
 	accessMBlock[7] += 4;
+}
+
+__declspec(naked) void __fastcall AddCExoString(struct CExoString * Value, void * MessageObject)
+{
+	__asm
+	{
+		push    20h ; bit length
+		push    ecx ; value to write
+		mov     ecx, edx ; set this to MessageObject
+		mov     eax, OFFS_CNWSMessage_WriteCExoString
+		call    eax
+
+		ret
+	}
+}
+
+__declspec(naked) void __fastcall AddLocalizedNameToMsg(__in void* MsgCreator, __in void* Unused, __in void* localizedName, __in int iVal)
+{
+	__asm
+	{
+		mov edx, FUNC_ADDLOCALIZEDNAMETOMSG;
+		jmp edx;
+	}
 }
 
 __declspec(naked) void __fastcall InitMessageBlock(__in void* MsgCreator, __in void* Unused, __in uint32_t uSize, __in uint32_t param1, __in uint32_t param2)
@@ -1405,6 +1430,7 @@ bool refreshItemApp(int iInventorySlot, int iAffected, int iItem, int mustView)
 {
 	if (IsKnowByPlayer(GetObjectToPlayerId(mustView),iAffected))
 	{
+		// 0x7A2CD679
 		//if (removeVisual(iInventorySlot, iAffected, mustView))
 		{
 			if (deposeObject(iInventorySlot, iAffected, mustView, iItem))
@@ -1452,6 +1478,406 @@ void refreshForEveryConcerned(uint32_t iAffected)
 		iMustView = GetPCIntern(false, false);
 	}
 }
+
+
+
+
+#define FUNC_CALLUPDATEMSGHASH		0x74ed60
+#define FUNC_CONSTRUCTMSGEFFECT		0x564110
+
+__declspec(naked) void __fastcall CallUpdateMsgHash(__in void* MsgCreator, __in void* Unused, __in uint32_t value)
+{
+	__asm
+	{
+		mov		edx, FUNC_CALLUPDATEMSGHASH;
+		jmp		edx;
+	}
+}
+
+void __fastcall SendIconUpdateMessage(uint8_t* pItem, uint32_t uNewIcon)
+{
+	uint32_t uOldIcon = *(uint32_t*)(pItem + AmItmIcon);
+
+	//If no real change, nothing to do
+	if (uOldIcon == uNewIcon)
+		return;
+
+	*(uint32_t*)(pItem + AmItmIcon) = uNewIcon;
+
+	//Else, we need to update
+
+	//Check if the item is in inventory, equiped, or in a container
+	//TODO, check what happens for a dm qui incarne un pnj
+	// AmItemEquipedBy 
+	// AmItmPossessor
+	NWN::OBJECTID idPossessor = *(NWN::OBJECTID*)(pItem + AmItmPossessor);
+
+	//Nobody, no need to refresh
+	if (idPossessor == NWN::INVALIDOBJID)
+		return;
+	GameObjectManager m_ObjectManager;
+	NWN::CGameObject *Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) idPossessor );
+	if (Object == NULL)
+		return;
+
+	NWN::OBJECTID idItem = *(NWN::OBJECTID*)(pItem + 0x730 + 0xA0);
+	unsigned char* myMessage = (unsigned char*)GetCNWSMessage();
+
+	NWN::OBJECT_TYPE possessorType = Object->GetObjectType();
+	if (possessorType == NWN::OBJECT_TYPE_CREATURE)
+	{
+		uint8_t* ptrPossessor = (uint8_t*)Object;
+		uint32_t uEmplacement = UINT32_MAX;
+		uint32_t uSlot;
+		if (*(NWN::OBJECTID*)(pItem +AmItemEquipedBy) != NWN::INVALIDOBJID)
+		{
+			//Equiped. Do advanced refresh item.
+			uEmplacement = 0x80;
+
+			uSlot = 1;
+
+			NWN::OBJECTID* equipedItems = *(NWN::OBJECTID**)(ptrPossessor + AmCrtCSEquipedObjectTable);
+
+			for (uint8_t i = 1; i <= 18; i++)
+			{
+				if (equipedItems[i] == idItem)
+				{
+					break;
+				}
+				uSlot *= 2;
+			}
+
+			//invalid...
+			if (uSlot >= 0x40000)
+			{
+				return;
+			}
+
+		}
+		else
+		{
+			amObjectContainerStruct* myContainerStruct = *(amObjectContainerStruct**)(ptrPossessor + AmCrtPtInventory);
+			for (int i = 0; i < myContainerStruct->allocatedContent; i++)
+			{
+				if (myContainerStruct->contentArray[i] == idItem)
+				{
+					uEmplacement = i;
+					break;
+				}
+			}
+			//Invalid
+			if (uEmplacement == UINT32_MAX)
+				return;
+		}
+
+		forEachPCBlock([&](CNWSPlayerStruct* p) -> bool {
+			unsigned long iMustView = p->playerID;
+			if (iMustView == NWN::PLAYERID_INVALIDID) {
+				return true;
+			}
+
+			//if (IsKnowByPlayer(iMustView, idItem) && IsKnowByPlayer(iMustView, idPossessor))
+			if (IsKnowByPlayer(iMustView, idPossessor))
+			{
+				InitMessageBlock(myMessage,NULL,0x400,p->playerID,1);
+
+				AddX8ToMsg('D', myMessage);
+				AddX8ToMsg(0x6, myMessage);
+				AddX32ToMsg(idItem | 0x80000000, myMessage);
+
+				CallUpdateMsgHash(myMessage, NULL, 1);
+
+				AddX8ToMsg('G',myMessage);
+
+				if (uEmplacement == 0x80 && p->possessedCreature == idPossessor)
+				{
+					AddX8ToMsg('I',myMessage);
+					AddX8ToMsg('A',myMessage);
+					AddX32ToMsg(uSlot,myMessage);
+				}
+				else
+				{
+					AddX8ToMsg('R',myMessage);
+					AddX8ToMsg('A',myMessage);
+					AddX32ToMsg(idPossessor | 0x80000000,myMessage);
+					AddX32ToMsg(uEmplacement,myMessage);
+				}
+
+				NWN::CGameObject *Creature = m_ObjectManager.GetGameObject( (NWN::OBJECTID) p->possessedCreature );
+
+				AddX32ToMsg(idItem | 0x80000000,myMessage);
+
+				CreateObjectAppearance(myMessage, NULL, pItem);
+				BuildMsgNamePart(myMessage, NULL, pItem, Creature);
+
+				//MsgReady.
+
+				uint8_t* MsgData;
+				uint32_t Size;
+				PrepareEndOfMsg((void*)myMessage, NULL, (void*)&MsgData, (void*)&Size);
+
+				MsgData[0] = 0x50;
+				MsgData[1] = 0x5;
+				MsgData[2] = 0x1;
+
+
+				PrepaSendMessageToPlayer(iMustView, MsgData, Size, 0);
+			}
+
+			return true;
+		});
+	}
+	else if (possessorType == NWN::OBJECT_TYPE_ITEM || possessorType == NWN::OBJECT_TYPE_PLACEABLE)
+	{
+		uint8_t* ptrPossessor = (uint8_t*)Object;
+		if (possessorType == NWN::OBJECT_TYPE_ITEM)
+		{
+			ptrPossessor = (ptrPossessor - 0x730);
+		}
+
+		amObjectContainerStruct* myContainerStruct;
+		if (possessorType == NWN::OBJECT_TYPE_ITEM)
+		{
+			myContainerStruct = *(amObjectContainerStruct**)(ptrPossessor + AmItmContainerObj);
+		}
+		else
+		{
+			myContainerStruct = *(amObjectContainerStruct**)(ptrPossessor + AmPlcInventory);
+		}
+		
+		uint32_t uEmplacement = UINT32_MAX;
+		for (int i = 0; i < myContainerStruct->allocatedContent; i++)
+		{
+			if (myContainerStruct->contentArray[i] == idItem)
+			{
+				uEmplacement = i;
+				break;
+			}
+		}
+		//Invalid
+		if (uEmplacement == UINT32_MAX)
+			return;
+
+		//On a tout ici... On va construire le message
+		//dans le parcours.. on remplacera vers GCA plutôt que GRA si l'inventaire est ouvert par le viewer
+		
+
+		forEachPCBlock([&](CNWSPlayerStruct* p) -> bool {
+			unsigned long iMustView = p->playerID;
+			if (iMustView == NWN::PLAYERID_INVALIDID) {
+				return true;
+			}
+
+			//if (IsKnowByPlayer(iMustView, idItem) && IsKnowByPlayer(iMustView, idPossessor))
+			{
+				InitMessageBlock(myMessage,NULL,0x400,p->playerID,1);
+
+				AddX8ToMsg('D', myMessage);
+				AddX8ToMsg(0x6, myMessage);
+				AddX32ToMsg(idItem | 0x80000000, myMessage);
+
+				CallUpdateMsgHash(myMessage, NULL, 1);
+
+				AddX8ToMsg('G',myMessage);
+
+				if (p->containerStruct->containerOpenned->currentOpened == idPossessor)
+				{
+					AddX8ToMsg('C',myMessage);
+					AddX8ToMsg('A',myMessage);
+					AddX32ToMsg(p->possessedCreature | 0x80000000,myMessage);
+				}
+				else
+				{
+					AddX8ToMsg('R',myMessage);
+					AddX8ToMsg('A',myMessage);
+					AddX32ToMsg(idPossessor | 0x80000000,myMessage);
+				}
+
+				NWN::CGameObject *Creature = m_ObjectManager.GetGameObject( (NWN::OBJECTID) p->possessedCreature );
+
+				//End of message
+				AddX32ToMsg(uEmplacement,myMessage);
+				AddX32ToMsg(idItem | 0x80000000,myMessage);
+
+				CreateObjectAppearance(myMessage, NULL, pItem);
+				BuildMsgNamePart(myMessage, NULL, pItem, Creature);
+
+				//MsgReady.
+
+				uint8_t* MsgData;
+				uint32_t Size;
+				PrepareEndOfMsg((void*)myMessage, NULL, (void*)&MsgData, (void*)&Size);
+
+				MsgData[0] = 0x50;
+				MsgData[1] = 0x5;
+				MsgData[2] = 0x1;
+
+				PrepaSendMessageToPlayer(iMustView, MsgData, Size, 0);
+			}
+
+			return true;
+		});
+	}
+}
+
+#ifdef REMOVE_OLD_TEST
+void test()
+{
+	uintptr_t* ptr = (uintptr_t*)0x86442C;
+	ptr = (uintptr_t*)(*ptr + 0x4);
+	ptr = (uintptr_t*)(*ptr + 0x4);
+	ptr = (uintptr_t*)(*ptr + 0x1008C);
+
+	ptr = (uintptr_t*)(*ptr);
+	if (ptr == NULL)
+	{
+		//TODO exit
+		return;
+	}
+
+	int iVar1, iVar2;
+	int* piVar3 = (int*)(*ptr + 0x8);
+	uint32_t uVar4;
+
+	for (iVar1 = *piVar3; iVar1 != 0; iVar1 = *(int*)(iVar1 + 4))
+	{
+		iVar2 = *(int*)(iVar1 + 8);
+		if (iVar2 == 0)
+			continue;
+
+		//Seems like a valide PCBlock here
+
+		//Check if it's a valid pc
+		uVar4 = *(uint32_t*)(iVar2 + 0x34);
+		GameObjectManager m_ObjectManager;
+		NWN::CGameObject *Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) uVar4 );
+		if (Object == NULL)
+			continue;
+		if (Object->GetObjectType() != NWN::OBJECT_TYPE_CREATURE)
+			continue;
+
+		uint32_t openedContainer = *(uint32_t*)(*(int*)(*(int*)(iVar2 + 0x64) + 0x18) + 4);
+
+	}
+
+} // 64ad30
+
+void testMessage(uint32_t oPC, uint32_t iObjectToUpdate)
+{
+	NWN::CGameObject * Object;
+	NWN::CNWSCreature * Creature;
+	NWN::CNWSItem* Item;
+	CNWSPlayerStruct* playerStruct =  GetPCBlockFromCreature(oPC);
+	if (playerStruct == NULL)
+		return;
+
+	// AmItemEquipedBy (pour permettre de gérer les objets équipés... Mais au pire on fait le refresh classique)
+
+	{
+		GameObjectManager m_ObjectManager;
+
+		Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) oPC );
+		if (Object == NULL)
+			return;
+
+		Creature = Object->AsCreature( );
+		if (Creature == NULL)
+			return;
+
+		Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) iObjectToUpdate );
+		if (Object == NULL)
+			return;
+
+		Item = Object->AsItem();
+		if (Item == NULL)
+			return;
+	}
+
+	unsigned char* myMessage = (unsigned char*)GetCNWSMessage();
+
+	InitMessageBlock(myMessage,NULL,0x400,playerStruct->playerID,1);
+
+	AddX8ToMsg('D', myMessage);
+	AddX8ToMsg(0x6, myMessage);
+	AddX32ToMsg(iObjectToUpdate | 0x80000000, myMessage);
+
+	CallUpdateMsgHash(myMessage, NULL, 1);
+
+
+	//ConstructMsgEffect(myMessage, NULL, playerStruct, Creature, ? ? , iObjectToUpdate, ? ? );
+
+	/*
+	iVar8 = (**(code **)(*piVar3 + 0x108))();
+	pvVar5 = (void *)FUN_00577410(param_3);
+	cVar11 = 'R';
+	cVar10 = '\x01';
+	piVar3 = (int *)(**(code **)(*piVar3 + 0x3c))();
+	Build_G?D_G?A_G?U(param_1_00,param_2,piVar3,iVar8,pvVar5,cVar10,cVar11);
+
+	pour soit même, après un faux gra =>
+	GIA, 
+	emplacement (2^slot) 
+	IDObject
+	CreateObjectAppearance(myMessage, NULL, Item);
+	BuildMsgNamePart(myMessage, NULL, Item, Creature);
+
+
+	
+	*/
+	AddX8ToMsg('G',myMessage);
+	AddX8ToMsg('R',myMessage);
+	AddX8ToMsg('A',myMessage);
+	AddX32ToMsg(oPC | 0x80000000,myMessage);
+	AddX32ToMsg(0x10,myMessage); //EMPLACEMENTDINVENTAIRE
+	AddX32ToMsg(iObjectToUpdate | 0x80000000,myMessage);
+
+	CreateObjectAppearance(myMessage, NULL, Item);
+	BuildMsgNamePart(myMessage, NULL, Item, Creature);
+
+
+	/*
+	CreateMsg(param_1_00,&DataToSend,(int *)&SizeDataToSend);
+
+	PrepareSendMessage_(param_1_00,(undefined *)pBlockPJMustReceive[1],'\x05','\x01',
+		DataToSend,SizeDataToSend);
+	*/
+
+	uint8_t* MsgData;
+	uint32_t Size;
+	PrepareEndOfMsg((void*)myMessage, NULL, (void*)&MsgData, (void*)&Size);
+
+	MsgData[0] = 0x50;
+	MsgData[1] = 0x5;
+	MsgData[2] = 0x1;
+
+	unsigned long iMustView = playerStruct->playerID;
+	if (iMustView != NWN::PLAYERID_INVALIDID) {
+		PrepaSendMessageToPlayer(iMustView, MsgData, Size, 0);
+	}
+}
+
+
+
+
+/*
+void testMessage(uint32_t oPC, uint32_t iObject)
+{
+	CNWSPlayerStruct* playerStruct =  GetPCBlockFromCreature(oPC);
+	if (playerStruct == NULL)
+		return;
+
+	uint32_t* pWorkingTable = **(uint32_t***)(playerStruct->pTable);
+	if (pWorkingTable == NULL)
+		return;
+
+	pWorkingTable
+
+
+	char** pSubTable = *playerStruct->pTable;
+
+}
+*/
+#endif
 
 
 bool sendMusicMessage(int iType, int iOption, int iValue, int mustView)
@@ -1540,4 +1966,284 @@ bool sendMusicMessage(int iType, int iOption, int iValue, int mustView)
 	return result;
 }
 
+#define OFFS_PLAYERLISTADD 0x00558000
+
+
+__declspec(naked) bool __fastcall SendServerToPlayerList_Add(__in void* MsgCreator, __in void* Unused, uint32_t receiverPCID, void* pcBlockPtr)
+{
+	__asm
+	{
+		mov		edx, OFFS_PLAYERLISTADD;
+		jmp		edx;
+	}
+}
+
+
+bool SendUpdatePCName(uint32_t oChanged, uint32_t oReceiver, std::string sFirstName, std::string sLastName, bool bSetName)
+{
+	static bool bInitialized = false;
+	static uint32_t* fakeCELocString;
+	static uint32_t* ptrFakeLString;
+	static uint32_t* fakeLocalizedString;
+	static uint32_t* fakeCELocString2;
+	static uint32_t* ptrFakeLString2;
+	static uint32_t* fakeLocalizedString2;
+
+	if(!bInitialized)
+	{
+		fakeCELocString = new uint32_t[3];
+		fakeCELocString[0] = 0;
+		ptrFakeLString = new uint32_t[1];
+		ptrFakeLString[0] = (uint32_t)fakeCELocString;
+
+		fakeLocalizedString = new uint32_t[4];
+		fakeLocalizedString[0] = 0xFFFFFFFF;
+		fakeLocalizedString[1] = (uint32_t)ptrFakeLString;
+		fakeLocalizedString[2] = 1;
+		fakeLocalizedString[3] = 1;
+
+		fakeCELocString2 = new uint32_t[3];
+		fakeCELocString2[0] = 0;
+		ptrFakeLString2 = new uint32_t[1];
+		ptrFakeLString2[0] = (uint32_t)fakeCELocString2;
+
+		fakeLocalizedString2 = new uint32_t[4];
+		fakeLocalizedString2[0] = 0xFFFFFFFF;
+		fakeLocalizedString2[1] = (uint32_t)ptrFakeLString2;
+		fakeLocalizedString2[2] = 1;
+		fakeLocalizedString2[3] = 1;
+		bInitialized = true;
+	}
+
+
+	//558000
+	//GetPCBlock "changed"
+	uint32_t receiverPCID = GetPCIDFromCreature(oReceiver);
+
+	CNWSPlayerStruct* pStructChanged = GetPCBlockFromCreature(oChanged);
+	NWN::OBJECTID oIdChanged;
+
+	if (receiverPCID == NWN::PLAYERID_INVALIDID)
+		return false;
+
+
+	if (pStructChanged == NULL)
+	{
+		if (bSetName)
+			oIdChanged = oChanged;
+		return false;
+
+	}
+	else
+	{
+		oIdChanged = pStructChanged->ownedCreature;
+	}
+
+	//GetCreature "changed"
+	GameObjectManager m_ObjectManager;
+	NWN::CGameObject *Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) oIdChanged );
+	if (Object == NULL)
+		return false;
+
+	NWN::OBJECT_TYPE possessorType = Object->GetObjectType();
+	if (possessorType != NWN::OBJECT_TYPE_CREATURE)
+	{
+		return false;
+	}
+
+	int* ptrMsg = GetCNWSMessage();
+
+	bool bResult = true;
+
+	fakeCELocString[1] = (uint32_t)sFirstName.data();
+	fakeCELocString[2] = std::size(sFirstName) + 1;
+
+	fakeCELocString2[1] = (uint32_t)sLastName.data();
+	fakeCELocString2[2] = std::size(sLastName) + 1;
+
+	if (bSetName)
+	{
+		InitMessageBlock(ptrMsg, NULL, 0x400, receiverPCID, 1);
+		AddX8ToMsg('U', (unsigned char*)ptrMsg);
+		AddX8ToMsg(5, (unsigned char*)ptrMsg);
+		AddX32ToMsg(oIdChanged | 0x80000000, (unsigned char*)ptrMsg);
+		AddX32ToMsg(0x100, (unsigned char*)ptrMsg);
+
+		AddLocalizedNameToMsg(ptrMsg, NULL, fakeLocalizedString, 0);
+		AddLocalizedNameToMsg(ptrMsg, NULL, fakeLocalizedString2, 0);
+
+		uint8_t* MsgData;
+		uint32_t Size;
+		PrepareEndOfMsg((void*)ptrMsg, NULL, (void*)&MsgData, (void*)&Size);
+
+		MsgData[0] = 0x50;
+		if(bSetName) {
+			MsgData[1] = 0x5;
+			MsgData[2] = 0x1;
+		}
+		else {
+			MsgData[1] = 0xA;
+			MsgData[2] = 0x2;
+		}
+
+
+		bResult = PrepaSendMessageToPlayer(receiverPCID, MsgData, Size, 0);
+	}
+	else
+	{
+		//Update creature firstname/lastname
+		uint32_t uBaseFirstName[4] = {0};
+		uint32_t uBaseLastName[4] = {0};
+		memcpy(uBaseFirstName, (void*)(((uint32_t)Object) + 0x2d4), 4 * 4);
+		memcpy(uBaseLastName, (void*)(((uint32_t)Object) + 0x2e4), 4 * 4);
+
+		memcpy((void*)(((uint32_t)Object) + 0x2d4), fakeLocalizedString, 4 * 4);
+		memcpy((void*)(((uint32_t)Object) + 0x2e4), fakeLocalizedString2, 4 * 4);
+
+		//Ok, now call the function
+		bResult = SendServerToPlayerList_Add(ptrMsg, NULL, receiverPCID, pStructChanged);
+
+
+		//restore creature firstname/lastname
+
+		memcpy((void*)(((uint32_t)Object) + 0x2d4), uBaseFirstName, 4 * 4);
+		memcpy((void*)(((uint32_t)Object) + 0x2e4), uBaseLastName, 4 * 4);
+	}
+
+	return bResult;
+}
+
+
+
+
+
+
+
+#ifdef PASDEFINE
+bool SendUpdatePCName(uint32_t oChanged, uint32_t oReceiver, std::string sAccount, std::string sFirstName, std::string sLastName)
+{
+	static bool bInitialized = false;
+	static uint32_t* fakeCELocString;
+	static uint32_t* ptrFakeLString;
+	static uint32_t* fakeLocalizedString;
+
+	if(bInitialized)
+	{
+		fakeCELocString = new uint32_t[3];
+		fakeCELocString[0] = 0;
+		ptrFakeLString = new uint32_t[1];
+		ptrFakeLString[0] = (uint32_t)fakeCELocString;
+
+		fakeLocalizedString = new uint32_t[4];
+		fakeLocalizedString[0] = 0xFFFFFFFF;
+		fakeLocalizedString[1] = (uint32_t)ptrFakeLString;
+		fakeLocalizedString[2] = 1;
+		fakeLocalizedString[3] = 1;
+
+
+		//fakeCELocString[1] = ;
+		fakeCELocString[2] = 0;
+	}
+
+
+	uint32_t receiverPCID = GetPCIDFromCreature(oReceiver);
+	uint32_t changedPCID = GetPCIDFromCreature(oChanged);
+
+	CNWSPlayerStruct* pStructChanged = GetPCBlockFromCreature(oChanged);
+
+	if (receiverPCID == NWN::PLAYERID_INVALIDID || pStructChanged == NULL)
+		return;
+
+	int* ptrMsg = GetCNWSMessage();
+
+	InitMessageBlock(ptrMsg, NULL, 0x100, 0xFFFFFFFF, 1);
+
+	CallUpdateMsgHash(ptrMsg, NULL,  1);
+
+	AddX32ToMsg(pStructChanged->playerID, ptrMsg);
+	AddX32ToMsg(pStructChanged->ownedCreature | 0x80000000, ptrMsg);
+
+	using Func = uint32_t(__thiscall*)(CNWSPlayerStruct*);
+	Func fn = reinterpret_cast<Func>(pStructChanged->vftable[1]);
+	uint32_t result = fn(pStructChanged);
+
+
+	CallUpdateMsgHash(ptrMsg, NULL, (result != 0)?1:0 );
+	
+	NWN::CExoString sAccountName = {.m_sString       = sAccount.data(), .m_nBufferLength = std::size(sAccount) + 1};
+
+	AddCExoString(sAccountName, ptrMsg);
+
+	CallUpdateMsgHash(ptrMsg, NULL, 1);
+
+	AddX32ToMsg(pStructChanged->ownedCreature | 0x80000000, ptrMsg);
+
+
+	fakeCELocString[1] = (uint32_t) sFirstName.data();
+	fakeCELocString[2] = std::size(sFirstName) +1;
+
+	AddLocalizedNameToMsg(ptrMsg, NULL, fakeLocalizedString, 0);
+
+	fakeCELocString[1] = (uint32_t) sLastName.data();
+	fakeCELocString[2] = std::size(sLastName) +1;
+
+	AddLocalizedNameToMsg(ptrMsg, NULL, fakeLocalizedString, 0);
+
+	//AmCrtPortraitId
+	if (0xfffd < uPortraitId) {
+		//GetGender 
+		if (gender == 1)
+			0xfffe;
+	}
+
+	AddValueToMsgx10(ptrMsg, NULL, uPortraitId, 0x10);
+	if (0xfffd < uVar4) {
+
+	}
+
+}
+
+bool SendUpdatePCName(uint32_t oPC, uint32_t oReceiver, std::string sFirstName, std::string sLastName)
+{
+	unsigned long iMustView = GetObjectToPlayerId(oReceiver);
+
+	GameObjectManager m_ObjectManager;
+	NWN::CGameObject *Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) oPC );
+	if (Object == NULL)
+		return;
+
+	NWN::OBJECTID idItem = *(NWN::OBJECTID*)(pItem + 0x730 + 0xA0);
+	unsigned char* myMessage = (unsigned char*)GetCNWSMessage();
+
+	NWN::OBJECT_TYPE possessorType = Object->GetObjectType();
+	if (possessorType == NWN::OBJECT_TYPE_CREATURE)
+	{
+	}
+
+	static uint32_t* fakeCELocString;
+	static uint32_t* ptrFakeLString;
+	static uint32_t* fakeLocalizedString;
+
+
+
+	fakeCELocString = new uint32_t[3];
+	fakeCELocString[0] = 0;
+	ptrFakeLString = new uint32_t[1];
+	ptrFakeLString[0] = (uint32_t)fakeCELocString;
+
+	fakeLocalizedString = new uint32_t[4];
+	fakeLocalizedString[0] = 0xFFFFFFFF;
+	fakeLocalizedString[1] = (uint32_t) ptrFakeLString;
+	fakeLocalizedString[2] = 1;
+	fakeLocalizedString[3] = 1;
+
+
+	fakeCELocString[1] = (uint32_t) texteBase;
+	fakeCELocString[2] = 9;
+
+
+
+
+}
+#endif
 
