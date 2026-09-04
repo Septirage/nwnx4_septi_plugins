@@ -2,7 +2,8 @@
 // nwnx_aspectmanager - various functions for accessing the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified By:	Septirage           2026-02-22  Add Set/Get IsDestroyable (1.5.3)
+// Last Modified By:	Septirage           2026-02-22  Add SpecificName functions (1.5.6)
+//                      Septirage           2026-02-22  Add Set/Get IsDestroyable (1.5.3)
 //                      Septirage           2024-04-27  Big Rework for xp_aspectManager v1.4
 //                      Septirage			2023-06-04	Add NoArmor management
 //						Septirage			2023-03-21  Add getter setter for armormodelpart
@@ -273,6 +274,13 @@ void MusicBackgroundRunForPC_xpAM(object oPC, int bStart);
 // Start or Stop the current MusicBattle for oPC
 void MusicBattleRunForPC_xpAM(object oPC, int bStart);
 
+/********************************** Specific name ***********************************/
+
+//Change the visible name in playerlisT/mp list of oPC for oViewer
+void SetPCGlobalNameSpecific_xpAM(object oPC, string sFirstName, string sLastName, object oViewer) ;
+
+//Change the visible name of oCreature for oViewer
+void SetCreatureNameSpecific_xpAM(object oCreature, string sFirstName, string sLastName, object oViewer);
 
 
 /**************************** Refresh & Collision ****************************/
@@ -776,6 +784,20 @@ void MaskObjectForPC_xpAM(object oObjectToMask, object oPC)
 void ShowObjectForPC_xpAM(object oObjectToShow, object oPC)
 {
 	NWNXSetInt("AspectManager", "showObject", "", ObjectToInt(oPC), ObjectToInt(oObjectToShow));
+}
+
+
+
+/********************************** Specific Name ***********************************/
+
+void SetPCGlobalNameSpecific_xpAM(object oPC, string sFirstName, string sLastName, object oViewer)
+{
+	NWNXSetInt("AspectManager", "updateName|"+sFirstName+"|"+sLastName, "1", ObjectToInt(oPC), ObjectToInt(oViewer));
+}
+
+void SetCreatureNameSpecific_xpAM(object oCreature, string sFirstName, string sLastName, object oViewer)
+{
+	NWNXSetInt("AspectManager", "updateName|"+sFirstName+"|"+sLastName, "0", ObjectToInt(oPC), ObjectToInt(oViewer));	
 }
 
 

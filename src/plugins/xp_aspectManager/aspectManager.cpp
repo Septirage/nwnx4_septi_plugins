@@ -536,7 +536,7 @@ int RemoveFirstClass(int nParam2)
 	GameObject        *Object;
 	GameObjectManager m_ObjectManager;
 
-	static unsigned char myClass[1168];
+	static unsigned char myClass[AmCrtAbSizeClass*4];
 	memset(myClass, 0, sizeof(myClass));
 
 	ObjectId = (NWN::OBJECTID) nParam2;
@@ -551,33 +551,33 @@ int RemoveFirstClass(int nParam2)
 		return 0;
 
 	char* ptrAppBlock = creatureApparenceBlock((char*)Object);
-	char* ptrClass = ptrAppBlock + 0x10C;
-	uint8_t NbClass = *(uint8_t*)(ptrAppBlock + 0x14);
+	char* ptrClass = ptrAppBlock + AmCrtAbClass0;
+	uint8_t NbClass = *(uint8_t*)(ptrAppBlock + AmCrtABNbClass);
 	if (NbClass <= 1)
 	{
 		return 0;
 	}
-	int iSizeClassKeep = 0x124 * (NbClass - 1);
-	std::memcpy ( myClass, ptrClass+0x124, iSizeClassKeep);
+	int iSizeClassKeep = AmCrtAbSizeClass * (NbClass - 1);
+	std::memcpy ( myClass, ptrClass+AmCrtAbSizeClass, iSizeClassKeep);
 
-	std::memcpy(myClass + iSizeClassKeep, ptrClass, 0x124);
+	std::memcpy(myClass + iSizeClassKeep, ptrClass, AmCrtAbSizeClass);
 
 	myClass[iSizeClassKeep + 4] = 0xFF;
 	myClass[iSizeClassKeep + 5] = 0;
 
 	*(uint8_t*)(ptrAppBlock + 0x14) = NbClass - 1;
 
-	std::memcpy ( ptrClass, myClass, iSizeClassKeep+0x124);
+	std::memcpy ( ptrClass, myClass, iSizeClassKeep+AmCrtAbSizeClass);
 
-	char* listPtr = *(char**)(ptrAppBlock + 0x6C);
-	uint32_t iLvlKeep = *(uint32_t*)(ptrAppBlock + 0x70);
+	char* listPtr = *(char**)(ptrAppBlock + AmCrtABLvlStatList);
+	uint32_t iLvlKeep = *(uint32_t*)(ptrAppBlock + AmCrtABLvlStatNb);
 
 	//Should never happens
 	if (NbClass <= 1)
 		return 1;
 
 	iLvlKeep--;
-	*(uint32_t*)(ptrAppBlock + 0x70) = iLvlKeep;
+	*(uint32_t*)(ptrAppBlock + AmCrtABLvlStatNb) = iLvlKeep;
 	//Keep the base ptr here.
 	void* baseLvl = *(void**)listPtr;
 
@@ -683,6 +683,22 @@ AspectManager::Init(char* nwnxhome)
 		logger->Info(  "* Start to apply quickpatches..."  );
 		initAspectManagerFctFixes();
 		logger->Info(  "* ...Done."  );
+	}
+
+	config->Read("PatchSetIcon", &iQuickPatch, 1);
+	if(iQuickPatch != 0)
+	{
+		logger->Info("* Start to apply setIcon patch...");
+		initSetIconFix();
+		logger->Info("* ...Done.");
+	}
+
+	config->Read("PatchItemPropertyFct", &iQuickPatch, 1);
+	if (iQuickPatch != 0)
+	{
+		logger->Info("* Start to apply ItemProperty functions patch");
+		InitPatchItemProperty();
+		logger->Info("* ...Done.");
 	}
 
 
@@ -884,7 +900,11 @@ AspectManager::SetInt([[maybe_unused]] char* sFunction,
 	logger->Trace("* Plugin SetInt(%s, %s, %d, %d)", sFunction, sParam1, nParam2, nValue);
 	std::string stFunction(sFunction);
 	std::string sCommand(sParam1);
-	if (stFunction == "refreshNoArmor") {
+	if (stFunction == "testFct")
+	{
+		//testMessage(nParam2, nValue);
+	}
+	else if (stFunction == "refreshNoArmor") {
 		refreshNude_Verif(nParam2, nValue);
 	}
 	else if (stFunction == "refreshBelt") {
@@ -924,6 +944,21 @@ AspectManager::SetInt([[maybe_unused]] char* sFunction,
 		int iParameters;
 		std::istringstream(sCommand) >> iParameters;
 		sendMusicMessage(iParameters / 10, iParameters % 10, nValue, nParam2);
+	}
+	else if (stFunction == "updateName") {
+
+		size_t p1 = sCommand.find('|');
+		size_t p2 = sCommand.find('|', p1 + 1);
+
+		if (p1 == 1 && p2 != std::string::npos &&
+			(sCommand[0] == '0' || sCommand[0] == '1'))
+		{
+			bool b = sCommand[0] == '1';
+			std::string s1 = sCommand.substr(p1 + 1, p2 - p1 - 1);
+			std::string s2 = sCommand.substr(p2 + 1);
+
+			SendUpdatePCName(nParam2, nValue, s1, s2, b);
+		}
 	}
 	else if(stFunction.rfind(S_LIST_SYSTEM, 0) == 0) {
 		if (!bUseListSyst) {

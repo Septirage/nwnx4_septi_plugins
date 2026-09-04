@@ -50,7 +50,7 @@ void SetAreaModListenCheck_xpAM(object oArea, int iModListen);
 int GetAreaModListenCheck_xpAM(object oArea);
 
 //Get the CreatorID of this Area
-void GetAreaCreatorID_xpAM(object oArea);
+int GetAreaCreatorID_xpAM(object oArea);
 
 //Set the SkyRing for  oArea
 //sSkyRing : "N", "S", "E" or "W"
@@ -428,7 +428,7 @@ int GetAreaModListenCheck_xpAM(object oArea)
 }
 
 
-void GetAreaCreatorID_xpAM(object oArea)
+int GetAreaCreatorID_xpAM(object oArea)
 {
 	return NWNXGetInt("AspectManager", "area", "creatorID", ObjectToInt(oArea));
 }

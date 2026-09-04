@@ -22,6 +22,7 @@
 #include "SmallPatchFunctions.h"
 #include "SmallHookFunctions.h"
 #include "StoreRetrievePatch.h"
+#include "CustomValues.h"
 
 #include "MagicFunctions.h"
 #include "TalkFunctions.h"
@@ -873,6 +874,13 @@ EnhancedFeatures::Init(char* nwnxhome)
 		InitTimeFeatures();
 	}
 
+	config->Read("CustomValuesNb", &iTest, 0);
+	if(iTest > 0)
+	{
+		initCustomValuesNumber(iTest);
+	}
+
+
 	logger->Info("* Plugin initialized.");
 
 	enhancedFeats = this;
@@ -890,12 +898,15 @@ EnhancedFeatures::Init(char* nwnxhome)
 int
 EnhancedFeatures::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nParam2)
 {
-	std::string function{sFunction};
-	std::string sMagicFunc = "Magic|";
-	std::string logTxt =
-		"EnhancedFeatures_GetInt(" + function + "," + sParam1 + "," + std::to_string(nParam2) + ")";
+	std::string_view function{sFunction};
 
-	logger->Trace(logTxt.c_str());
+	if (logger->Level() == LogLevel::trace)
+	{
+		logger->Trace(("EnhancedFeatures_GetInt(" + std::string(function) + "," + sParam1 + "," + std::to_string(nParam2) + ")").c_str());
+	}
+
+	static constexpr std::string_view sMagicPrefix        = "Magic|";
+
 	/*
 	if (function == "removefa" || function == "addtoa")
 	{
@@ -930,9 +941,22 @@ EnhancedFeatures::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nP
 	}
 	*/
 
-	if (function.length() > sMagicFunc.length() && function.substr(0, sMagicFunc.length()) == "Magic|")
+	if (function == "CustomValue")
 	{
-		return GetIntMagicFunctions(function.substr(sMagicFunc.length()), sParam1, nParam2);
+		std::string_view sIndex{sParam1};
+
+		int iIndex;
+		auto [ptr, ec] = std::from_chars(sIndex.data(), sIndex.data() + sIndex.size(), iIndex);
+		if (ec != std::errc{})
+		{
+			logger->Err(("EnhancedFeatures_GetInt: index CustomValue invalide '" + std::string(sIndex) + "'").c_str());
+			return 0;
+		}
+		return GetCustomValue(nParam2, iIndex);
+	}
+	else if (function.compare(0, sMagicPrefix.size(), sMagicPrefix) == 0)
+	{
+		return GetIntMagicFunctions(std::string(function.substr(sMagicPrefix.length())), sParam1, nParam2);
 	}
 	else if (function == "TimeFunction")
 	{
@@ -951,17 +975,32 @@ void EnhancedFeatures::SetInt([[maybe_unused]] char* sFunction,
 	[[maybe_unused]] int nParam2,
 	[[maybe_unused]] int nValue)
 {
-	std::string function{sFunction};
-	std::string sMagicFunc = "Magic|";
-	std::string logTxt =
-		"EnhancedFeatures_SetInt(" + function + "," + sParam1 + "," + std::to_string(nParam2) + "," + std::to_string(nValue) + ")";
-
-
-	logger->Trace(logTxt.c_str());
-
-	if (function.length() > sMagicFunc.length() && function.substr(0, sMagicFunc.length()) == "Magic|")
+	if (logger->Level() == LogLevel::trace)
 	{
-		return SetIntMagicFunctions(function.substr(sMagicFunc.length()), sParam1, nParam2, nValue);
+		logger->Trace(("EnhancedFeatures_SetInt(" + std::string(sFunction) + "," + sParam1 + "," +
+			std::to_string(nParam2) + "," + std::to_string(nValue) + ")").c_str());
+	}
+
+	std::string_view function{sFunction};
+	static constexpr std::string_view sMagicPrefix        = "Magic|";
+
+	if (function == "CustomValue")
+	{
+		std::string_view sIndex{ sParam1 };
+
+		int iIndex;
+		auto [ptr, ec] = std::from_chars(sIndex.data(), sIndex.data() + sIndex.size(), iIndex);
+		if (ec != std::errc{})
+		{
+			logger->Err(("EnhancedFeatures_SetInt: index CustomValue invalide '" + std::string(sIndex) + "'").c_str());
+			return;
+		}
+
+		return SetCustomValue(nParam2, iIndex , nValue);
+	}
+	else if (function.compare(0, sMagicPrefix.size(), sMagicPrefix) == 0)
+	{
+		return SetIntMagicFunctions(std::string(function.substr(sMagicPrefix.size())), sParam1, nParam2, nValue);
 	}
 	else if (function == "ReloadSpeedFile" && m_sSpeedFeatFile != "")
 	{
@@ -1004,10 +1043,14 @@ EnhancedFeatures::SetFloat([[maybe_unused]] char* sFunction,
 	[[maybe_unused]] float fValue)
 {
 	std::string function{sFunction};
-	std::string logTxt =
-		"EnhancedFeatures_SetFloat(" + function + "," + sParam1 + "," + std::to_string(nParam2) + "," + std::to_string(fValue) + ")";
+	if (logger->Level() == LogLevel::trace)
+	{
+		std::string logTxt =
+			"EnhancedFeatures_SetFloat(" + function + "," + sParam1 + "," + std::to_string(nParam2) + "," + std::to_string(fValue) + ")";
 
-	logger->Trace(logTxt.c_str());
+		logger->Trace(logTxt.c_str());
+	}
+
 
 	if (function == "TalkFunction")
 	{

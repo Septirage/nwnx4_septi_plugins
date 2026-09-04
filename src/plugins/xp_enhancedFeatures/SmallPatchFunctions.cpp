@@ -16,6 +16,26 @@
 
 #include <unordered_set>
 
+typedef uint8_t (__thiscall *NWN2GetClassPosition_t)(void* pThis, uint8_t param_2);
+
+NWN2GetClassPosition_t const NWN2GetClassPosition = (NWN2GetClassPosition_t)0x7530b0;
+
+typedef uint8_t (__thiscall* NWN2GetClassFromPosition_t)(void* pThis, uint8_t position);
+NWN2GetClassFromPosition_t const NWN2GetClassFromPosition = (NWN2GetClassFromPosition_t)0x00752f70;
+
+
+typedef uint8_t (__thiscall *NWN2GetCasterLevelWithMods_t)(void* pThis, uint8_t param_2);
+
+NWN2GetCasterLevelWithMods_t const NWN2GetCasterLevelWithMods = (NWN2GetCasterLevelWithMods_t)0x75b740;
+
+
+typedef bool (__thiscall *NWN2GetHasFeat_t)(void* pThis, uint32_t uFeatID, int iParam3, int iParam4);
+
+NWN2GetHasFeat_t const NWN2GetHasFeat = (NWN2GetHasFeat_t)0x0059ef30;
+
+typedef uint8_t(__thiscall* NWN2GetSchoolFromClass_t)(void* pThis, uint8_t uClassPos);
+
+NWN2GetSchoolFromClass_t const NWN2GetSchoolFromClass = (NWN2GetSchoolFromClass_t)0x00754b90;
 
 extern std::unique_ptr<LogNWNX> logger;
 
@@ -86,6 +106,248 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 
 #define OFFS_DAMAGEBONUSCAP				0x005f674d
 #define OFFS_DAMAGEMALUSCAP				0x005f675b
+
+#define OFFS_FIXSRLOWERFROMFEAT			0x0059b790
+#define OFFS_FIXSRITMPROPERTY			0x006d9381
+
+#define OFFS_CALCULATESPELLPEN			0x006b024a
+#define OFFS_CALCULATESPAOE				0x006ccfd2
+
+unsigned long EndFixSRItemProperty = 0x006d9386;
+unsigned long SetEffectVariable_ = 0x006558f0;
+//e8 6a c5 f7 ff
+
+
+// 0x006d9381
+__declspec(naked) void FixSRItmProperty()
+{
+	__asm
+	{
+		CALL	dword ptr[SetEffectVariable_]
+
+		PUSH	0xFFFFFFFF
+		PUSH	0x1
+		MOV		ECX, ESI
+		CALL	dword ptr[SetEffectVariable_]
+
+		JMP dword ptr[EndFixSRItemProperty]
+	}
+}
+
+
+
+unsigned long EndFixLowerSRFromFeat = 0x0059b7af;
+
+__declspec(naked) void FixLowerSRFromFeat()
+{
+	__asm
+	{
+		MOVSX	EDX, byte ptr [ESI + 0x5d4]
+		MOVSX	ECX, BL
+
+		CMP		ECX, EDX
+		JGE		ApplyLowerSR
+		MOV		ECX, EDX
+		ApplyLowerSR:
+		MOVSX	EDX, byte ptr[ESI +0x5d5]
+
+		SUB		ECX, EDX
+
+		CMP     ECX, 127
+		JLE     FLSRCheckMin
+		MOV     ECX, 127
+
+		FLSRCheckMin:
+		CMP     ECX, -128
+		JGE     FLSRDone
+		MOV     ECX, -128
+
+		FLSRDone:
+		MOV     BL, CL
+
+		JMP dword ptr[EndFixLowerSRFromFeat]
+	}
+}
+
+uint32_t __fastcall CalculateSpellPenetration(uint8_t* pObject, uint8_t* pSpell, uint8_t* rTestValue)
+{
+	uint32_t spellPower = 0;
+	uint8_t* localTestValue;
+	uint8_t testValue;
+	if (rTestValue == 0)
+	{
+		localTestValue = &testValue;
+	}
+	else
+	{
+		localTestValue = rTestValue;
+	}
+	*localTestValue = -1;
+
+	auto vtable = *reinterpret_cast<NWN2_Gen_VTable**>(pObject);
+	vtable->IsCreature(pObject);
+
+	if (*(int*)(pObject + 0xe88) == 1) {
+		return *(uint32_t*)(pObject + 0xe8c);
+	}
+	
+	short sSpellValue = *(short*)(pObject + 0x2b4);
+	uint8_t bCasterClassPosition = *(uint8_t*)(pObject + 0x2a0);
+
+	void* pCreaStat = *(void**)(pObject + AmCrtPtrAppBlock);
+
+	if ((bCasterClassPosition == 0xff) || (bCasterClassPosition == 0xfe)) {
+		if (sSpellValue == -1) {
+			spellPower = *(pSpell + 0x58);
+			spellPower = spellPower * 2 - 1;
+		}
+		else {
+			*localTestValue = 0;
+			if ((uint16_t)(sSpellValue - 0x583U) < 9) {
+				uint8_t pos = NWN2GetClassPosition(pCreaStat ,0x27);
+				if ((pos & 0xFF) < 4)
+				{
+					spellPower = NWN2GetCasterLevelWithMods(pCreaStat, pos & 0xFF);
+					spellPower = spellPower & 0xFF;
+					*localTestValue = -1;
+				}
+				else
+				{
+					sSpellValue = -1;
+				}
+			}
+		}
+	}
+	else {
+		spellPower = NWN2GetCasterLevelWithMods(pCreaStat, bCasterClassPosition);
+		spellPower = spellPower & 0xFF;
+	}
+
+	if (bCasterClassPosition < 4) {
+		uint8_t classUsed = NWN2GetClassFromPosition(pCreaStat, bCasterClassPosition);
+
+		if (classUsed == 0x27) //If warlock
+		{
+			spellPower = spellPower / 2;
+			if (spellPower < 1)
+				spellPower = 1;
+			else if (9 < spellPower)
+				spellPower = 9;
+		}
+	}
+	else if ((uint16_t)(sSpellValue - 0x583U) < 9) {
+		spellPower = spellPower / 2;
+		if (spellPower < 1)
+			spellPower = 1;
+		else if (9 < spellPower)
+			spellPower = 9;
+	}
+
+	//Epic spell penetration
+	if(NWN2GetHasFeat(pCreaStat, 0x26a, 1, 0))
+	{
+		spellPower += 6;
+	}
+	else 
+	{
+		//Greater spell penetration
+		if (NWN2GetHasFeat(pCreaStat, 0x191, 1, 0))		
+		{
+			spellPower += 4;
+		}
+		else 
+		{
+			//spell penetration
+			if(NWN2GetHasFeat(pCreaStat, 0x24, 1, 0))
+			{
+				spellPower += 2;
+			}
+		}
+	}
+
+	//Enhanced Specialization
+	if (NWN2GetHasFeat(pCreaStat, 0x754, 1, 0))
+	{
+		uint8_t uClassPos = *(uint8_t*)(pObject + AmCrtClassPosLastSpell);
+		uint8_t uSchool = *(uint8_t*)(pSpell + 0x38);
+
+		if (uSchool == NWN2GetSchoolFromClass(pCreaStat, uClassPos))
+		{
+			spellPower++;
+		}
+	}
+
+
+	return spellPower;
+}
+
+
+
+
+//0x006b024a
+unsigned long ReturnToCheckSpellPenetration = 0x006b01b5;
+
+__declspec(naked) void CentralizeSpellPenetration()
+{
+	__asm
+	{
+		LEA		EAX, [ESP+0x14]
+		MOV		EDX ,dword ptr [ESP + 0x20]
+		MOV		ECX, ESI
+
+		PUSH	EAX
+
+		CALL	CalculateSpellPenetration
+
+		MOV     dword ptr [ESP + 0x10], EAX
+
+		JMP		dword ptr[ReturnToCheckSpellPenetration]
+	}
+}
+
+
+//0x006ccfd2
+unsigned long ReturnAfterFillAOE = 0x006cd034;
+unsigned long ReturnErrPtrFillAOE = 0x006ccfd8;
+
+
+__declspec(naked) void FixFillAreaOfEffect()
+{
+	__asm
+	{
+		MOV		EDX, dword ptr [ESI]
+		MOV		EAX, dword ptr [EDX + 0x17c]
+		MOV		ECX, ESI
+		CALL	EAX
+
+		MOV		ECX, 0x0086443C
+		MOV		ECX, [ECX]
+		MOV		ECX, dword ptr [ECX + 0x138]
+		PUSH	EAX
+		MOV		EAX, 0x00762fe0
+		CALL	EAX
+
+		TEST	EAX, EAX
+		JZ		FixFillAreaSpNotFound
+
+
+		PUSH	0
+		MOV		EDX, EAX
+		MOV		ECX, ESI
+
+		CALL	CalculateSpellPenetration
+
+		MOV		dword ptr [EDI + 0x344], EAX
+
+		JMP		dword ptr[ReturnAfterFillAOE]
+
+	FixFillAreaSpNotFound:
+		MOV		AL, byte ptr [ESI + 0x2a0]
+		JMP		dword ptr[ReturnErrPtrFillAOE]
+
+	}
+}
+
 
 unsigned long EndFixUpdateImmunity = 0x00579a29;
 
@@ -1288,6 +1550,31 @@ Patch _PatchFixBleedingWound[] =
 };
 Patch* PatchFixBleedingWound = _PatchFixBleedingWound;
 
+Patch _PatchFixLowerSRFromFeat[] =
+{
+	Patch(OFFS_FIXSRLOWERFROMFEAT, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
+	Patch(OFFS_FIXSRLOWERFROMFEAT + 1, (relativefunc)FixLowerSRFromFeat),
+};
+Patch* PatchFixLowerSRFromFeat = _PatchFixLowerSRFromFeat;
+
+Patch _PatchFixSRItmProperty[] =
+{
+	Patch(OFFS_FIXSRITMPROPERTY, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(OFFS_FIXSRITMPROPERTY + 1, (relativefunc)FixSRItmProperty),
+};
+Patch* PatchFixSRItmProperty = _PatchFixSRItmProperty;
+
+Patch _PatchSpellPenetrationAOE[] =
+{
+	Patch(OFFS_CALCULATESPELLPEN, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
+	Patch(OFFS_CALCULATESPELLPEN + 1, (relativefunc)CentralizeSpellPenetration),
+
+	Patch(OFFS_CALCULATESPAOE, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
+	Patch(OFFS_CALCULATESPAOE + 1, (relativefunc)FixFillAreaOfEffect),
+};
+Patch* PatchSpellPenetrationAOE = _PatchSpellPenetrationAOE;
+
+
 bool SmallPatchFunctions(SimpleIniConfig* config)
 {
 	int iTest = 0;
@@ -1521,6 +1808,48 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 			i++;
 		}
 	}
+
+	config->Read("FixLowerSRFromFeat", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixLowerSRFromFeat");
+		i = 0;
+		while (PatchFixLowerSRFromFeat[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixSRItmPrp", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixSRItmPrp");
+		i = 0;
+		while (PatchFixSRItmProperty[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixSpellPenetrationAOE", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixSpellPenetrationAOE");
+		i = 0;
+		while (PatchSpellPenetrationAOE[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("UseAccountNameForOOCMsg", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* Account name will be used for OOC msg");
+		i = 0;
+		//TODO
+	}
+
 
 	std::string sList = "";
 	config->Read("MonkWeaponList", &sList, std::string(""));

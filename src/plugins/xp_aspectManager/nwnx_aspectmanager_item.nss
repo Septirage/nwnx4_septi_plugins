@@ -2,7 +2,7 @@
 // nwnx_aspectmanager_item - item specific functions of the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified by:	Septirage			2026-02-22  Add SetItemCharges (1.5.3)
+// Last Modified by:	Septirage			2026-03-15  Add SetItemCharges + itemproperty functions (1.5.3)
 //						Septirage			2024-10-29  Add Get/set Cost Function + DmgReduction (1.4.6)
 //						Septirage			2024-05-18	Add Get/SetItemModelPartMask_xpAM (1.4.2)
 //						Septirage           2024-02-28
@@ -57,6 +57,111 @@ string GetItemColor_xpAM(object oItem, int iColor);
 // Note: Some context menu can show an invalid amount of usage if the # is greater than 255.
 //			But the setted amount will still work correctly.
 void SetItemCharges_xpAM(object oItem, int nCharges);
+
+/*************************** ItemPropertyFunctions ***************************/
+
+//Get the number of ItemProperty on an item
+// - oItem: item from which count the itemproperty
+// - bCountTemporary: if FALSE, only PERMANANT itemproperty will be counted
+int GetNumItemProperties_xpAM(object oItem, int bCountTemporary);
+
+//Get the the nth itemproperty of a specified item
+// - oItem: the item from which recover the itemproperty
+// - nNth: the nth itemproperty to get
+// - bCountTemporary: if TRUE, take in account Temporary itemproperty
+itemproperty GetSpecificItemProperty_xpAM(object oItem, int nNth, int bCountTemporary);
+
+//Get the itemproperty of specific sID of a specific ID
+// - oItem: the item from which recover the itemproperty
+// - sID: the itemproperty ID to search
+//Will return an invalid item property when the list is empty
+itemproperty GetSpecificItemPropertyByID_xpAm(object oItem, string sID);
+
+//Get the itemproperty ID of the nth itemproperty of specified item
+// - oItem: the item from which get the itemproperty
+// - nNth: the nth itemproperty to get the ID from
+// - bCountTemporary: if TRUE, take in account Temporary itemproperty
+//Will return empty string on error or inexistant property
+string GetSpecificItemPropertyID_xpAM(object oItem, int nNth, int bCountTemporary);
+
+
+//Get the ID of given itemproperty.
+//	return "" on error
+string GetItemPropertyID_xpAM(itemproperty ip);
+
+
+//Create and add a defined ItemProperty on a specific item.
+// Only temporary and permanent duration types are allowed.
+void AddItemProperty_xpAM(object oItem, int iType, int iSubType, int iCostTableValue, int iParamTableValue, int iDurationType, float fDuration=0.0f);
+
+int GetNumItemProperties_xpAM(object oItem, int bCountTemporary)
+{
+	string sCommand = "NbProperty";
+	if(bCountTemporary == TRUE)
+		sCommand += "T";
+	return NWNXGetInt("AspectManager", "item", sCommand, ObjectToInt(oItem));
+}
+
+itemproperty GetSpecificItemProperty_xpAM(object oItem, int nNth, int bCountTemporary)
+{
+	string sCommand = "PrepareGetPropertyByIdx";
+	if(bCountTemporary == TRUE)
+		sCommand += "T";
+	NWNXSetInt("AspectManager", "item",sCommand, ObjectToInt(oItem), nNth);
+	return GetNextItemProperty(oItem);
+}
+
+string GetSpecificItemPropertyID_xpAM(object oItem, int nNth, int bCountTemporary)
+{
+	return NWNXGetString("AspectManager", "item", "PropertyID|"+IntToString(nNth)+"|"+IntToString(bCountTemporary), ObjectToInt(oItem));	
+}
+
+string GetItemPropertyID_xpAM(itemproperty ip)
+{
+	GetItemPropertyType(ip);
+	return NWNXGetString("AspectManager", "item", "DPropertyID", 0);
+}
+
+void AddItemProperty_xpAM(object oItem, int iType, int iSubType, int iCostTableValue, int iParamTableValue, int iDurationType, float fDuration=0.0f)
+{
+	//Find costtable and paramtable
+	int iCostTable = 0;
+	int iParamTable = 0;
+
+	string sValue = Get2DAString("itempropdef", "CostTableResRef",iType);
+	if(sValue != "")
+		iCostTable = StringToInt(sValue);
+	
+	sValue = Get2DAString("itempropdef", "Param1ResRef", iType);
+	if(sValue != "")
+		iParamTable = StringToInt(sValue);
+	
+	if(iParamTable == 0 && iSubType >= 0)
+	{
+		sValue = Get2DAString("itempropdef", "SubTypeResRef", iType);
+		if(sValue != "")
+		{
+			sValue = Get2DAString(sValue, "Param1ResRef", iSubType);
+			if(sValue != "")
+			{
+				iParamTable = StringToInt(sValue);
+			}		
+		}	
+	}
+
+	string params = IntToString(iType)+"|"+IntToString(iSubType)+"|"+IntToString(iCostTable)+"|";
+	params = params+IntToString(iCostTableValue)+"|"+IntToString(iParamTable)+"|"+IntToString(iParamTableValue)+"|";
+	params = params+IntToString(iDurationType)+"|"+FloatToString(fDuration,0);
+
+	NWNXSetString("AspectManager", "item", "AddProperty", ObjectToInt(oItem), params);
+}
+
+itemproperty GetSpecificItemPropertyByID_xpAm(object oItem, string sID)
+{
+	NWNXSetString("AspectManager", "item", "PrepareGetPropertyByID", ObjectToInt(oItem), sID);
+	return GetNextItemProperty(oItem);
+}
+
 
 
 /****************************** WeaponSpecific ******************************/

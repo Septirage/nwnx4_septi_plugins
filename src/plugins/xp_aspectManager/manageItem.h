@@ -10,6 +10,6 @@ void ItemSetFloat(char* sCommand, int iObjectID, float fValue);
 std::string ItemGetString(char* sCommand, int iObjectID);
 void ItemSetString(char* sCommand, int iObjectID, char* sValue);
 
-
+void InitPatchItemProperty();
 
 #endif

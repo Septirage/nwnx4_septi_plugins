@@ -1,11 +1,14 @@
 #include "aspectManagerUtils.h"
 #include <NWN2Lib/NWN2.h>
 #include <NWN2Lib/NWN2Common.h>
+#include <misc/Patch.h>
 #include "../../septutil/NwN2DataPos.h"
+#include "../../septutil/NwN2Utilities.h"
 
 #include "nwn2heap.h"
 #include <algorithm>
 #include <sstream>
+#include <charconv>
 
 typedef void (__cdecl * NWN2Heap_Deallocate_Proc)(void *p);
 extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
@@ -703,6 +706,456 @@ std::string GetItemDescriptionNonIdentified(char* ItemPtr) {
 	return getDescription((ItemPtr + AmItmDescrNonIdent));
 }
 
+
+class StringSplitter {
+	std::string_view m_input;
+	size_t m_pos = 0;
+	char m_sep;
+
+	static bool parseInt(std::string_view str, int& result) {
+		auto res = std::from_chars(str.data(), str.data() + str.size(), result);
+		return res.ec == std::errc() && res.ptr == str.data() + str.size();
+	}
+
+	static bool parseFloat(std::string_view str, float& result) {
+		auto res = std::from_chars(str.data(), str.data() + str.size(), result);
+		return res.ec == std::errc() && res.ptr == str.data() + str.size();
+	}
+
+public:
+	StringSplitter(std::string_view input, char sep = '|')
+		: m_input(input), m_sep(sep) {}
+
+	bool next(std::string_view& token) {
+		if (m_pos > m_input.size()) return false;
+		size_t end = m_input.find(m_sep, m_pos);
+		if (end == std::string_view::npos) end = m_input.size();
+		token = m_input.substr(m_pos, end - m_pos);
+		m_pos = end + 1;
+		return true;
+	}
+
+	bool skip() {
+		std::string_view token;
+		return next(token);
+	}
+
+	bool nextInt(int& value) {
+		std::string_view token;
+		return next(token) && parseInt(token, value);
+	}
+
+	bool nextFloat(float& value) {
+		std::string_view token;
+		return next(token) && parseFloat(token, value);
+	}
+
+	bool nextStringView(std::string_view& value) {
+		return next(value);
+	}
+
+	bool nextString(std::string& value) {
+		std::string_view token;
+		if (!next(token)) return false;
+		value = std::string(token);
+		return true;
+	}
+};
+
+
+bool UnPackAddPropertyParams(const std::string& input,
+	int& property, int& subtype, int& costTable, int& costValue,
+	int& param1Table, int& param1Value, int& durationType, float& paramFloat)
+{
+	StringSplitter s(input);
+	if (!s.nextInt(property))     return false;
+	if (!s.nextInt(subtype))      return false;
+	if (!s.nextInt(costTable))    return false;
+	if (!s.nextInt(costValue))    return false;
+	if (!s.nextInt(param1Table))  return false;
+	if (!s.nextInt(param1Value))  return false;
+	if (!s.nextInt(durationType)) return false;
+
+	if (durationType == 0x1) {
+		if (!s.nextFloat(paramFloat)) return false;
+	}
+	else if (durationType != 0x2) {
+		return false;
+	}
+
+	return true;
+}
+
+#define FUNC_ALLOCATEEFFECT			0x00655870
+#define FUNC_FILLEFFECT				0x00656950
+#define FUNC_ALLOCATEIPARAMEFFECT	0x00655e20
+#define FUNC_ADDPROPERTYFROMEFFECT	0x00583c90
+
+
+__declspec(naked) NWN::CGameEffect* __fastcall CallAllocateGameEffect()
+{
+	__asm
+	{
+		mov		edx, FUNC_ALLOCATEEFFECT;
+		jmp		edx;
+	}
+}
+
+__declspec(naked) NWN::CGameEffect* __fastcall CallFillGameEffect(NWN::CGameEffect* pEffect, void* Unused, int iParam2)
+{
+	__asm
+	{
+		mov		edx, FUNC_FILLEFFECT;
+		jmp		edx;
+	}
+}
+
+__declspec(naked) void __fastcall CallAllocateEffectIntParam(NWN::CGameEffect* pEffect, void* Unused, int iParam2)
+{
+	__asm
+	{
+		mov		edx, FUNC_ALLOCATEIPARAMEFFECT;
+		jmp		edx;
+	}
+}
+
+__declspec(naked) void __fastcall AddPropertyFromEffect(NWN::CGameObject* pObject, void* Unused, NWN::CGameEffect* pEffect, int param3, int param4)
+{
+	__asm
+	{
+		mov		edx, FUNC_ADDPROPERTYFROMEFFECT;
+		jmp		edx;
+	}
+}
+
+
+void AddItemProperty(GameObject* pObject, char* pValue)
+{
+	std::string sValue(pValue);
+	//Parse value
+	float fDuration;
+	int idProperty, subType, costTable, costValue, paramTable, paramValue, durationType;
+	idProperty = subType = costTable = costValue = paramTable = paramValue = durationType = -1;
+	
+	if (!UnPackAddPropertyParams(sValue, idProperty, subType, costTable, costValue, paramTable, paramValue, durationType, fDuration))
+		return;
+
+
+
+	NWN::CGameEffect* pEffect = CallAllocateGameEffect();
+	if (pEffect == 0x0) {
+		return;
+	}
+
+	pEffect = CallFillGameEffect(pEffect,NULL, 1);
+	CallAllocateEffectIntParam(pEffect, NULL, 9);
+	
+	pEffect->m_nSubType = pEffect->m_nSubType & 0xFFFA | 2;
+	pEffect->m_nType = NWN::EFFECT_ITEMPROPERTY;
+
+	pEffect->m_oidCreator = GetModuleID();
+
+	pEffect->m_nParamInteger[7] = 100;
+	pEffect->m_nParamInteger[8] = 1;
+
+	//Ok, define effectVariables
+	pEffect->m_nParamInteger[0] = idProperty;
+	pEffect->m_nParamInteger[1] = subType;
+	pEffect->m_nParamInteger[2] = costTable;
+	pEffect->m_nParamInteger[3] = costValue;
+	pEffect->m_nParamInteger[4] = paramTable;
+	pEffect->m_nParamInteger[5] = paramValue;
+
+	/* if Temporary */
+	if (durationType == 1) {
+		/* remember as temporary */
+		pEffect->m_nSubType = (pEffect->m_nSubType & 0xFFF9) | 1;
+
+		/* save the duration */
+		pEffect->m_fDuration = (float)fDuration;
+	}
+	AddPropertyFromEffect(pObject,NULL, pEffect,0,1);
+
+	return;
+}
+
+bool IsValidItemProperty(NWN::CGameEffect* pEffect, bool bCountTemp) {
+	if (pEffect == 0x0) return false;
+	if (pEffect->m_bExpose == 0 || pEffect->m_nType == 0x43) return false;
+	uint16_t dt = pEffect->m_nSubType & 0x7;
+	if (dt != 1 && dt != 2) return false;
+	if (!bCountTemp && dt == 1) return false;
+	return true;
+}
+
+int GetItemPropertyCounterFromIdx(char* pItem, int iIdx, bool bCountTemp)
+{
+	uint32_t uNbEffect = *(uint32_t*)(pItem + AmItmEffectListNb);
+	if (iIdx >= uNbEffect)
+		return -1;
+
+	NWN::CGameEffect** pListpEffect = *(NWN::CGameEffect***)(pItem + AmItmEffectListPtr);
+	int remaining = iIdx;
+
+	for(uint32_t  uNumber = 0; uNumber < uNbEffect; uNumber++)
+	{
+		NWN::CGameEffect* pEffect = pListpEffect[uNumber];
+
+		if (!IsValidItemProperty(pEffect, bCountTemp))
+			continue;
+
+		if (remaining == 0)
+		{
+			return uNumber;
+		}
+		remaining--;
+	}
+
+	return -1;
+}
+
+std::string GetPropertyID(char* pItem,  int iIdx, bool bCountTemp)
+{
+	int iCounter = GetItemPropertyCounterFromIdx(pItem, iIdx, bCountTemp);
+	if (iCounter < 0)
+		return "";
+
+	NWN::CGameEffect** pListpEffect = *(NWN::CGameEffect***)(pItem + AmItmEffectListPtr);
+	NWN::CGameEffect* pEffect = pListpEffect[iCounter];
+	std::string s(20, '\0'); // max digits
+	auto res = std::to_chars(s.data(), s.data() + s.size(), pEffect->m_nID);
+	if (res.ec != std::errc())
+		return "";
+	s.resize(res.ptr - s.data());
+	return s;
+}
+
+int GetPropertyNumber(char* pItem, bool bCountTemp)
+{
+	uint32_t uNbEffect = *(uint32_t*)(pItem + AmItmEffectListNb);
+	int iNb = 0;
+	NWN::CGameEffect** pListpEffect = *(NWN::CGameEffect***)(pItem + AmItmEffectListPtr);
+	for (uint32_t u=0; u < uNbEffect; u++)
+	{
+		NWN::CGameEffect* pEffect = pListpEffect[u];
+
+		if (IsValidItemProperty(pEffect, bCountTemp))
+			iNb++;
+		/*
+		if (pEffect->m_nType != NWN::EFFECT_ITEMPROPERTY)
+			continue;
+
+		if(bCountTemp || !(pEffect->m_nSubType & 1) )
+			iNb++;
+		*/
+	}
+
+	return iNb;
+}
+
+int GetItemPropertyCounterFromID(char* pItem, uint64_t uID)
+{
+	uint32_t uNbEffect = *(uint32_t*)(pItem + AmItmEffectListNb);
+	NWN::CGameEffect** pListpEffect = *(NWN::CGameEffect***)(pItem + AmItmEffectListPtr);
+
+
+	for(uint32_t  uNumber = 0; uNumber < uNbEffect; uNumber++)
+	{
+		NWN::CGameEffect* pEffect = pListpEffect[uNumber];
+
+		if (pEffect == 0x0)
+			continue;
+
+		//Don't care about type, duration etc. Just test the id
+		if (pEffect->m_nID == uID)
+			return uNumber;
+	}
+
+	return -1;
+}
+
+
+#define OFFS_GetNextItemPropPatchEntry 0x006a58ac
+#define OFFS_GetNextItemPropPatchExit 0x006a58fa
+#define OFFS_GetItemPropTypeGetIDInit 0x0067e200
+#define OFFS_GetItemPropTypeGetID	0x0067e258
+
+unsigned long ReturnGetNextItemPropEntry = 0x006a58b3;
+
+unsigned long ReturnGetNextItemPropExitNotFound = 0x006a58ff;
+unsigned long ReturnGetNextItemPropExitFound = 0x006a5950;
+
+unsigned long ReturnGetItemPropTypeGetIDInit = 0x0067e206;
+unsigned long ReturnGetItemPropTypeGetID = 0x0067e25d;
+
+
+struct GetNextItemPatchState {
+	int bHooked = 0;
+	void* pExpectedItem = 0;
+	int iCounter = -1;
+} g_specialGetItemProperty;
+
+__declspec(naked) void GetNextItemPropEntryPatch()
+{
+	__asm
+	{
+		CMP g_specialGetItemProperty.bHooked, 1
+		JNE GetNxtItmPropEntry_NoPatch
+
+		CMP g_specialGetItemProperty.pExpectedItem, EDI
+		JNE GetNxtItmPropEntry_WrongItem
+
+		CMP g_specialGetItemProperty.iCounter, -1
+		JLE GetNxtItmPropEntry_InvalidIndex
+
+		MOV ECX, g_specialGetItemProperty.iCounter
+		JMP GetNxtItmPropEntry_AfterPatch
+
+
+	GetNxtItmPropEntry_InvalidIndex:
+		MOVZX ECX, word ptr [EDI + 0x1a4]
+		ADD ECX, 1
+		MOV g_specialGetItemProperty.bHooked, 0
+		JMP GetNxtItmPropEntry_AfterPatch
+
+	GetNxtItmPropEntry_WrongItem:
+		MOV g_specialGetItemProperty.bHooked, 0
+	GetNxtItmPropEntry_NoPatch:
+		MOVZX ECX, word ptr [EDI + 0x2C4]
+	GetNxtItmPropEntry_AfterPatch:
+		JMP dword ptr[ReturnGetNextItemPropEntry]
+	}
+}
+
+__declspec(naked) void GetNextItemPropExitPatch()
+{
+	__asm
+	{
+		CMP CX, SI
+		POP EBX
+		JL GetNxtItmPropExit_Found
+
+		MOV g_specialGetItemProperty.bHooked, 0
+		JMP dword ptr[ReturnGetNextItemPropExitNotFound]
+
+	GetNxtItmPropExit_Found:
+		MOV EDX, [EDI + 0x1A0]
+		MOV ESI, [EDX + ECX*4]
+
+		CMP g_specialGetItemProperty.bHooked, 1		
+		JE GetNxtItmPropExit_AfterFound
+
+		ADD ECX, EBP
+		MOV word ptr [EDI + 0x2c4],CX
+
+
+	GetNxtItmPropExit_AfterFound:
+		MOV g_specialGetItemProperty.bHooked, 0
+		JMP dword ptr[ReturnGetNextItemPropExitFound]
+	}
+}
+
+
+struct GetItemPropertyTypeHookID {
+	uint32_t uIDP1 = 0;
+	uint32_t uIDP2 = 0;
+} g_itemPropertyTypeHookID;
+
+
+__declspec(naked) void GetItemPropTypeExtractIDInit()
+{
+	__asm
+	{
+		MOV g_itemPropertyTypeHookID.uIDP1, 0
+		MOV g_itemPropertyTypeHookID.uIDP2, 0
+
+		MOV EDX, dword ptr ds:[0x00864424]
+		JMP dword ptr[ReturnGetItemPropTypeGetIDInit]
+	}
+}
+
+__declspec(naked) void GetItemPropTypeExtractID()
+{
+	__asm
+	{
+		MOV EAX, dword ptr [ECX]
+		MOV g_itemPropertyTypeHookID.uIDP1, EAX
+
+		MOV EAX, dword ptr [ECX + 4]
+		MOV g_itemPropertyTypeHookID.uIDP2, EAX
+
+		POP EAX
+		MOV EAX, dword ptr [ECX + 0x40]
+		MOV EAX, dword ptr [EAX]
+
+		JMP dword ptr[ReturnGetItemPropTypeGetID]
+	}
+}
+
+Patch _GetSpecificItemPropertyPatches[] =
+{
+	Patch((DWORD)OFFS_GetNextItemPropPatchEntry, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
+	Patch(OFFS_GetNextItemPropPatchEntry + 1, (relativefunc)GetNextItemPropEntryPatch),
+
+	Patch((DWORD)OFFS_GetNextItemPropPatchExit, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(OFFS_GetNextItemPropPatchExit + 1, (relativefunc)GetNextItemPropExitPatch),
+
+	Patch((DWORD)OFFS_GetItemPropTypeGetID, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(OFFS_GetItemPropTypeGetID +1, (relativefunc)GetItemPropTypeExtractID),
+
+	Patch((DWORD)OFFS_GetItemPropTypeGetIDInit, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
+	Patch(OFFS_GetItemPropTypeGetIDInit +1, (relativefunc)GetItemPropTypeExtractIDInit),
+
+	Patch()
+};
+
+Patch *GetSpecificItemPropertyPatches = _GetSpecificItemPropertyPatches;
+
+
+std::string GetItemPropertyID()
+{
+	uint64_t uIDComplet = (uint64_t)g_itemPropertyTypeHookID.uIDP2 << 32;
+	uIDComplet |= g_itemPropertyTypeHookID.uIDP1;
+
+	if (uIDComplet == 0)
+		return "";
+
+	std::string s(20, '\0'); // max digits
+	auto res = std::to_chars(s.data(), s.data() + s.size(), uIDComplet);
+	if (res.ec != std::errc())
+		return "";
+	s.resize(res.ptr - s.data());
+	return s;
+}
+
+
+
+void PatchGetNextItemProperty(char* pObject, int32_t iCounter)
+{
+	g_specialGetItemProperty.bHooked = 1;
+	g_specialGetItemProperty.iCounter = iCounter;
+	g_specialGetItemProperty.pExpectedItem = pObject;
+}
+
+void PrepareGetPropertyFromID(char* pItem, char* cID)
+{
+	std::string sID(cID);
+	uint64_t uID;
+	auto res = std::from_chars(sID.data(), sID.data() + sID.size(), uID);
+	int32_t iCounter = -1;
+	if (res.ec == std::errc())
+		iCounter = GetItemPropertyCounterFromID(pItem, uID);
+
+	PatchGetNextItemProperty((pItem+0x730), iCounter);
+}
+
+void PrepareGetPropertyFromIndex(char* pItem, int iIdx, bool bCountTemp)
+{
+	int32_t iCounter = GetItemPropertyCounterFromIdx(pItem, iIdx, bCountTemp);
+	PatchGetNextItemProperty((pItem + 0x730), iCounter);
+}
+
+
 int ItemGetInt(char* cCommand, int iObjectID) {
 	NWN::OBJECTID       ObjectId;
 	GameObject        *Object;
@@ -746,6 +1199,10 @@ int ItemGetInt(char* cCommand, int iObjectID) {
 		return GetItemGMaterial(ItemPtr);
 	else if (sCommand == "NumberOfDamageReduction")
 		return GetItemNumberOfDmgRedct(ItemPtr);
+	else if (sCommand == "NbProperty")
+		return GetPropertyNumber(ItemPtr, false);
+	else if (sCommand == "NbPropertyT")
+		return GetPropertyNumber(ItemPtr, true);
 	else if (sCommand.rfind(cst_ModelPiece, 0) == 0) {
 		sCommand = sCommand.substr(cst_ModelPiece.size());
 		char* pEnd;
@@ -856,6 +1313,10 @@ void ItemSetInt(char* cCommand, int iObjectID, int iValue) {
 		RemoveDmgRedct(ItemPtr, iValue);
 	else if (sCommand == "Charges")
 		ChargesNumber(ItemPtr, iValue);
+	else if (sCommand == "PrepareGetPropertyByIdx")
+		PrepareGetPropertyFromIndex(ItemPtr, iValue, false);
+	else if (sCommand == "PrepareGetPropertyByIdxT")
+		PrepareGetPropertyFromIndex(ItemPtr, iValue, true);
 	else if (sCommand.rfind(cst_ModelPiece, 0) == 0) {
 		sCommand = sCommand.substr(cst_ModelPiece.size());
 		char* pEnd;
@@ -998,6 +1459,13 @@ std::string ItemGetString(char* cCommand, int iObjectID) {
 	std::string sCommand(cCommand);
 	std::string sResult = "";
 
+
+	//little ugly for now, but allow kept structs localized
+	if (sCommand == "DPropertyID")
+	{
+		return GetItemPropertyID();
+	}
+
 	ObjectId = (NWN::OBJECTID) iObjectID;
 
 	if ((ObjectId & NWN::INVALIDOBJID) != 0)
@@ -1015,6 +1483,16 @@ std::string ItemGetString(char* cCommand, int iObjectID) {
 		return GetItemDescription(ItemPtr);
 	else if (sCommand == "DescriptionNI")
 		return GetItemDescriptionNonIdentified(ItemPtr);
+	else if (sCommand.find("PropertyID") != std::string::npos)
+	{
+		StringSplitter s(sCommand);
+		int iIdx, bCountTemp;
+		if (s.skip() && s.nextInt(iIdx) && s.nextInt(bCountTemp))
+		{
+			return GetPropertyID(ItemPtr, iIdx, (bCountTemp == 1));
+		}
+		return "";
+	}
 	else if (sCommand.find("Color") != std::string::npos)
 	{
 		NWN::D3DXCOLOR* ObjColor = GetItemColorPtr(ItemPtr, sCommand);
@@ -1049,6 +1527,10 @@ void ItemSetString(char* cCommand, int iObjectID, char* sValue) {
 		SetItemDescription(ItemPtr, sValue);
 	else if (sCommand == "DescriptionNI")
 		SetItemDescriptionNonIdentified(ItemPtr, sValue);
+	else if (sCommand == "AddProperty")
+		AddItemProperty(Object, sValue);
+	else if (sCommand == "PrepareGetPropertyByID")
+		PrepareGetPropertyFromID(ItemPtr, sValue);
 	else if (sCommand.find("Color") != std::string::npos)
 	{
 
@@ -1060,6 +1542,14 @@ void ItemSetString(char* cCommand, int iObjectID, char* sValue) {
 				memcpy(ObjColor, &myColor, sizeof(myColor));
 			}
 		}
+	}
+}
+
+void InitPatchItemProperty()
+{
+	int i = 0;
+	while(GetSpecificItemPropertyPatches[i].Apply()) {
+		i++;
 	}
 }
 

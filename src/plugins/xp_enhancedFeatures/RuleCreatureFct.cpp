@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 #include "RuleCreatureFct.h"
+#include "CustomValues.h"
 #include "../../septutil/NwN2DataPos.h"
 
 

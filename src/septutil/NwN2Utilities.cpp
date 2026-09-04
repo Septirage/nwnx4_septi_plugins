@@ -15,6 +15,97 @@ NWN::OBJECTID GetModuleID()
 }
 
 
+
+
+elementArray* getBasePCBlockList() {
+	uint32_t eax = *(uint32_t*)OFFS_g_pAppManager;
+	eax = *(uint32_t*)(eax + 4);
+	eax = *(uint32_t*)(eax + 4);
+	eax = *(uint32_t*)(eax + 0x1008C);
+
+	if (eax == 0) return nullptr;
+	return *(elementArray**)eax;
+}
+
+//
+
+
+
+
+
+
+CNWSPlayerStruct* GetPCBlockFromCreature(uint32_t oCreature)
+{
+	uint32_t playerID = NWN::PLAYERID_INVALIDID;
+	//Get it quick if controlled
+	NWN::CGameObject * Object;
+	NWN::CNWSCreature * Creature;
+	GameObjectManager m_ObjectManager;
+
+	Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) oCreature );
+	if (Object == NULL)
+		return NULL;
+
+	Creature = Object->AsCreature();
+
+	if (Creature == NULL)
+		return NULL;
+
+	//We have a creature. Is it a controlled Creature or not?
+	playerID = Creature->GetControllingPlayerId();
+
+	if (playerID != NWN::PLAYERID_INVALIDID)
+	{
+		//Not a controlled creature. Test if its an owned one.
+		// 
+		//Test if it has a master. 
+		uint32_t oMaster = *(uint32_t*)(((char*)Creature) + AmCrtMasterID);
+		if (oMaster != 0x7F000000)
+		{
+			oCreature = oMaster;
+		}
+	}
+
+
+
+	//Go trhough all Players
+
+	uint32_t eax = *(uint32_t*)OFFS_g_pAppManager;
+	eax = *(uint32_t*)(((char*)eax) + 4);
+	eax = *(uint32_t*)(((char*)eax) + 4);
+
+	eax = *(uint32_t*)(((char*)eax) + 0x1008c);
+	if (eax == 0)
+	{
+		return NULL;
+	}
+
+	//We are on the "list". So ... [ptrToFirst][ptrToLast][Size]
+
+	//First array element.
+	elementArray* currentElement  = *(elementArray**)eax;
+	//For array elements we have... [previous][next][element]
+
+	while (currentElement  != NULL)
+	{
+		//Error, we stop here
+		if (currentElement->ptrPlayerStruct == NULL)
+			return NULL;
+
+		CNWSPlayerStruct* playerStruct = currentElement->ptrPlayerStruct;
+
+		uint32_t oTestedOwned = (uint32_t)playerStruct->ownedCreature;
+
+		if (oTestedOwned == oCreature)
+			return playerStruct;
+
+		currentElement = currentElement->next;
+
+	}
+
+	return NULL;
+}
+
 uint32_t GetPCIDFromCreature(uint32_t oCreature)
 {
 	uint32_t playerID = NWN::PLAYERID_INVALIDID;

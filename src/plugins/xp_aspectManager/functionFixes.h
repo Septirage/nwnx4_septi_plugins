@@ -3,5 +3,6 @@
 
 
 void initAspectManagerFctFixes();
+void initSetIconFix();
 
 #endif

@@ -2,7 +2,8 @@
 // nwnx_enhancedfeatures - various functions to interact with EnhancedFeatures Plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified By:	Septirage			2025-02-02	v1.1.14 - Add Time and Chat functions
+// Last Modified By:	Septirage			2026-08-23	v1.1.17 - Add Get/SetCustomValue functions
+// 					    Septirage			2025-02-02	v1.1.14 - Add Time and Chat functions
 // 					    Septirage			2025-06-27	v1.1.10	- Add the XPEnhancedFeatures_ReloadHitPointFile function
 // 					    Septirage			2025-04-23	v1.1.8	- Add the EFFECT_TYPE_* constants
 // 					    Septirage			2024-10-25	v1.1.0	- Add the XPEnhancedFeatures_ReloadReduceSpeedFile function 
@@ -45,7 +46,23 @@ void XPEnhancedFeatures_ReloadReduceSpeedFile();
 void XPEnhancedFeatures_ReloadHitPointFile();
 
 
-/******************************** Chat Functions *********************************/
+
+/***************************** CustomValues Functions *****************************/
+
+// Get the specified CustomValue of a given creature
+// oCreature	- The creature 
+// nIdx			- The index of the customValue
+int GetCustomValue_EFF(object oCreature, nIdx);
+
+
+// Set the specified CustomValue of a given creature
+// oCreature	- The creature
+// nIdx			- The index of the customValue
+// iValue		- The value to set
+void SetCustomValue_EFF(object oCreature, int nIdx, int iValue);
+
+
+/********************************* Chat Functions *********************************/
 
 // Return the distance for a message on the specified volume.
 // nTalkVolume 	- TALKVOLUME_TALK or TALKVOLUME_WHISPER constant
@@ -144,4 +161,14 @@ void SetChatDistance_EFF(int nTalkVolume, float fRange)
 float GetChatDistance_EFF(int nTalkVolume)
 {
 	return NWNXGetFloat("EnhancedFeatures", "TalkFunction", "ChatDistance", nTalkVolume);
+}
+
+int GetCustomValue_EFF(object oCreature, int nIdx)
+{
+	return NWNXGetInt("EnhancedFeatures", "CustomValue", IntToString(nIdx), ObjectToInt(oCreature));
+}
+
+int SetCustomValue_EFF(object oCreature, int nIdx, int iValue)
+{
+	return NWNXSetInt("EnhancedFeatures", "CustomValue", IntToString(nIdx), ObjectToInt(oCreature), iValue);
 }

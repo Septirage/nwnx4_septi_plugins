@@ -4,6 +4,7 @@
 #include <NWN2Lib/NWN2.h>
 #include <NWN2Lib/NWN2Common.h>
 #include <misc\Patch.h>
+#include "messageManagement.h"
 
 namespace {
 	#define OFF_GetScaleHook	0x006AA61E
@@ -68,11 +69,49 @@ namespace {
 	};
 
 	Patch* quickPatches = _quickPatches;
+
+
+	#define OFF_SetIconFix	0x006ABCB6
+
+	unsigned long RetfixSetIcon = 0x006ABCBC;
+	//0x006ABCB6
+	__declspec(naked) void FixSetIcon()
+	{
+		__asm
+		{
+			MOV		ECX, EAX
+			MOV		EDX, EDI
+
+			CALL	SendIconUpdateMessage
+
+
+			JMP		dword ptr[RetfixSetIcon]
+		}
+	}
+
+	Patch _setIconPatch[] =
+	{
+		//Patch on getScale, to allow door too
+		Patch((DWORD)OFF_SetIconFix, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6), //JMP NOP
+		Patch(OFF_SetIconFix + 1, (relativefunc)FixSetIcon),
+
+		Patch()
+	};
+
+	Patch* setIconPatch = _setIconPatch;
+
 }
 
 void initAspectManagerFctFixes() {
 	int i = 0;
 	while(quickPatches[i].Apply()) {
+		i++;
+	}
+}
+
+void initSetIconFix() {
+	int i = 0;
+	while (setIconPatch[i].Apply()) {
 		i++;
 	}
 }

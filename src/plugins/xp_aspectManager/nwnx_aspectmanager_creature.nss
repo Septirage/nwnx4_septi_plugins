@@ -91,14 +91,14 @@ int GetCreatureTattoos_xpAM(object oCreature);
 void SetCreatureIsRaiseable_xpAM(object oCreature, int bRaiseable);
 
 //Get the isRaiseable status of the oCreature.
-void GetCreatureIsRaiseable_xpAM(object oCreature);
+int GetCreatureIsRaiseable_xpAM(object oCreature);
 
 //Set the isRaiseable status of the oCreature.
 // bSelectableWhenDead: If this is TRUE, the caller is selectable after death.
 void SetCreatureIsDeadSelectable_xpAM(object oCreature, int bSelectableWhenDead);
 
 //Get the isRaiseable status of the oCreature.
-void GetCreatureIsDeadSelectable_xpAM(object oCreature);
+int GetCreatureIsDeadSelectable_xpAM(object oCreature);
 
 //Weight functions.
 //Note that the TotalWeight cant be setted but you can call RecalculateCreatureTotalWeight to trigger again the calculation.
@@ -455,7 +455,7 @@ void SetCreatureIsRaiseable_xpAM(object oCreature, int bRaiseable)
 }
 
 
-void GetCreatureIsRaiseable_xpAM(object oCreature)
+int GetCreatureIsRaiseable_xpAM(object oCreature)
 {
 	return NWNXGetInt("AspectManager", "creature", "IsRaiseable", ObjectToInt(oCreature));
 }
@@ -467,7 +467,7 @@ void SetCreatureIsDeadSelectable_xpAM(object oCreature, int bSelectableWhenDead)
 }
 
 
-void GetCreatureIsDeadSelectable_xpAM(object oCreature)
+int GetCreatureIsDeadSelectable_xpAM(object oCreature)
 {
 	return NWNXGetInt("AspectManager", "creature", "IsDeadSelectable", ObjectToInt(oCreature));
 }
@@ -651,7 +651,7 @@ int GetCreatureNeverShowArmor_xpAM(object oCreature)
 
 void SetCreatureNeverDrawHelmet_xpAM(object oCreature, int bNeverDraw)
 {
-	NWNXSetInt("AspectManager", "creature", "NeverDrawHelmet", ObjectToInt(oCreature), bNeverShow);
+	NWNXSetInt("AspectManager", "creature", "NeverDrawHelmet", ObjectToInt(oCreature), bNeverDraw);
 }
 
 int GetCreatureNeverDrawHelmet_xpAM(object oCreature)
