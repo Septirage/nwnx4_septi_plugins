@@ -94,6 +94,10 @@ void processCurrentToken(const std::string& currentToken, std::vector<Token>& to
 		{
 			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_ENCUMBRANCE2});
 		}
+		else if (lowerToken == "incombat")
+		{
+			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_INCOMBAT});
+		}
 		else if (operatorNumValues.find(currentToken) != operatorNumValues.end())
 		{
 			tokens.push_back({TokenType::OPNUM, operatorNumValues[currentToken]});
@@ -253,14 +257,12 @@ Rule* parseExpression(std::vector<Token>& tokens, int& pos)
 					throw std::runtime_error("Ability function must have a parameter from 0 to 5, you have put " + std::to_string(iAbility));
 			}
 
-			/*
 			if (iFctType == FCT_CUSTOMVALUE)
 			{
 				int iCustomValue = tParams.back();
-				if(iCustomValue < 0 || iCustomValue >= )
+				if (iCustomValue < 0 || iCustomValue >= GetCustomValuesNumber())
 					throw std::runtime_error("CustomValue function must have a parameter from 0 to nbCustomValue, you have put " + std::to_string(iCustomValue));
 			}
-			*/
 
 			Rule* node = new Rule{ TokenType::FUNCTION, iFctType, nullptr, nullptr, tParams};
 
@@ -432,6 +434,10 @@ bool TestSpecial(int iSpecialType, int creaPtr)
 		iVal = *(uint8_t*)(creaPtr + AmCrtEncumbrance);
 		bResult = (iVal == 2);
 		break;
+	case RULESPECIAL_INCOMBAT:
+		iVal = *(uint32_t*)(creaPtr + AmCrtInCombat);
+		bResult = (iVal == 1);
+		break;
 	default:
 		bResult = false;
 	}
@@ -453,8 +459,8 @@ int evaluateRuleInt(Rule* node, RuleType cRuleType, int iPcAddr, bool& isValid)
 			return ClassLevelSum(node->params, CreaBlockStat);
 		else if (node->value == FCT_CLASSMAX)
 			return ClassLevelMax(node->params, CreaBlockStat);
-		//else if (node->value == FCT_CUSTOMVALUE)
-		//	return GetCreatureCustomValue(iPcAddr,node->params);
+		else if (node->value == FCT_CUSTOMVALUE)
+			return GetCreatureCustomValue((GameObject*)iPcAddr, node->params.back());
 	}
 	else if (node->type == TokenType::NUM)
 	{

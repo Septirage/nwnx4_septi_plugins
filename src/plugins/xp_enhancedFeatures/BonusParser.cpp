@@ -45,6 +45,8 @@ double FunctionT::evaluate(int creaBlock) const
 		return GetBaseSkill(params.back(), creaBlock);
 	else if (functionToUse == FunctionType::ABILITY)
 		return GetBaseAbility(params.back(), creaBlock);
+	else if (functionToUse == FunctionType::CUSTOMVALUE)
+		return GetCustomValueFromCreaBlock(params.back(), creaBlock);
 	return 0;
 }
 
@@ -58,6 +60,8 @@ int FunctionT::evaluateInt(int creaBlock) const
 		return GetBaseSkill(params.back(), creaBlock);
 	else if (functionToUse == FunctionType::ABILITY)
 		return GetBaseAbility(params.back(), creaBlock);
+	else if (functionToUse == FunctionType::CUSTOMVALUE)
+		return GetCustomValueFromCreaBlock(params.back(), creaBlock);
 
 	return 0;
 }
@@ -186,6 +190,10 @@ Expr* parseFunction(const std::string& expr, size_t& pos)
 		funcChoice = FunctionType::ABILITY;
 		sFunction = "Ability";
 		pos += 7;
+	} else if (expr.substr(pos, 11) == "CustomValue") {
+		funcChoice = FunctionType::CUSTOMVALUE;
+		sFunction = "CustomValue";
+		pos += 11;
 	} else {
 		throw std::runtime_error("Unknown function");
 	}
@@ -206,7 +214,7 @@ Expr* parseFunction(const std::string& expr, size_t& pos)
 				++pos;
 			}
 			int param = std::stoi(expr.substr(start, pos - start));
-			if (param <= 0) {
+			if (param < 0) {
 				throw std::runtime_error(sFunction + " parameter must be a positive integer");
 			}
 			params.push_back(param);
@@ -223,7 +231,7 @@ Expr* parseFunction(const std::string& expr, size_t& pos)
 		++pos;
 
 		//Check params number
-		if ((funcChoice == FunctionType::SKILL || funcChoice == FunctionType::ABILITY) && params.size() != 1)
+		if ((funcChoice == FunctionType::SKILL || funcChoice == FunctionType::ABILITY || funcChoice == FunctionType::CUSTOMVALUE) && params.size() != 1)
 		{
 			throw std::runtime_error("Expected exactly one paramter for function " + sFunction);
 		}

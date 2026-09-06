@@ -12,6 +12,17 @@
 #include "CustomValues.h"
 #include "../../septutil/NwN2DataPos.h"
 
+// creaBlock (the AppBlock) stores a back-pointer to its owning GameObject at offset
+// 0xA4, same as SkillHooks.cpp/WeaponFinesseHook.cpp use to recover the area/object.
+int GetCustomValueFromCreaBlock(int iIdx, int creaBlock)
+{
+	GameObject* pOwner = *(GameObject**)(creaBlock + 0xA4);
+	if (pOwner == nullptr)
+		return 0;
+
+	return GetCreatureCustomValue(pOwner, iIdx);
+}
+
 
 __declspec(naked) int8_t __fastcall GetRacialAbilityBonus_Intern(__in void* pGlobalState, __in void* Unused, __in int abilityID, __in uint16_t uRace, __in uint16_t uSubRace)
 {

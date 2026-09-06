@@ -51,6 +51,7 @@ class EnhancedFeatures final : public Plugin
 	std::string m_sSkillHookFile;
 	std::string m_sWeaponFinesseFile;
 	std::string m_sReduceSpeedFile;
+	std::string m_sCustomValueRuleFile;
 
 
 };

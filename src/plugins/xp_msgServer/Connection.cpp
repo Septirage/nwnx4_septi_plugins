@@ -749,7 +749,7 @@ MsgServ::Init(char* nwnxhome)
 	 config->Read("MCDKey", &i3CDKey, 0);
 	 b3CDKey = (i3CDKey != 0);
 
-	 if (bConnectionProcess) {
+	 if (m_connection.enabled) {
 		 logger->Debug("UseConnectionSystem set to true.");
 	 }
 	 else {
@@ -948,9 +948,9 @@ void MsgServ::SetInt([[maybe_unused]] char* sFunction,
 	logger->Trace(logTxt.c_str());
 
 	if (function == "ConnectionSystem") {
-		bConnectionProcess  = (nValue != 0);
+		m_connection.enabled = (nValue != 0);
 		logTxt = "Set Connection Process to : ";
-		if (bConnectionProcess)
+		if (m_connection.enabled)
 			logTxt += "TRUE";
 		else
 			logTxt += "FALSE";
