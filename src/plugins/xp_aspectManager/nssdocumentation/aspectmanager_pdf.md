@@ -414,11 +414,11 @@ WeaponSpecific
   
 ItemProperties  
 [AddItemProperty\_xpAM](#additemproperty_xpam)  
-[GetItemPropertyID\_xpAM](#getitempropertyid_xpam) 
-[GetNumItemProperties\_xpAM](#getnumitemproperties_xpam) 
-[GetSpecificItemProperty\_xpAM](#getspecificitemproperty_xpam) 
-[GetSpecificItemPropertyByID\_xpAM](#getspecificitempropertybyid_xpam) 
-[GetSpecificItemPropertyID\_xpAM](#getspecificitempropertyid_xpam) 
+[GetItemPropertyID\_xpAM](#getitempropertyid_xpam)  
+[GetNumItemProperties\_xpAM](#getnumitemproperties_xpam)  
+[GetSpecificItemProperty\_xpAM](#getspecificitemproperty_xpam)  
+[GetSpecificItemPropertyByID\_xpAM](#getspecificitempropertybyid_xpam)  
+[GetSpecificItemPropertyID\_xpAM](#getspecificitempropertyid_xpam)  
 </td>
 <td style="vertical-align:top">
   

@@ -10,6 +10,7 @@
 #include <misc/Patch.h>
 #include "../../septutil/NwN2DataPos.h"
 #include "../../septutil/NwN2Utilities.h"
+#include "../../septutil/NwN2Message.h"
 
 
 #include <string>
@@ -29,67 +30,9 @@
 
 #define FUNC_GETBASEITMFROMID 0x00750b20
 
-#define FUNC_PREPAREENDOFMSG  0x0074e080
-
-
-#define FUNC_INITMSGBLOCK	0x74ed00
 #define FUNC_BUILDALLVISUAL 0x551090
 #define FUNC_UPDATEMSGHASH  0x74e530
 #define FUNC_BUILDMSGITEM   0x551090
-
-#define FUNC_ADDLOCALIZEDNAMETOMSG	0x5b7010
-
-
-void AddX8ToMsg(uint8_t uData, unsigned char* msgBlock)
-{
-	uint32_t* accessMBlock = (uint32_t*)msgBlock;
-	uint8_t* msgData       = (uint8_t*)(accessMBlock[1]);
-	msgData[accessMBlock[3]] = uData;
-	accessMBlock[3]++;
-	accessMBlock[7]++;
-}
-
-void AddX32ToMsg(uint32_t uData, unsigned char* msgBlock)
-{
-	uint32_t* accessMBlock = (uint32_t*)msgBlock;
-	uint8_t* msgData = (uint8_t*)(accessMBlock[1]);
-	*(uint32_t*)(msgData + accessMBlock[3]) = uData;
-	accessMBlock[3] += 4;
-	accessMBlock[7] += 4;
-}
-
-__declspec(naked) void __fastcall AddCExoString(struct CExoString * Value, void * MessageObject)
-{
-	__asm
-	{
-		push    20h ; bit length
-		push    ecx ; value to write
-		mov     ecx, edx ; set this to MessageObject
-		mov     eax, OFFS_CNWSMessage_WriteCExoString
-		call    eax
-
-		ret
-	}
-}
-
-__declspec(naked) void __fastcall AddLocalizedNameToMsg(__in void* MsgCreator, __in void* Unused, __in void* localizedName, __in int iVal)
-{
-	__asm
-	{
-		mov edx, FUNC_ADDLOCALIZEDNAMETOMSG;
-		jmp edx;
-	}
-}
-
-__declspec(naked) void __fastcall InitMessageBlock(__in void* MsgCreator, __in void* Unused, __in uint32_t uSize, __in uint32_t param1, __in uint32_t param2)
-{
-	__asm
-	{
-		mov		edx, FUNC_INITMSGBLOCK;
-		jmp		edx;
-	}
-}
-
 
 
 //OFFS_g_pAppManager
@@ -139,7 +82,7 @@ void prepareMsgBlock(unsigned char* DataDest, uint32_t sizeOfDataDest, uint32_t 
 	*(uint32_t*)(MsgCreation + 0x14)       = 0x80;
 	*(unsigned char**)(MsgCreation + 0x10) = UnknowMsg;
 
-	InitMessageBlock(MsgCreation, NULL, uSize, param1, param2);
+	InitMessageBlock(MsgCreation, uSize, param1, param2);
 }
 
 bool PrepaSendMessageToPlayer(unsigned long PlayerId, unsigned char* Data, unsigned long Size, unsigned long Flags)
@@ -227,15 +170,6 @@ __declspec(naked) void __fastcall BuildChestVisual(uint8_t* Visual, uint8_t* Unu
 	{
 		mov edx, FUNC_BUILDVISUAL;
 		jmp edx;
-	}
-}
-
-__declspec(naked) void __fastcall PrepareEndOfMsg(__in void* pMsgCreator, __in void* Unused, __in void* pData, __in void* pSize)
-{
-	__asm
-	{
-		mov		edx, FUNC_PREPAREENDOFMSG;
-		jmp		edx;
 	}
 }
 
@@ -352,7 +286,7 @@ void prepareEndOfMessage(unsigned char* pMsgCreation, unsigned char* pData, unsi
 	*(unsigned long*)((unsigned char*)pMsgCreation + 0xC) = *pSize;
 	*(unsigned char**)(pMsgCreation + 0x4) = pData;
 	unsigned char pDataC;
-	PrepareEndOfMsg((void*)pMsgCreation, NULL, (void*)(pMsgCreation + 0x4), (void*)pSize);
+	PrepareEndOfMsg((void*)pMsgCreation, (void*)(pMsgCreation + 0x4), (void*)pSize);
 }
 
 
@@ -1051,7 +985,7 @@ bool showObject(int iInventorySlot, int iAffected, int iItem, int mustView)
 	}
 
 	uint32_t MsgData;
-	PrepareEndOfMsg((void*)MsgCreation, NULL, (void*)&MsgData, (void*)&Size);
+	PrepareEndOfMsg((void*)MsgCreation, (void*)&MsgData, (void*)&Size);
 
 	unsigned long iMustView = GetObjectToPlayerId(mustView);
 	if (iMustView != NWN::PLAYERID_INVALIDID) {
@@ -1118,7 +1052,7 @@ bool refreshSelfBelt(int iAffected, int mustView)
 
 
 	uint32_t MsgData;
-	PrepareEndOfMsg((void*)MsgCreation, NULL, (void*)&MsgData, (void*)&Size);
+	PrepareEndOfMsg((void*)MsgCreation, (void*)&MsgData, (void*)&Size);
 
 
 	if (iMustView != NWN::PLAYERID_INVALIDID)
@@ -1579,7 +1513,7 @@ void __fastcall SendIconUpdateMessage(uint8_t* pItem, uint32_t uNewIcon)
 			//if (IsKnowByPlayer(iMustView, idItem) && IsKnowByPlayer(iMustView, idPossessor))
 			if (IsKnowByPlayer(iMustView, idPossessor))
 			{
-				InitMessageBlock(myMessage,NULL,0x400,p->playerID,1);
+				InitMessageBlock(myMessage, 0x400,p->playerID,1);
 
 				AddX8ToMsg('D', myMessage);
 				AddX8ToMsg(0x6, myMessage);
@@ -1614,7 +1548,7 @@ void __fastcall SendIconUpdateMessage(uint8_t* pItem, uint32_t uNewIcon)
 
 				uint8_t* MsgData;
 				uint32_t Size;
-				PrepareEndOfMsg((void*)myMessage, NULL, (void*)&MsgData, (void*)&Size);
+				PrepareEndOfMsg((void*)myMessage, (void*)&MsgData, (void*)&Size);
 
 				MsgData[0] = 0x50;
 				MsgData[1] = 0x5;
@@ -1670,7 +1604,7 @@ void __fastcall SendIconUpdateMessage(uint8_t* pItem, uint32_t uNewIcon)
 
 			//if (IsKnowByPlayer(iMustView, idItem) && IsKnowByPlayer(iMustView, idPossessor))
 			{
-				InitMessageBlock(myMessage,NULL,0x400,p->playerID,1);
+				InitMessageBlock(myMessage, 0x400,p->playerID,1);
 
 				AddX8ToMsg('D', myMessage);
 				AddX8ToMsg(0x6, myMessage);
@@ -1706,7 +1640,7 @@ void __fastcall SendIconUpdateMessage(uint8_t* pItem, uint32_t uNewIcon)
 
 				uint8_t* MsgData;
 				uint32_t Size;
-				PrepareEndOfMsg((void*)myMessage, NULL, (void*)&MsgData, (void*)&Size);
+				PrepareEndOfMsg((void*)myMessage, (void*)&MsgData, (void*)&Size);
 
 				MsgData[0] = 0x50;
 				MsgData[1] = 0x5;
@@ -1795,7 +1729,7 @@ void testMessage(uint32_t oPC, uint32_t iObjectToUpdate)
 
 	unsigned char* myMessage = (unsigned char*)GetCNWSMessage();
 
-	InitMessageBlock(myMessage,NULL,0x400,playerStruct->playerID,1);
+	InitMessageBlock(myMessage, 0x400,playerStruct->playerID,1);
 
 	AddX8ToMsg('D', myMessage);
 	AddX8ToMsg(0x6, myMessage);
@@ -1844,7 +1778,7 @@ void testMessage(uint32_t oPC, uint32_t iObjectToUpdate)
 
 	uint8_t* MsgData;
 	uint32_t Size;
-	PrepareEndOfMsg((void*)myMessage, NULL, (void*)&MsgData, (void*)&Size);
+	PrepareEndOfMsg((void*)myMessage, (void*)&MsgData, (void*)&Size);
 
 	MsgData[0] = 0x50;
 	MsgData[1] = 0x5;
@@ -1964,153 +1898,5 @@ bool sendMusicMessage(int iType, int iOption, int iValue, int mustView)
 		result = PrepaSendMessageToPlayer(iMustView, mesData, Size, 0);
 	}
 	return result;
-}
-
-#define OFFS_PLAYERLISTADD 0x00558000
-
-
-__declspec(naked) bool __fastcall SendServerToPlayerList_Add(__in void* MsgCreator, __in void* Unused, uint32_t receiverPCID, void* pcBlockPtr)
-{
-	__asm
-	{
-		mov		edx, OFFS_PLAYERLISTADD;
-		jmp		edx;
-	}
-}
-
-
-bool SendUpdatePCName(uint32_t oChanged, uint32_t oReceiver, std::string sFirstName, std::string sLastName, bool bSetName)
-{
-	static bool bInitialized = false;
-	static uint32_t* fakeCELocString;
-	static uint32_t* ptrFakeLString;
-	static uint32_t* fakeLocalizedString;
-	static uint32_t* fakeCELocString2;
-	static uint32_t* ptrFakeLString2;
-	static uint32_t* fakeLocalizedString2;
-
-	if(!bInitialized)
-	{
-		fakeCELocString = new uint32_t[3];
-		fakeCELocString[0] = 0;
-		ptrFakeLString = new uint32_t[1];
-		ptrFakeLString[0] = (uint32_t)fakeCELocString;
-
-		fakeLocalizedString = new uint32_t[4];
-		fakeLocalizedString[0] = 0xFFFFFFFF;
-		fakeLocalizedString[1] = (uint32_t)ptrFakeLString;
-		fakeLocalizedString[2] = 1;
-		fakeLocalizedString[3] = 1;
-
-		fakeCELocString2 = new uint32_t[3];
-		fakeCELocString2[0] = 0;
-		ptrFakeLString2 = new uint32_t[1];
-		ptrFakeLString2[0] = (uint32_t)fakeCELocString2;
-
-		fakeLocalizedString2 = new uint32_t[4];
-		fakeLocalizedString2[0] = 0xFFFFFFFF;
-		fakeLocalizedString2[1] = (uint32_t)ptrFakeLString2;
-		fakeLocalizedString2[2] = 1;
-		fakeLocalizedString2[3] = 1;
-		bInitialized = true;
-	}
-
-
-	//558000
-	//GetPCBlock "changed"
-	uint32_t receiverPCID = GetPCIDFromCreature(oReceiver);
-
-	CNWSPlayerStruct* pStructChanged = GetPCBlockFromCreature(oChanged);
-	NWN::OBJECTID oIdChanged;
-
-	if (receiverPCID == NWN::PLAYERID_INVALIDID)
-		return false;
-
-
-	if (pStructChanged == NULL)
-	{
-		if (bSetName)
-			oIdChanged = oChanged;
-		else
-			return false;
-
-	}
-	else
-	{
-		oIdChanged = pStructChanged->ownedCreature;
-	}
-
-	//GetCreature "changed"
-	GameObjectManager m_ObjectManager;
-	NWN::CGameObject *Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) oIdChanged );
-	if (Object == NULL)
-		return false;
-
-	NWN::OBJECT_TYPE possessorType = Object->GetObjectType();
-	if (possessorType != NWN::OBJECT_TYPE_CREATURE)
-	{
-		return false;
-	}
-
-	int* ptrMsg = GetCNWSMessage();
-
-	bool bResult = true;
-
-	fakeCELocString[1] = (uint32_t)sFirstName.data();
-	fakeCELocString[2] = std::size(sFirstName) + 1;
-
-	fakeCELocString2[1] = (uint32_t)sLastName.data();
-	fakeCELocString2[2] = std::size(sLastName) + 1;
-
-	if (bSetName)
-	{
-		InitMessageBlock(ptrMsg, NULL, 0x400, receiverPCID, 1);
-		AddX8ToMsg('U', (unsigned char*)ptrMsg);
-		AddX8ToMsg(5, (unsigned char*)ptrMsg);
-		AddX32ToMsg(oIdChanged | 0x80000000, (unsigned char*)ptrMsg);
-		AddX32ToMsg(0x100, (unsigned char*)ptrMsg);
-
-		AddLocalizedNameToMsg(ptrMsg, NULL, fakeLocalizedString, 0);
-		AddLocalizedNameToMsg(ptrMsg, NULL, fakeLocalizedString2, 0);
-
-		uint8_t* MsgData;
-		uint32_t Size;
-		PrepareEndOfMsg((void*)ptrMsg, NULL, (void*)&MsgData, (void*)&Size);
-
-		MsgData[0] = 0x50;
-		if(bSetName) {
-			MsgData[1] = 0x5;
-			MsgData[2] = 0x1;
-		}
-		else {
-			MsgData[1] = 0xA;
-			MsgData[2] = 0x2;
-		}
-
-
-		bResult = PrepaSendMessageToPlayer(receiverPCID, MsgData, Size, 0);
-	}
-	else
-	{
-		//Update creature firstname/lastname
-		uint32_t uBaseFirstName[4] = {0};
-		uint32_t uBaseLastName[4] = {0};
-		memcpy(uBaseFirstName, (void*)(((uint32_t)Object) + 0x2d4), 4 * 4);
-		memcpy(uBaseLastName, (void*)(((uint32_t)Object) + 0x2e4), 4 * 4);
-
-		memcpy((void*)(((uint32_t)Object) + 0x2d4), fakeLocalizedString, 4 * 4);
-		memcpy((void*)(((uint32_t)Object) + 0x2e4), fakeLocalizedString2, 4 * 4);
-
-		//Ok, now call the function
-		bResult = SendServerToPlayerList_Add(ptrMsg, NULL, receiverPCID, pStructChanged);
-
-
-		//restore creature firstname/lastname
-
-		memcpy((void*)(((uint32_t)Object) + 0x2d4), uBaseFirstName, 4 * 4);
-		memcpy((void*)(((uint32_t)Object) + 0x2e4), uBaseLastName, 4 * 4);
-	}
-
-	return bResult;
 }
 

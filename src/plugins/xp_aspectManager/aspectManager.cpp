@@ -10,6 +10,7 @@
 #include "refreshObject.h"
 #include "objectSpatial.h"
 #include "functionFixes.h"
+#include "aspectForViewer.h"
 
 #include <NWN2Lib/NWN2.h>
 #include <NWN2Lib/NWN2Common.h>
@@ -699,6 +700,12 @@ AspectManager::Init(char* nwnxhome)
 		logger->Info("* Start to apply ItemProperty functions patch");
 		InitPatchItemProperty();
 		logger->Info("* ...Done.");
+	}
+
+	config->Read("UseAccountNameForOOCMsg", &iQuickPatch, 0);
+	if (iQuickPatch != 0)
+	{
+		PatchUserNameForOOCMsg();
 	}
 
 
