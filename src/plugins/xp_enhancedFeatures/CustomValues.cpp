@@ -17,6 +17,7 @@
 #include <sstream>
 #include <stdexcept>
 #include "nwn2heap.h"
+#include "CustomValues.h"
 #include "RuleParser.h"
 #include "BonusParser.h"
 
@@ -34,10 +35,120 @@ int uCustomValuesNumbers = 0;
 uint32_t uPLCstValue[5];
 uint32_t uPrepCstValue = 0;
 
+std::vector<CustomValueMode> g_customValueModes;
+
 const char* pStrCustomValue = "CustomValues";
 const char* pStrValueCst = "Value";
 
+struct CustomValueRuleSet {
+	RuleParser::Rule* featRule;
+	RuleParser::Rule* areaTypeRule;
+	RuleParser::Rule* extraRule;
+	MathExpressionParser::Expr* bonusCalculation;
+	int index;
 
+	CustomValueRuleSet(MathExpressionParser::Expr* bonus, int idx)
+		: bonusCalculation(bonus)
+		, index(idx)
+	{
+		featRule = nullptr;
+		areaTypeRule = nullptr;
+		extraRule = nullptr;
+	}
+
+	~CustomValueRuleSet()
+	{
+		delete bonusCalculation;
+		delete areaTypeRule;
+		delete extraRule;
+		delete featRule;
+	}
+};
+
+// Two independent rule sets, sharing the same rule shape (CustomValueRuleSet) but with
+// their own [CustomValueRuleN] / [CustomValueEvolutionRuleN] sections and rule numbering:
+// Computed rules compute a value live on read, Evolution rules apply a delta on tick.
+std::unordered_map<uint32_t, std::vector<CustomValueRuleSet*>> m_customValueRuleSets;
+std::unordered_map<uint32_t, std::vector<CustomValueRuleSet*>> m_customValueEvolutionRuleSets;
+
+struct EvolutionEntry {
+	int index;
+	int period; // seconds
+};
+
+std::vector<EvolutionEntry> g_evolutionEntries;
+
+// Second half of the per-creature CustomValue block: last tick time (seconds) per
+// index, used only for Evolution. Not GFF-persisted.
+static int GetCustomValueLastTick(GameObject* pCreature, int iIdx)
+{
+	if (((int*)pCreature)[1] == NULL)
+		return 0;
+
+	return ((int**)pCreature)[1][uCustomValuesNumbers + iIdx];
+}
+
+static void SetCustomValueLastTick(GameObject* pCreature, int iIdx, int iValue)
+{
+	if (((int*)pCreature)[1] == NULL)
+		return;
+
+	((int**)pCreature)[1][uCustomValuesNumbers + iIdx] = iValue;
+}
+
+// Sums the Bonus of every CustomValueRule matching iIdx for pCreature (0 if none match).
+// ruleMap is either m_customValueRuleSets (Computed) or m_customValueEvolutionRuleSets (Evolution).
+int EvaluateCustomValueRules(GameObject* pCreature, int iIdx, std::unordered_map<uint32_t, std::vector<CustomValueRuleSet*>>& ruleMap)
+{
+	auto it = ruleMap.find(iIdx);
+	if (it == ruleMap.end())
+		return 0;
+
+	char* pCreaBytes = (char*)pCreature;
+	int CreaPartPtr = *(int*)(pCreaBytes + AmCrtPtrAppBlock);
+
+	int areaType = 0;
+	{
+		GameObject* Object;
+		GameObjectManager m_ObjectManager;
+		NWN::OBJECTID areaID = *(NWN::OBJECTID*)(pCreaBytes + AmCommonArea);
+
+		if ((areaID & NWN::INVALIDOBJID) != 0)
+			areaID &= ~(NWN::LISTTYPE_MASK);
+
+		if ((Object = m_ObjectManager.GetGameObject(areaID)) != NULL)
+		{
+			if (Object->GetObjectType() == NWN::OBJECT_TYPE_AREA)
+			{
+				char* areaPtr = (char*)Object->AsArea();
+				areaType = *(uint32_t*)(areaPtr + AmAreaFlag);
+			}
+		}
+	}
+
+	int iBonusTotal = 0;
+	for (CustomValueRuleSet* myRule : it->second)
+	{
+		bool bOk = true;
+		if (myRule->featRule != nullptr)
+			bOk = RuleParser::evaluateRule(myRule->featRule, RuleParser::RuleType::FEAT, CreaPartPtr);
+
+		if (bOk && myRule->areaTypeRule != nullptr)
+			bOk = RuleParser::evaluateRule(myRule->areaTypeRule, RuleParser::RuleType::AREA, areaType);
+
+		if (bOk && myRule->extraRule != nullptr)
+			bOk = RuleParser::evaluateRule(myRule->extraRule, RuleParser::RuleType::EXTRA, (int)pCreature);
+
+		if (bOk)
+		{
+			RuleParser::m_activatedRuleSet.insert(myRule->index);
+			iBonusTotal += myRule->bonusCalculation->evaluateInt(CreaPartPtr);
+		}
+	}
+
+	RuleParser::m_activatedRuleSet.clear();
+	return iBonusTotal;
+}
 
 
 
@@ -158,7 +269,8 @@ void __fastcall MallocCustomValues(void* pCreature)
 	//Allocate new one
 	NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
 	NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
-	size_t size = uCustomValuesNumbers * sizeof(int);
+	// Second half is per-index Evolution bookkeeping (last tick time), not GFF-persisted.
+	size_t size = 2 * uCustomValuesNumbers * sizeof(int);
 
 	int* newCustomValue = (int*)pHeap->Allocate(size);
 	memset(newCustomValue, 0, size);
@@ -228,9 +340,37 @@ Patch _LoadSaveCustomValuesPatches[] =
 
 	Patch()
 };
-
 Patch *LoadSaveCustomValuesPatches = _LoadSaveCustomValuesPatches;
 
+
+void __fastcall TickCustomValueEvolution(GameObject* pCreature, uint32_t* ptrCurrentTime);
+
+#define OFFS_CreatureAIUpdateBeforeEffect		0x005fe62d
+const int ReturnToCreatureAIUpdateEffect = 0x005fe635;
+
+__declspec(naked) void HookForEvolveCustomValues()
+{
+	__asm
+	{
+		MOV		EDX, EBX
+		MOV		ECX, ESI
+		CALL	TickCustomValueEvolution
+
+		XOR		EBX, EBX
+		CMP		dword ptr [ESI + 0x1A4], EBX
+
+		JMP		dword ptr[ReturnToCreatureAIUpdateEffect]
+	}
+}
+
+Patch _PatchHookEvolveCustomValues[] =
+{
+	Patch((DWORD)OFFS_CreatureAIUpdateBeforeEffect, (char*)"\xe9\x00\x00\x00\x00\x90\x90\x90", (int)8),
+	Patch(OFFS_CreatureAIUpdateBeforeEffect + 1, (relativefunc)HookForEvolveCustomValues),
+
+	Patch()
+};
+Patch *PatchHookEvolveCustomValues = _PatchHookEvolveCustomValues;
 
 void prepareSaveLoadCustomValues()
 {
@@ -248,7 +388,36 @@ void initCustomValuesNumber(int uNumber)
 	bCustomValuesActivated = (uNumber > 0);
 	uCustomValuesNumbers = bCustomValuesActivated ? uNumber : 0;
 
+	g_customValueModes.assign(uCustomValuesNumbers, CustomValueMode::Raw);
+
 	prepareSaveLoadCustomValues();
+}
+
+int GetCustomValuesNumber()
+{
+	return uCustomValuesNumbers;
+}
+
+CustomValueMode GetCustomValueMode(int iIdx)
+{
+	if (iIdx < 0 || iIdx >= (int)g_customValueModes.size())
+		return CustomValueMode::Raw;
+
+	return g_customValueModes[iIdx];
+}
+
+// Internal only: used while parsing CustomValueEFF.ini to assign Computed/Evolution.
+// Fails if iIdx is out of bounds or already assigned a non-Raw mode (mutual exclusivity).
+static bool SetCustomValueMode(int iIdx, CustomValueMode mode)
+{
+	if (iIdx < 0 || iIdx >= (int)g_customValueModes.size())
+		return false;
+
+	if (g_customValueModes[iIdx] != CustomValueMode::Raw)
+		return false;
+
+	g_customValueModes[iIdx] = mode;
+	return true;
 }
 
 void _SetCustomValue(GameObject* pCreature, int iIdx, int iValue)
@@ -307,15 +476,11 @@ void SetCustomValue(int objectID, int iIdx, int iNumber)
 
 int GetCustomValue(int objectID, int iIdx)
 {
-	//Bad index
-	if (!bCustomValuesActivated || iIdx < 0 || iIdx >= uCustomValuesNumbers)
-		return 0;
-
 	GameObject* myCreature = CreatureFromIdForCustomValue(objectID);
 	if (myCreature == NULL)
 		return 0;
 
-	return _GetCustomValue(myCreature, iIdx);
+	return GetCreatureCustomValue(myCreature, iIdx);
 }
 
 
@@ -324,164 +489,400 @@ int GetCreatureCustomValue(GameObject* pCreature, int iIdx)
 	if (!bCustomValuesActivated || iIdx < 0 || iIdx >= uCustomValuesNumbers)
 		return 0;
 
+	if (GetCustomValueMode(iIdx) == CustomValueMode::Computed)
+		return EvaluateCustomValueRules(pCreature, iIdx, m_customValueRuleSets);
+
 	return _GetCustomValue(pCreature, iIdx);
 }
 
-
-enum class CustomValueMode { Raw, Computed, Evolution };
-static std::vector<CustomValueMode> g_customValueModes; // rempli au parsing de CustomValueEFF.ini
-/*
-int GetCustomValueForRule(int index, void* pCreatureBlock)
+void __fastcall TickCustomValueEvolution(GameObject* pCreature, uint32_t* ptrCurrentTime)
 {
-	if (index < 0 || index >= CustomValuesState::uCount)
-		return 0;
+	if (!bCustomValuesActivated || g_evolutionEntries.empty())
+		return;
 
-	switch (g_customValueModes[index])
+	static uint32_t uBaseCalendar = ptrCurrentTime[14];
+	static uint32_t uFactorForDay = (uint32_t)(*((uint8_t*)ptrCurrentTime + 0x2C)) * 24 * 60;
+
+	uint32_t dayElapsed = ptrCurrentTime[14] - uBaseCalendar;
+	uint32_t secondInDay = ptrCurrentTime[15] / 1000;
+	uint32_t currentTime = dayElapsed * uFactorForDay + secondInDay;
+
+
+	for (const EvolutionEntry& entry : g_evolutionEntries)
 	{
-	case CustomValueMode::Computed:
-		logger->Warn("CustomValue: mode Computed pas encore implémenté, retourne 0");
-		return 0; // stub temporaire
-	case CustomValueMode::Raw:
-	case CustomValueMode::Evolution:
-	default:
-		return ((int*)pCreatureBlock)[index]; // lecture directe existante
+		int lastTick = GetCustomValueLastTick(pCreature, entry.index);
+
+		if (lastTick == 0)
+		{
+			// First observation for this creature/index: start counting from now
+			// instead of firing immediately just because currentTime is already large.
+			SetCustomValueLastTick(pCreature, entry.index, currentTime);
+			continue;
+		}
+
+		int elapsed = currentTime - lastTick;
+		if (elapsed < entry.period)
+			continue;
+
+		int delta = EvaluateCustomValueRules(pCreature, entry.index, m_customValueEvolutionRuleSets);
+		if (delta != 0)
+		{
+			int newValue = _GetCustomValue(pCreature, entry.index) + delta;
+			_SetCustomValue(pCreature, entry.index, newValue);
+		}
+
+		SetCustomValueLastTick(pCreature, entry.index, currentTime);
 	}
 }
-*/
 
 
-
-#ifdef PASFAITPASFAIT
-void desinitCustomValuesHooks()
+// Parses a whitespace-separated list of indices (same convention as MonkWeaponList)
+// and assigns them the given mode. Logs and skips indices that are out of range or
+// already assigned to another mode.
+static void ParseCustomValueIndexList(const std::string& sList, CustomValueMode mode, const char* sFieldName)
 {
-	//Clear Rule
-	for (auto ruleSet : m_reduceSpeedRuleList) {
-		delete ruleSet;
+	std::istringstream iss(sList);
+	int iIdx;
+
+	while (iss >> iIdx)
+	{
+		if (!SetCustomValueMode(iIdx, mode))
+		{
+			logger->Err("[CustomValueRuleFile]: Cannot set index %d as %s: out of range or already assigned to another mode.", iIdx, sFieldName);
+		}
 	}
-	m_reduceSpeedRuleList.clear();
+}
+
+// Parses a whitespace-separated list of "index:period" pairs (period in seconds) and
+// registers each index as Evolution.
+static void ParseEvolutionIndexList(const std::string& sList)
+{
+	std::istringstream iss(sList);
+	std::string token;
+
+	while (iss >> token)
+	{
+		size_t colonPos = token.find(':');
+		int iIdx = -1;
+		int iPeriod = -1;
+
+		if (colonPos != std::string::npos)
+		{
+			try {
+				iIdx = std::stoi(token.substr(0, colonPos));
+				iPeriod = std::stoi(token.substr(colonPos + 1));
+			} catch (const std::exception&) {
+				iIdx = -1;
+			}
+		}
+
+		if (colonPos == std::string::npos || iPeriod <= 0)
+		{
+			logger->Err("[CustomValueRuleFile]: Invalid EvolutionValues entry '%s' (expected index:periodInSeconds).", token.c_str());
+			continue;
+		}
+
+		if (!SetCustomValueMode(iIdx, CustomValueMode::Evolution))
+		{
+			logger->Err("[CustomValueRuleFile]: Cannot set index %d as Evolution: out of range or already assigned to another mode.", iIdx);
+			continue;
+		}
+
+		g_evolutionEntries.push_back({ iIdx, iPeriod });
+	}
+}
+
+// Walks a RuleParser rule tree looking for a CustomValue(n) function referencing an
+// index that is itself Computed, which would make evaluation circular.
+static bool RuleReferencesComputedCustomValue(RuleParser::Rule* node)
+{
+	if (node == nullptr)
+		return false;
+
+	if (node->type == RuleParser::TokenType::FUNCTION && node->value == RuleParser::FCT_CUSTOMVALUE
+		&& GetCustomValueMode(node->params.back()) == CustomValueMode::Computed)
+	{
+		return true;
+	}
+
+	return RuleReferencesComputedCustomValue(node->left) || RuleReferencesComputedCustomValue(node->right);
+}
+
+// Same check for a BonusParser expression tree (Bonus= formulas).
+static bool ExprReferencesComputedCustomValue(MathExpressionParser::Expr* expr)
+{
+	if (expr == nullptr)
+		return false;
+
+	if (auto* fct = dynamic_cast<MathExpressionParser::FunctionT*>(expr))
+	{
+		return fct->functionToUse == FunctionType::CUSTOMVALUE
+			&& GetCustomValueMode(fct->params.back()) == CustomValueMode::Computed;
+	}
+
+	if (auto* bin = dynamic_cast<MathExpressionParser::BinaryOp*>(expr))
+		return ExprReferencesComputedCustomValue(bin->left) || ExprReferencesComputedCustomValue(bin->right);
+
+	return false;
+}
+
+static bool ParseCustomValueBonus(int iRuleNumber, std::string sValue, int iCustomValueIdx,
+	std::unordered_map<uint32_t, std::vector<CustomValueRuleSet*>>& ruleMap)
+{
+	try {
+		auto bonusCalc = MathExpressionParser::prepareSimplified(sValue, MathExpressionParser::Mode::INTEGER);
+
+		if (GetCustomValueMode(iCustomValueIdx) == CustomValueMode::Computed && ExprReferencesComputedCustomValue(bonusCalc))
+		{
+			logger->Err("[CustomValueRule%d]: \"Bonus\" cannot reference another Computed CustomValue.", iRuleNumber);
+			delete bonusCalc;
+			return false;
+		}
+
+		CustomValueRuleSet* rs1 = new CustomValueRuleSet(bonusCalc, iRuleNumber);
+		ruleMap[iCustomValueIdx].push_back(rs1);
+	} catch (const std::exception& e) {
+		logger->Err("Error during parse of \"Bonus\" = %s : %s", sValue.c_str(), e.what());
+		logger->Info("Due to the Error, the complete rule will not be applied");
+		return false;
+	}
+
+	return true;
+}
+
+static bool ParseCustomValueRuleFeatOrAreaType(std::string sCustomValueRuleX, int iRuleNumber, std::string sValue, int iCustomValueIdx, RuleParser::RuleType tFeatRule,
+	std::unordered_map<uint32_t, std::vector<CustomValueRuleSet*>>& ruleMap, bool bAllowRule = true)
+{
+	try {
+		std::vector<RuleParser::Token> tokens1 = RuleParser::tokenize(sValue, tFeatRule, bAllowRule);
+		int pos1 = 0;
+		RuleParser::Rule* root1 = RuleParser::parseExpression(tokens1, pos1);
+
+		if (tFeatRule == RuleParser::RuleType::EXTRA && GetCustomValueMode(iCustomValueIdx) == CustomValueMode::Computed
+			&& RuleReferencesComputedCustomValue(root1))
+		{
+			delete root1;
+			logger->Err("[%s]: \"Extra\" cannot reference another Computed CustomValue.", sCustomValueRuleX.c_str());
+			return false;
+		}
+
+		if (tFeatRule == RuleParser::RuleType::FEAT)
+			ruleMap[iCustomValueIdx].back()->featRule = root1;
+		else if (tFeatRule == RuleParser::RuleType::AREA)
+			ruleMap[iCustomValueIdx].back()->areaTypeRule = root1;
+		else
+			ruleMap[iCustomValueIdx].back()->extraRule = root1;
+
+	} catch (const std::exception& e) {
+		std::string sRuleType;
+
+		if (tFeatRule == RuleParser::RuleType::FEAT)
+			sRuleType = "Feat";
+		else if (tFeatRule == RuleParser::RuleType::AREA)
+			sRuleType = "Area";
+		else
+			sRuleType = "Extra";
+
+		logger->Err("Error during parse of [%s] \"%s\" = %s : %s", sCustomValueRuleX.c_str(),
+			sRuleType.c_str(), sValue.c_str(), e.what());
+		logger->Info("Due to the Error, the complete rule will not be applied");
+		return false;
+	}
+
+	return true;
 }
 
 void initCustomValuesHooks(std::string nxhome, std::string sFileName)
 {
+	g_customValueModes.assign(uCustomValuesNumbers, CustomValueMode::Raw);
+	g_evolutionEntries.clear();
+
 	std::string inifile(nxhome);
 	inifile.append("\\");
 	inifile.append(sFileName);
 
-	// first, create a file instance
 	mINI::INIFile file(inifile);
-
-	// next, create a structure that will hold data
 	mINI::INIStructure ini;
 
-	// now we can read the file
-	bool bOkRead = file.read(ini);
-
-
-	if(!bOkRead)
+	if (!file.read(ini))
 	{
-		logger->Err("Cant find CustomValuesFile : %s", sFileName.c_str());
+		logger->Err("Cant find CustomValueRuleFile : %s", sFileName.c_str());
+		return;
 	}
 
-	if (bOkRead && ini.has("General"))
+	if (ini.has("General"))
 	{
-		if (ini.get("General").has("DisableHook"))
-		{
-			std::string sDisableHook = ini.get("General").get("DisableHook");
+		if (ini.get("General").has("ComputedValues"))
+			ParseCustomValueIndexList(ini.get("General").get("ComputedValues"), CustomValueMode::Computed, "Computed");
 
-			bOkRead = !(sDisableHook == "1");
+		if (ini.get("General").has("EvolutionValues"))
+			ParseEvolutionIndexList(ini.get("General").get("EvolutionValues"));
+	}
+
+	//improvement, make the hook only if valid evolutionvalues rules ?
+	{
+		int i = 0;
+		while (PatchHookEvolveCustomValues[i].Apply()) {
+			i++;
 		}
 	}
 
-
-	//ReduceSpeed Rule
-	if(bOkRead)
+	//Computed CustomValue rules
 	{
-		//Now parse the Rules
 		int iRuleNumber = 1;
-		std::string sReduceSpeedRuleBase = "ReduceSpeedRule";
+		std::string sCustomValueRuleBase = "CustomValueRule";
 
-		std::string sReduceSpeedRuleX = sReduceSpeedRuleBase + std::to_string(iRuleNumber);
+		std::string sCustomValueRuleX = sCustomValueRuleBase + std::to_string(iRuleNumber);
 
-		while (ini.has(sReduceSpeedRuleX))
+		while (ini.has(sCustomValueRuleX))
 		{
-
-			//We need a Impact. Else, error and no need to parse other stuff
-			if (ini.get(sReduceSpeedRuleX).has("Impact"))
+			if (ini.get(sCustomValueRuleX).has("Bonus") && ini.get(sCustomValueRuleX).has("CustomValue"))
 			{
-				std::string sReduceSpeedBonus = ini.get(sReduceSpeedRuleX).get("Impact");				
+				std::string sBonus = ini.get(sCustomValueRuleX).get("Bonus");
+				std::string sCustomValueIdx = ini.get(sCustomValueRuleX).get("CustomValue");
+				int iCustomValueIdx = -1;
 
-				if (ParseReduceSpeedModifier(iRuleNumber, sReduceSpeedBonus, m_reduceSpeedRuleList))
+				try {
+					iCustomValueIdx = std::stoi(sCustomValueIdx);
+				}
+				catch (const std::exception& ex) {
+					iCustomValueIdx = -1;
+				}
+
+				if (iCustomValueIdx != -1 && GetCustomValueMode(iCustomValueIdx) != CustomValueMode::Computed)
 				{
-					//Ok, we can test and parse other fields
+					logger->Err("[%s]: index %d is not declared Computed (see ComputedValues in [General]).", sCustomValueRuleX.c_str(), iCustomValueIdx);
+					iCustomValueIdx = -1;
+				}
+
+				if (iCustomValueIdx != -1 && ParseCustomValueBonus(iRuleNumber, sBonus, iCustomValueIdx, m_customValueRuleSets))
+				{
 					bool bValidRule = true;
 
-					if (ini.get(sReduceSpeedRuleX).has("Area"))
+					if (ini.get(sCustomValueRuleX).has("Area"))
 					{
-						std::string sValue = ini.get(sReduceSpeedRuleX).get("Area");
+						std::string sValue = ini.get(sCustomValueRuleX).get("Area");
 
-						bValidRule = ParseRuleFeatOrAreaType(sReduceSpeedRuleX, iRuleNumber, sValue, 
-							RuleParser::RuleType::AREA, m_reduceSpeedRuleList);
+						bValidRule = ParseCustomValueRuleFeatOrAreaType(sCustomValueRuleX, iRuleNumber, sValue, iCustomValueIdx,
+							RuleParser::RuleType::AREA, m_customValueRuleSets);
 					}
 
-					if (bValidRule && ini.get(sReduceSpeedRuleX).has("Feat"))
+					if (bValidRule && ini.get(sCustomValueRuleX).has("Feat"))
 					{
-						std::string sValue = ini.get(sReduceSpeedRuleX).get("Feat");
+						std::string sValue = ini.get(sCustomValueRuleX).get("Feat");
 
-						bValidRule = ParseRuleFeatOrAreaType(sReduceSpeedRuleX, iRuleNumber, sValue,
-							RuleParser::RuleType::FEAT, m_reduceSpeedRuleList);
+						bValidRule = ParseCustomValueRuleFeatOrAreaType(sCustomValueRuleX, iRuleNumber, sValue, iCustomValueIdx,
+							RuleParser::RuleType::FEAT, m_customValueRuleSets);
 					}
 
-					if (bValidRule && ini.get(sReduceSpeedRuleX).has("Extra"))
+					if (bValidRule && ini.get(sCustomValueRuleX).has("Extra"))
 					{
-						std::string sValue = ini.get(sReduceSpeedRuleX).get("Extra");
+						std::string sValue = ini.get(sCustomValueRuleX).get("Extra");
 
-						bValidRule = ParseRuleFeatOrAreaType(sReduceSpeedRuleX, iRuleNumber, sValue,
-							RuleParser::RuleType::EXTRA, m_reduceSpeedRuleList);
+						bValidRule = ParseCustomValueRuleFeatOrAreaType(sCustomValueRuleX, iRuleNumber, sValue, iCustomValueIdx,
+							RuleParser::RuleType::EXTRA, m_customValueRuleSets);
 					}
 
 					if (!bValidRule)
 					{
-						//Todo Remove this rule.
-						ReduceSpeedRuleSet* rsToDel = m_reduceSpeedRuleList.back();
-						m_reduceSpeedRuleList.pop_back();
+						CustomValueRuleSet* rsToDel = m_customValueRuleSets[iCustomValueIdx].back();
+						m_customValueRuleSets[iCustomValueIdx].pop_back();
 						delete rsToDel;
 					}
 				}
 			}
 			else
 			{
-				logger->Err("[ReduceSpeedIniFile]: No Impact field for [%s].", sReduceSpeedRuleX.c_str());
+				logger->Err("[CustomValueRuleFile]: No CustomValue or Bonus field for [%s].", sCustomValueRuleX.c_str());
 			}
 
 			iRuleNumber++;
-			sReduceSpeedRuleX = sReduceSpeedRuleBase + std::to_string(iRuleNumber);
+			sCustomValueRuleX = sCustomValueRuleBase + std::to_string(iRuleNumber);
 		}
 	}
 
-	if (bOkRead && !isAlreadyPatchedReduceSpeed)
+	//Evolution CustomValue rules
 	{
-		isAlreadyPatchedReduceSpeed = true;
-		int i = 0;
-		while(ReduceSpeedPatches[i].Apply()) {
-			i++;
-		}
-	}
-	else if (!bOkRead && isAlreadyPatchedReduceSpeed)
-	{
-		isAlreadyPatchedReduceSpeed = false;
+		int iRuleNumber = 1;
+		std::string sCustomValueEvoRuleBase = "CustomValueEvolutionRule";
 
-		ReduceSpeedPatches[3].Remove();
-		ReduceSpeedPatches[2].Remove();
-		ReduceSpeedPatches[1].Remove();
-		ReduceSpeedPatches[0].Remove();
-		/*
-		int i = 0;
-		while(ReduceSpeedPatches[i].Remove()) {
-		i++;
+		std::string sCustomValueEvoRuleX = sCustomValueEvoRuleBase + std::to_string(iRuleNumber);
+
+		while (ini.has(sCustomValueEvoRuleX))
+		{
+			if (ini.get(sCustomValueEvoRuleX).has("Bonus") && ini.get(sCustomValueEvoRuleX).has("CustomValue"))
+			{
+				std::string sBonus = ini.get(sCustomValueEvoRuleX).get("Bonus");
+				std::string sCustomValueIdx = ini.get(sCustomValueEvoRuleX).get("CustomValue");
+				int iCustomValueIdx = -1;
+
+				try {
+					iCustomValueIdx = std::stoi(sCustomValueIdx);
+				}
+				catch (const std::exception& ex) {
+					iCustomValueIdx = -1;
+				}
+
+				if (iCustomValueIdx != -1 && GetCustomValueMode(iCustomValueIdx) != CustomValueMode::Evolution)
+				{
+					logger->Err("[%s]: index %d is not declared Evolution (see EvolutionValues in [General]).", sCustomValueEvoRuleX.c_str(), iCustomValueIdx);
+					iCustomValueIdx = -1;
+				}
+
+				if (iCustomValueIdx != -1 && ParseCustomValueBonus(iRuleNumber, sBonus, iCustomValueIdx, m_customValueEvolutionRuleSets))
+				{
+					bool bValidRule = true;
+
+					if (ini.get(sCustomValueEvoRuleX).has("Area"))
+					{
+						std::string sValue = ini.get(sCustomValueEvoRuleX).get("Area");
+
+						bValidRule = ParseCustomValueRuleFeatOrAreaType(sCustomValueEvoRuleX, iRuleNumber, sValue, iCustomValueIdx,
+							RuleParser::RuleType::AREA, m_customValueEvolutionRuleSets);
+					}
+
+					if (bValidRule && ini.get(sCustomValueEvoRuleX).has("Feat"))
+					{
+						std::string sValue = ini.get(sCustomValueEvoRuleX).get("Feat");
+
+						bValidRule = ParseCustomValueRuleFeatOrAreaType(sCustomValueEvoRuleX, iRuleNumber, sValue, iCustomValueIdx,
+							RuleParser::RuleType::FEAT, m_customValueEvolutionRuleSets);
+					}
+
+					if (bValidRule && ini.get(sCustomValueEvoRuleX).has("Extra"))
+					{
+						std::string sValue = ini.get(sCustomValueEvoRuleX).get("Extra");
+
+						bValidRule = ParseCustomValueRuleFeatOrAreaType(sCustomValueEvoRuleX, iRuleNumber, sValue, iCustomValueIdx,
+							RuleParser::RuleType::EXTRA, m_customValueEvolutionRuleSets);
+					}
+
+					if (!bValidRule)
+					{
+						CustomValueRuleSet* rsToDel = m_customValueEvolutionRuleSets[iCustomValueIdx].back();
+						m_customValueEvolutionRuleSets[iCustomValueIdx].pop_back();
+						delete rsToDel;
+					}
+				}
+			}
+			else
+			{
+				logger->Err("[CustomValueRuleFile]: No CustomValue or Bonus field for [%s].", sCustomValueEvoRuleX.c_str());
+			}
+
+			iRuleNumber++;
+			sCustomValueEvoRuleX = sCustomValueEvoRuleBase + std::to_string(iRuleNumber);
 		}
-		*/
 	}
 }
 
 
-#endif
+
+//finalment...
+//0x005fe62d   XOR EBX, EBX   /  CMP dword ptr [ESI + 0x1a4], EBX  => 0x005fe635
+//ESI === ptrCreature
+//ebx === ptr servertimer
+
+
+//ebx == timermodule ?
+// 0x005fe647   CMP dword ptr [ESI + 0xeec],EBX   (6 octets)  retours => 0x005fe64d    

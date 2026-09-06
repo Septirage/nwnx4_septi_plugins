@@ -8,7 +8,8 @@ enum class FunctionType {
 	CLASSLVLSUM,
 	CLASSLVLMAX,
 	SKILL,
-	ABILITY
+	ABILITY,
+	CUSTOMVALUE
 };
 
 
@@ -17,6 +18,7 @@ int ClassLevelSum(const std::vector<int>& params, int creaBlock);
 int ClassLevelMax(const std::vector<int>& params, int creaBlock);
 int GetBaseSkill(int iSkill, int creaBlock);
 int GetBaseAbility(int iAbility, int creaBlock);
+int GetCustomValueFromCreaBlock(int iIdx, int creaBlock);
 
 
 #endif

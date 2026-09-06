@@ -878,6 +878,15 @@ EnhancedFeatures::Init(char* nwnxhome)
 	if(iTest > 0)
 	{
 		initCustomValuesNumber(iTest);
+
+		std::string sCustomValueRuleFile = "";
+		config->Read("CustomValueRuleFile", &sCustomValueRuleFile, std::string(""));
+		if (sCustomValueRuleFile != "")
+		{
+			std::string nxhome(nwnxhome);
+			m_sCustomValueRuleFile = sCustomValueRuleFile;
+			initCustomValuesHooks(nxhome, sCustomValueRuleFile);
+		}
 	}
 
 

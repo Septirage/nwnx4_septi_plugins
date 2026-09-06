@@ -77,7 +77,6 @@ class MsgServ final : public Plugin
 	std::string nwnxStringHome;
 	PlayerIDManager idManager;
 
-	bool bConnectionProcess	= true;
 	bool bTraceEveryMsg = false;
 	bool bAllowAutoConnect = false;
 	bool bWelcomeScreen = false;
