@@ -114,7 +114,7 @@ void ClearMemorizedSpell(int oCreature, int nClassType, int nSpellLevel, int nIn
 		return;
 
 	int iNbSpellSlot = myClass->MemorizedSpells[nSpellLevel].NbSpellsSlot;
-	if (nIndex < iNbSpellSlot)
+	if (nIndex >= 0 && nIndex < iNbSpellSlot)
 	{
 		AmCrtClassSpellMemorized* mySpell = myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[nIndex];
 
@@ -295,7 +295,7 @@ void SetMemorizedSpellReady(int oCreature, int nClassType, int nSpellLevel, int 
 		return;
 
 	int iNbSpellSlot = myClass->MemorizedSpells[nSpellLevel].NbSpellsSlot;
-	if (nIndex < iNbSpellSlot)
+	if (nIndex >= 0 && nIndex < iNbSpellSlot)
 	{
 		AmCrtClassSpellMemorized* mySpell = myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[nIndex];
 
@@ -330,7 +330,7 @@ void SetMemorizedSpell(int oCreature, int nClassType, int nSpellLevel, int nInde
 		return;
 
 	int iNbSpellSlot = myClass->MemorizedSpells[nSpellLevel].NbSpellsSlot;
-	if (nIndex < iNbSpellSlot)
+	if (nIndex >= 0 && nIndex < iNbSpellSlot)
 	{
 		AmCrtClassSpellMemorized* mySpell = myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[nIndex];
 
@@ -361,7 +361,7 @@ int GetMemorizedSpellReady(int oCreature, int nClassType, int nSpellLevel, int n
 		return result;
 
 	int iNbSpellSlot = myClass->MemorizedSpells[nSpellLevel].NbSpellsSlot;
-	if (nIndex < iNbSpellSlot)
+	if (nIndex >= 0 && nIndex < iNbSpellSlot)
 	{
 		AmCrtClassSpellMemorized* mySpell = myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[nIndex];
 
@@ -508,7 +508,7 @@ int GetMemorizedSpellId(int oCreature, int nClassType, int nSpellLevel, int nInd
 
 	int iNbSpellSlot = myClass->MemorizedSpells[nSpellLevel].NbSpellsSlot;
 
-	if (nIndex < iNbSpellSlot)
+	if (nIndex >= 0 && nIndex < iNbSpellSlot)
 	{
 		AmCrtClassSpellMemorized* mySpell = myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[nIndex];
 		if (mySpell != 0)
@@ -534,7 +534,7 @@ int GetMemorizedSpellMetaMagic(int oCreature, int nClassType, int nSpellLevel, i
 
 	int iNbSpellSlot = myClass->MemorizedSpells[nSpellLevel].NbSpellsSlot;
 
-	if (nIndex < iNbSpellSlot)
+	if (nIndex >= 0 && nIndex < iNbSpellSlot)
 	{
 		AmCrtClassSpellMemorized* mySpell = myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[nIndex];
 		if (mySpell != 0)
@@ -559,7 +559,7 @@ int GetMemorizedSpellIsDomainSpell(int oCreature, int nClassType, int nSpellLeve
 
 	int iNbSpellSlot = myClass->MemorizedSpells[nSpellLevel].NbSpellsSlot;
 
-	if (nIndex < iNbSpellSlot)
+	if (nIndex >= 0 && nIndex < iNbSpellSlot)
 	{
 		AmCrtClassSpellMemorized* mySpell = myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[nIndex];
 		if (mySpell != 0)
@@ -593,7 +593,7 @@ int GetKnownSpellId(int oCreature, int nClassType, int nSpellLevel, int nIndex)
 	if (nSpellLevel >= 10 || nSpellLevel < 0)
 		return -1;
 
-	if (nIndex < myClass->SpellsKnow[nSpellLevel].NbSpellsKnow)
+	if (nIndex >= 0 && nIndex < myClass->SpellsKnow[nSpellLevel].NbSpellsKnow)
 	{
 		return myClass->SpellsKnow[nSpellLevel].lSpellsKnow[nIndex];
 	}

@@ -52,7 +52,7 @@ void XPEnhancedFeatures_ReloadHitPointFile();
 // Get the specified CustomValue of a given creature
 // oCreature	- The creature 
 // nIdx			- The index of the customValue
-int GetCustomValue_EFF(object oCreature, nIdx);
+int GetCustomValue_EFF(object oCreature, int nIdx);
 
 
 // Set the specified CustomValue of a given creature
@@ -149,7 +149,7 @@ int GetHourForArea_EFF(object oArea)
 
 void SendChatMessageToPC_EFF(object oSender, object oReceiver, int nChannel, string sMessage)
 {
-	string sPacked = ObjectToString(oReceiver) + "|" + ObjectToString(oSender) + "|" + sMessage;
+	string sPacked = ObjectToString(oSender) + "|" + ObjectToString(oReceiver) + "|" + sMessage;
 	NWNXSetString("EnhancedFeatures", "TalkFunction", "SendSpecific", nChannel, sPacked);
 }
 
@@ -168,7 +168,7 @@ int GetCustomValue_EFF(object oCreature, int nIdx)
 	return NWNXGetInt("EnhancedFeatures", "CustomValue", IntToString(nIdx), ObjectToInt(oCreature));
 }
 
-int SetCustomValue_EFF(object oCreature, int nIdx, int iValue)
+void SetCustomValue_EFF(object oCreature, int nIdx, int iValue)
 {
-	return NWNXSetInt("EnhancedFeatures", "CustomValue", IntToString(nIdx), ObjectToInt(oCreature), iValue);
+	NWNXSetInt("EnhancedFeatures", "CustomValue", IntToString(nIdx), ObjectToInt(oCreature), iValue);
 }
