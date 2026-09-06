@@ -1,0 +1,71 @@
+.fnblock { page-break-inside: avoid; break-inside: avoid; }
+
+h1, h2, h3, h4, h5, h6 { font-family: Consolas, "Courier New", monospace; }
+
+table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+table td { vertical-align: top; padding: 0 10px; }
+table td:first-child { padding-left: 0; }
+
+
+.cover-title {
+    padding-top: 55px;
+}
+
+.cover-heading {
+    font-family: Calibri, sans-serif;
+    font-size: 36pt;
+    font-weight: normal;
+    text-decoration: underline;
+    text-align: center;
+    line-height: normal;
+}
+
+.cover-version {
+    margin-bottom: 45px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-style: italic;
+    text-align: right;
+}
+
+/*
+.cover-title {
+    position: relative;
+    height: 390px;
+}
+
+.cover-main-title,
+.cover-sub-title {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 36px;
+    font-weight: normal;
+    text-decoration: underline;
+    text-align: center;
+}
+
+.cover-main-title {
+    position: absolute;
+    top: 50px;
+    left: 0;
+    right: 0;
+}
+
+
+.cover-sub-title {
+    position: absolute;
+    top: 145px;
+    left: 0;
+    right: 0;
+}
+
+
+.cover-version {
+    position: absolute;
+    top: 235px;
+    right: 28px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-style: italic;
+}
+*/
+

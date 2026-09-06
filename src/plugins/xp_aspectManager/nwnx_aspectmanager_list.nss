@@ -2,7 +2,8 @@
 // nwnx_aspectmanager_list - appearance list functions of the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified By:	Septirage			2025/07/08	Update to AspectManager v1.5
+// Last Modified By:	Septirage			2026-09-06	Fix XPAspMan_SetRestrictedVisualType function
+//						Septirage			2025/07/08	Update to AspectManager v1.5
 //						Septirage           2024-02-28
 //--------------------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -215,7 +216,7 @@ int XPAspMan_GetHeadVariation(string sRRG, int iIdx)
 
 void XPAspMan_SetRestrictedVisualType(string sVisualType, int bRestricted)
 {
-	NWNXGetInt("AspectManager", "listSystemSetRestrictedCategory", sVisualType, bRestricted);
+	NWNXSetInt("AspectManager", "listSystemSetRestrictedCategory", sVisualType, 0, bRestricted);
 }
 
 int XPAspMan_GetRestrictedVisualType(string sVisualType)

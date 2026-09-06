@@ -3,9 +3,6 @@
 
 #include <cstdint>
 
-//bool
-#define AmPlcHasInventory       0x460
-#define AmPlcDynamicCol			0x488
 
 //uint16
 #define AmPlcApp				0x318
@@ -13,6 +10,9 @@
 //uint32
 #define AmPlcColisionFlag		0xD0
 #define AmPlcFactionID			0x358
+
+
+#define AmPlcContainerUI		0x310
 
 //List of color
 #define AmPlcColor              0x31C
@@ -30,6 +30,16 @@
 #define AmPlcFort				0x450
 #define AmPlcWill				0x451
 #define AmPlcRef				0x452
+
+//bool
+#define AmPlcHasInventory       0x460
+
+
+#define AmPlcNumberOpened		0x474
+
+//Bool
+#define AmPlcDynamicCol			0x488
+
 
 //pointer
 #define AmPlcInventory          0x4B4
@@ -148,6 +158,16 @@ struct AmItmDmgReduction
 //uint8
 #define AmItmPlot				0x8B0 //
 
+#define AmItmEffectListPtr	0x8D0
+#define AmItmEffectListNb		0x8D4
+#define AmItmEffectListSize	0x8D8
+
+
+//uint16 (0x730+0x2c4) used for GetFirst/NextItemProperty 
+#define AmItmPropertyCounter	0x9F4
+
+// 0x9F6 ???
+
 struct AmItmProperty
 {
 	uint16_t uPropertyName;
@@ -177,6 +197,8 @@ struct AmItmProperty
 //uint8
 #define AmItmIsIdentified		0xA70 //
 
+#define AmItmIsOppened			0xA74 //(or number that look at ? )
+
 #define AmItmProperty0Ptr		0xA78
 #define AmItmProperty0Nb		0xA7C
 #define AmItmProperty0SizeArray	0xA80
@@ -201,6 +223,9 @@ struct AmItmProperty
 #define AmItmWpnPart2           0xAA5
 //uint8
 #define AmItmWpnPart3           0xAA6
+
+//uint32
+#define AmItmPossessor			0xAA8
 
 #define AmItmContainerObj		0xAAC
 
@@ -268,6 +293,8 @@ struct amObjectContainerStruct
 #define AmCrtAge				0x3CC
 #define AmCrtABAge				0xE8
 
+#define AmCrtPortraitId			0x104
+
 //u8
 #define AmCrtIsDestroyable		0x174
 #define AmCrtIsRaisable			0x178
@@ -283,6 +310,9 @@ struct amObjectContainerStruct
 #define AmCrtEffectSize			0x1A8
 
 
+#define AmCrtImmunity			0x26C
+
+#define AmCrtClassPosLastSpell	0x2A0
 
 //
 #define AmCrtDetectMode			0x6F8
@@ -299,6 +329,17 @@ struct amObjectContainerStruct
 #define AmCrtInCombat			0x718
 //uint32
 #define AmCrtSize				0x730
+//uint32
+#define AmCrtCreatureSize		0x730
+
+//
+#define AmCrtoidAttackTarget	0x740
+#define AmCrtoidAttemptedAttackTarget	0x744
+
+#define AmCrtGoingToBeAttackedBy	0x750
+#define AmCrtoidAttemptedSpellTarget 0x754 //often the area (and the area when you target nothing specific)
+#define AmCrtoidSpellTarget		0x758
+#define AmCrtnLastAmmoWarning	0x75C
 
 //uint32
 #define AmCrtMonkSpeed			0x778
@@ -306,6 +347,11 @@ struct amObjectContainerStruct
 
 ///////
 
+#define AmCrtbForcedWalk		0xDE4
+
+#define AmCrtpEffectList		0xDEC
+#define AmCrtpEffectListSize	0xDF0
+#define AmCrtpEffectListNb		0xDF4
 
 #define AmCrtSavedDice1			0xE2C
 #define AmCrtSavedDice2			0xE2D
@@ -324,10 +370,12 @@ struct amObjectContainerStruct
 
 
 //uint32
-#define AmCrtCreatureSize		0x730
-
-//uint32
 #define AmCrtMasterID			0xF3C
+#define AmCrtLastCommandIssuer	0xF40
+
+#define AmCrtPtrToAssociateList	0xF44   // ptrToList of uid, size list, nbelement
+#define AmCrtAssociateType		0xF48
+#define AmCrtLastCommand		0xF4C
 /* 
 ID table of equiped object ( Inventory_Slot +1)
 // 0 : 98 2F 80 00
@@ -381,6 +429,13 @@ ID table of equiped object ( Inventory_Slot +1)
 
 /////////////////////////////////////////////////
 
+#define AmCrtAbStrengh				0x04
+#define AmCrtAbDexterity			0x05
+#define AmCrtAbConst				0x06
+#define AmCrtAbIntel				0x07
+#define AmCrtAbWis					0x08
+#define AmCrtAbCha					0x09
+
 //uint16_t
 #define AmCrtABRace					0x000A
 #define AmCrtABSubRace				0x000C
@@ -401,8 +456,23 @@ ID table of equiped object ( Inventory_Slot +1)
 #define AmCrtABKeepedSkillPoints	0x005C
 
 //uint8_t
+#define AmCrtABPackage				0x005E
+
+
+//pointer on list to pointer to ..AmCrtLvlStatList
+#define AmCrtABLvlStatList			0x006C
+#define AmCrtABLvlStatNb			0x0070
+#define AmCrtABLvlStatSize			0x0074
+
+//uint8_t
 #define AmCrtABAlignGE				0x0078
 #define AmCrtABAlignLC				0x007A
+
+//float
+#define AmCrtABCR					0x008C
+
+//uint32_t
+#define AmCrtABIsPC					0x0090
 
 //uint32_t
 #define AmCrtABIsDM					0x0094
@@ -420,6 +490,18 @@ ID table of equiped object ( Inventory_Slot +1)
 #define AmCrtAbClass1				0x0230
 #define AmCrtAbClass2				0x0354
 #define AmCrtAbClass3				0x0478
+
+
+//TODO, size 0x110
+struct AmCrtLvlStatList
+{
+	//TODO
+	uint8_t padding[0x106];
+	//
+	uint8_t primaryAbility; //0x106
+	uint8_t hitDie;	//0x107
+	uint8_t classID; //0x108
+};
 
 struct AmCrtClassSpellKnow
 {
@@ -456,7 +538,7 @@ struct AmCrtClass
 	
 	uint8_t		classID;		//0x4
 	uint8_t		classLvl;		//0x5
-	uint8_t		Unknow1_SetTo0;			//See used for monk AC calculation. 
+	uint8_t		negativeLvl;
 	uint8_t		School;			//0x7
 
 	uint8_t		Domain1;		//0x8
@@ -829,6 +911,14 @@ struct ABCreatureArmor
 	uint8_t m_ShowItemMask;
 };
 
+
+struct NWN2_Gen_VTable
+{
+	void* unknown[3];
+	void (__thiscall *DestroySpecific)(void*);
+	void* unknown2[22];
+	void* (__thiscall* IsCreature)(void*);
+};
 
 
 

@@ -133,6 +133,8 @@ int GetInventoryMaxSize(GameObject* Object) {
 }
 
 void SetInventoryMaxSize(GameObject* Object, int iSize) {
+	if (iSize < 0)
+		iSize = 0;
 	if (iSize > 0x8E)
 		iSize = 0x8E;
 	if (iSize > 0x80 && Object->GetObjectType() == NWN::OBJECT_TYPE_CREATURE)

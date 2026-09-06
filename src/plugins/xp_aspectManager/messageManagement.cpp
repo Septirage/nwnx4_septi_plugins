@@ -9,6 +9,8 @@
 #include <nwn2heap.h>
 #include <misc/Patch.h>
 #include "../../septutil/NwN2DataPos.h"
+#include "../../septutil/NwN2Utilities.h"
+#include "../../septutil/NwN2Message.h"
 
 
 #include <string>
@@ -28,43 +30,9 @@
 
 #define FUNC_GETBASEITMFROMID 0x00750b20
 
-#define FUNC_PREPAREENDOFMSG  0x0074e080
-
-
-#define FUNC_INITMSGBLOCK	0x74ed00
 #define FUNC_BUILDALLVISUAL 0x551090
 #define FUNC_UPDATEMSGHASH  0x74e530
 #define FUNC_BUILDMSGITEM   0x551090
-
-
-
-void AddX8ToMsg(uint8_t uData, unsigned char* msgBlock)
-{
-	uint32_t* accessMBlock = (uint32_t*)msgBlock;
-	uint8_t* msgData       = (uint8_t*)(accessMBlock[1]);
-	msgData[accessMBlock[3]] = uData;
-	accessMBlock[3]++;
-	accessMBlock[7]++;
-}
-
-void AddX32ToMsg(uint32_t uData, unsigned char* msgBlock)
-{
-	uint32_t* accessMBlock = (uint32_t*)msgBlock;
-	uint8_t* msgData = (uint8_t*)(accessMBlock[1]);
-	*(uint32_t*)(msgData + accessMBlock[3]) = uData;
-	accessMBlock[3] += 4;
-	accessMBlock[7] += 4;
-}
-
-__declspec(naked) void __fastcall InitMessageBlock(__in void* MsgCreator, __in void* Unused, __in uint32_t uSize, __in uint32_t param1, __in uint32_t param2)
-{
-	__asm
-	{
-		mov		edx, FUNC_INITMSGBLOCK;
-		jmp		edx;
-	}
-}
-
 
 
 //OFFS_g_pAppManager
@@ -114,7 +82,7 @@ void prepareMsgBlock(unsigned char* DataDest, uint32_t sizeOfDataDest, uint32_t 
 	*(uint32_t*)(MsgCreation + 0x14)       = 0x80;
 	*(unsigned char**)(MsgCreation + 0x10) = UnknowMsg;
 
-	InitMessageBlock(MsgCreation, NULL, uSize, param1, param2);
+	InitMessageBlock(MsgCreation, uSize, param1, param2);
 }
 
 bool PrepaSendMessageToPlayer(unsigned long PlayerId, unsigned char* Data, unsigned long Size, unsigned long Flags)
@@ -202,15 +170,6 @@ __declspec(naked) void __fastcall BuildChestVisual(uint8_t* Visual, uint8_t* Unu
 	{
 		mov edx, FUNC_BUILDVISUAL;
 		jmp edx;
-	}
-}
-
-__declspec(naked) void __fastcall PrepareEndOfMsg(__in void* pMsgCreator, __in void* Unused, __in void* pData, __in void* pSize)
-{
-	__asm
-	{
-		mov		edx, FUNC_PREPAREENDOFMSG;
-		jmp		edx;
 	}
 }
 
@@ -327,7 +286,7 @@ void prepareEndOfMessage(unsigned char* pMsgCreation, unsigned char* pData, unsi
 	*(unsigned long*)((unsigned char*)pMsgCreation + 0xC) = *pSize;
 	*(unsigned char**)(pMsgCreation + 0x4) = pData;
 	unsigned char pDataC;
-	PrepareEndOfMsg((void*)pMsgCreation, NULL, (void*)(pMsgCreation + 0x4), (void*)pSize);
+	PrepareEndOfMsg((void*)pMsgCreation, (void*)(pMsgCreation + 0x4), (void*)pSize);
 }
 
 
@@ -1026,7 +985,7 @@ bool showObject(int iInventorySlot, int iAffected, int iItem, int mustView)
 	}
 
 	uint32_t MsgData;
-	PrepareEndOfMsg((void*)MsgCreation, NULL, (void*)&MsgData, (void*)&Size);
+	PrepareEndOfMsg((void*)MsgCreation, (void*)&MsgData, (void*)&Size);
 
 	unsigned long iMustView = GetObjectToPlayerId(mustView);
 	if (iMustView != NWN::PLAYERID_INVALIDID) {
@@ -1093,7 +1052,7 @@ bool refreshSelfBelt(int iAffected, int mustView)
 
 
 	uint32_t MsgData;
-	PrepareEndOfMsg((void*)MsgCreation, NULL, (void*)&MsgData, (void*)&Size);
+	PrepareEndOfMsg((void*)MsgCreation, (void*)&MsgData, (void*)&Size);
 
 
 	if (iMustView != NWN::PLAYERID_INVALIDID)
@@ -1405,6 +1364,7 @@ bool refreshItemApp(int iInventorySlot, int iAffected, int iItem, int mustView)
 {
 	if (IsKnowByPlayer(GetObjectToPlayerId(mustView),iAffected))
 	{
+		// 0x7A2CD679
 		//if (removeVisual(iInventorySlot, iAffected, mustView))
 		{
 			if (deposeObject(iInventorySlot, iAffected, mustView, iItem))
@@ -1452,6 +1412,406 @@ void refreshForEveryConcerned(uint32_t iAffected)
 		iMustView = GetPCIntern(false, false);
 	}
 }
+
+
+
+
+#define FUNC_CALLUPDATEMSGHASH		0x74ed60
+#define FUNC_CONSTRUCTMSGEFFECT		0x564110
+
+__declspec(naked) void __fastcall CallUpdateMsgHash(__in void* MsgCreator, __in void* Unused, __in uint32_t value)
+{
+	__asm
+	{
+		mov		edx, FUNC_CALLUPDATEMSGHASH;
+		jmp		edx;
+	}
+}
+
+void __fastcall SendIconUpdateMessage(uint8_t* pItem, uint32_t uNewIcon)
+{
+	uint32_t uOldIcon = *(uint32_t*)(pItem + AmItmIcon);
+
+	//If no real change, nothing to do
+	if (uOldIcon == uNewIcon)
+		return;
+
+	*(uint32_t*)(pItem + AmItmIcon) = uNewIcon;
+
+	//Else, we need to update
+
+	//Check if the item is in inventory, equiped, or in a container
+	//TODO, check what happens for a dm qui incarne un pnj
+	// AmItemEquipedBy 
+	// AmItmPossessor
+	NWN::OBJECTID idPossessor = *(NWN::OBJECTID*)(pItem + AmItmPossessor);
+
+	//Nobody, no need to refresh
+	if (idPossessor == NWN::INVALIDOBJID)
+		return;
+	GameObjectManager m_ObjectManager;
+	NWN::CGameObject *Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) idPossessor );
+	if (Object == NULL)
+		return;
+
+	NWN::OBJECTID idItem = *(NWN::OBJECTID*)(pItem + 0x730 + 0xA0);
+	unsigned char* myMessage = (unsigned char*)GetCNWSMessage();
+
+	NWN::OBJECT_TYPE possessorType = Object->GetObjectType();
+	if (possessorType == NWN::OBJECT_TYPE_CREATURE)
+	{
+		uint8_t* ptrPossessor = (uint8_t*)Object;
+		uint32_t uEmplacement = UINT32_MAX;
+		uint32_t uSlot;
+		if (*(NWN::OBJECTID*)(pItem +AmItemEquipedBy) != NWN::INVALIDOBJID)
+		{
+			//Equiped. Do advanced refresh item.
+			uEmplacement = 0x80;
+
+			uSlot = 1;
+
+			NWN::OBJECTID* equipedItems = *(NWN::OBJECTID**)(ptrPossessor + AmCrtCSEquipedObjectTable);
+
+			for (uint8_t i = 1; i <= 18; i++)
+			{
+				if (equipedItems[i] == idItem)
+				{
+					break;
+				}
+				uSlot *= 2;
+			}
+
+			//invalid...
+			if (uSlot >= 0x40000)
+			{
+				return;
+			}
+
+		}
+		else
+		{
+			amObjectContainerStruct* myContainerStruct = *(amObjectContainerStruct**)(ptrPossessor + AmCrtPtInventory);
+			for (int i = 0; i < myContainerStruct->allocatedContent; i++)
+			{
+				if (myContainerStruct->contentArray[i] == idItem)
+				{
+					uEmplacement = i;
+					break;
+				}
+			}
+			//Invalid
+			if (uEmplacement == UINT32_MAX)
+				return;
+		}
+
+		forEachPCBlock([&](CNWSPlayerStruct* p) -> bool {
+			unsigned long iMustView = p->playerID;
+			if (iMustView == NWN::PLAYERID_INVALIDID) {
+				return true;
+			}
+
+			//if (IsKnowByPlayer(iMustView, idItem) && IsKnowByPlayer(iMustView, idPossessor))
+			if (IsKnowByPlayer(iMustView, idPossessor))
+			{
+				InitMessageBlock(myMessage, 0x400,p->playerID,1);
+
+				AddX8ToMsg('D', myMessage);
+				AddX8ToMsg(0x6, myMessage);
+				AddX32ToMsg(idItem | 0x80000000, myMessage);
+
+				CallUpdateMsgHash(myMessage, NULL, 1);
+
+				AddX8ToMsg('G',myMessage);
+
+				if (uEmplacement == 0x80 && p->possessedCreature == idPossessor)
+				{
+					AddX8ToMsg('I',myMessage);
+					AddX8ToMsg('A',myMessage);
+					AddX32ToMsg(uSlot,myMessage);
+				}
+				else
+				{
+					AddX8ToMsg('R',myMessage);
+					AddX8ToMsg('A',myMessage);
+					AddX32ToMsg(idPossessor | 0x80000000,myMessage);
+					AddX32ToMsg(uEmplacement,myMessage);
+				}
+
+				NWN::CGameObject *Creature = m_ObjectManager.GetGameObject( (NWN::OBJECTID) p->possessedCreature );
+
+				AddX32ToMsg(idItem | 0x80000000,myMessage);
+
+				CreateObjectAppearance(myMessage, NULL, pItem);
+				BuildMsgNamePart(myMessage, NULL, pItem, Creature);
+
+				//MsgReady.
+
+				uint8_t* MsgData;
+				uint32_t Size;
+				PrepareEndOfMsg((void*)myMessage, (void*)&MsgData, (void*)&Size);
+
+				MsgData[0] = 0x50;
+				MsgData[1] = 0x5;
+				MsgData[2] = 0x1;
+
+
+				PrepaSendMessageToPlayer(iMustView, MsgData, Size, 0);
+			}
+
+			return true;
+		});
+	}
+	else if (possessorType == NWN::OBJECT_TYPE_ITEM || possessorType == NWN::OBJECT_TYPE_PLACEABLE)
+	{
+		uint8_t* ptrPossessor = (uint8_t*)Object;
+		if (possessorType == NWN::OBJECT_TYPE_ITEM)
+		{
+			ptrPossessor = (ptrPossessor - 0x730);
+		}
+
+		amObjectContainerStruct* myContainerStruct;
+		if (possessorType == NWN::OBJECT_TYPE_ITEM)
+		{
+			myContainerStruct = *(amObjectContainerStruct**)(ptrPossessor + AmItmContainerObj);
+		}
+		else
+		{
+			myContainerStruct = *(amObjectContainerStruct**)(ptrPossessor + AmPlcInventory);
+		}
+		
+		uint32_t uEmplacement = UINT32_MAX;
+		for (int i = 0; i < myContainerStruct->allocatedContent; i++)
+		{
+			if (myContainerStruct->contentArray[i] == idItem)
+			{
+				uEmplacement = i;
+				break;
+			}
+		}
+		//Invalid
+		if (uEmplacement == UINT32_MAX)
+			return;
+
+		//On a tout ici... On va construire le message
+		//dans le parcours.. on remplacera vers GCA plut�t que GRA si l'inventaire est ouvert par le viewer
+		
+
+		forEachPCBlock([&](CNWSPlayerStruct* p) -> bool {
+			unsigned long iMustView = p->playerID;
+			if (iMustView == NWN::PLAYERID_INVALIDID) {
+				return true;
+			}
+
+			//if (IsKnowByPlayer(iMustView, idItem) && IsKnowByPlayer(iMustView, idPossessor))
+			{
+				InitMessageBlock(myMessage, 0x400,p->playerID,1);
+
+				AddX8ToMsg('D', myMessage);
+				AddX8ToMsg(0x6, myMessage);
+				AddX32ToMsg(idItem | 0x80000000, myMessage);
+
+				CallUpdateMsgHash(myMessage, NULL, 1);
+
+				AddX8ToMsg('G',myMessage);
+
+				if (p->containerStruct->containerOpenned->currentOpened == idPossessor)
+				{
+					AddX8ToMsg('C',myMessage);
+					AddX8ToMsg('A',myMessage);
+					AddX32ToMsg(p->possessedCreature | 0x80000000,myMessage);
+				}
+				else
+				{
+					AddX8ToMsg('R',myMessage);
+					AddX8ToMsg('A',myMessage);
+					AddX32ToMsg(idPossessor | 0x80000000,myMessage);
+				}
+
+				NWN::CGameObject *Creature = m_ObjectManager.GetGameObject( (NWN::OBJECTID) p->possessedCreature );
+
+				//End of message
+				AddX32ToMsg(uEmplacement,myMessage);
+				AddX32ToMsg(idItem | 0x80000000,myMessage);
+
+				CreateObjectAppearance(myMessage, NULL, pItem);
+				BuildMsgNamePart(myMessage, NULL, pItem, Creature);
+
+				//MsgReady.
+
+				uint8_t* MsgData;
+				uint32_t Size;
+				PrepareEndOfMsg((void*)myMessage, (void*)&MsgData, (void*)&Size);
+
+				MsgData[0] = 0x50;
+				MsgData[1] = 0x5;
+				MsgData[2] = 0x1;
+
+				PrepaSendMessageToPlayer(iMustView, MsgData, Size, 0);
+			}
+
+			return true;
+		});
+	}
+}
+
+#ifdef REMOVE_OLD_TEST
+void test()
+{
+	uintptr_t* ptr = (uintptr_t*)0x86442C;
+	ptr = (uintptr_t*)(*ptr + 0x4);
+	ptr = (uintptr_t*)(*ptr + 0x4);
+	ptr = (uintptr_t*)(*ptr + 0x1008C);
+
+	ptr = (uintptr_t*)(*ptr);
+	if (ptr == NULL)
+	{
+		//TODO exit
+		return;
+	}
+
+	int iVar1, iVar2;
+	int* piVar3 = (int*)(*ptr + 0x8);
+	uint32_t uVar4;
+
+	for (iVar1 = *piVar3; iVar1 != 0; iVar1 = *(int*)(iVar1 + 4))
+	{
+		iVar2 = *(int*)(iVar1 + 8);
+		if (iVar2 == 0)
+			continue;
+
+		//Seems like a valide PCBlock here
+
+		//Check if it's a valid pc
+		uVar4 = *(uint32_t*)(iVar2 + 0x34);
+		GameObjectManager m_ObjectManager;
+		NWN::CGameObject *Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) uVar4 );
+		if (Object == NULL)
+			continue;
+		if (Object->GetObjectType() != NWN::OBJECT_TYPE_CREATURE)
+			continue;
+
+		uint32_t openedContainer = *(uint32_t*)(*(int*)(*(int*)(iVar2 + 0x64) + 0x18) + 4);
+
+	}
+
+} // 64ad30
+
+void testMessage(uint32_t oPC, uint32_t iObjectToUpdate)
+{
+	NWN::CGameObject * Object;
+	NWN::CNWSCreature * Creature;
+	NWN::CNWSItem* Item;
+	CNWSPlayerStruct* playerStruct =  GetPCBlockFromCreature(oPC);
+	if (playerStruct == NULL)
+		return;
+
+	// AmItemEquipedBy (pour permettre de g�rer les objets �quip�s... Mais au pire on fait le refresh classique)
+
+	{
+		GameObjectManager m_ObjectManager;
+
+		Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) oPC );
+		if (Object == NULL)
+			return;
+
+		Creature = Object->AsCreature( );
+		if (Creature == NULL)
+			return;
+
+		Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) iObjectToUpdate );
+		if (Object == NULL)
+			return;
+
+		Item = Object->AsItem();
+		if (Item == NULL)
+			return;
+	}
+
+	unsigned char* myMessage = (unsigned char*)GetCNWSMessage();
+
+	InitMessageBlock(myMessage, 0x400,playerStruct->playerID,1);
+
+	AddX8ToMsg('D', myMessage);
+	AddX8ToMsg(0x6, myMessage);
+	AddX32ToMsg(iObjectToUpdate | 0x80000000, myMessage);
+
+	CallUpdateMsgHash(myMessage, NULL, 1);
+
+
+	//ConstructMsgEffect(myMessage, NULL, playerStruct, Creature, ? ? , iObjectToUpdate, ? ? );
+
+	/*
+	iVar8 = (**(code **)(*piVar3 + 0x108))();
+	pvVar5 = (void *)FUN_00577410(param_3);
+	cVar11 = 'R';
+	cVar10 = '\x01';
+	piVar3 = (int *)(**(code **)(*piVar3 + 0x3c))();
+	Build_G?D_G?A_G?U(param_1_00,param_2,piVar3,iVar8,pvVar5,cVar10,cVar11);
+
+	pour soit m�me, apr�s un faux gra =>
+	GIA, 
+	emplacement (2^slot) 
+	IDObject
+	CreateObjectAppearance(myMessage, NULL, Item);
+	BuildMsgNamePart(myMessage, NULL, Item, Creature);
+
+
+	
+	*/
+	AddX8ToMsg('G',myMessage);
+	AddX8ToMsg('R',myMessage);
+	AddX8ToMsg('A',myMessage);
+	AddX32ToMsg(oPC | 0x80000000,myMessage);
+	AddX32ToMsg(0x10,myMessage); //EMPLACEMENTDINVENTAIRE
+	AddX32ToMsg(iObjectToUpdate | 0x80000000,myMessage);
+
+	CreateObjectAppearance(myMessage, NULL, Item);
+	BuildMsgNamePart(myMessage, NULL, Item, Creature);
+
+
+	/*
+	CreateMsg(param_1_00,&DataToSend,(int *)&SizeDataToSend);
+
+	PrepareSendMessage_(param_1_00,(undefined *)pBlockPJMustReceive[1],'\x05','\x01',
+		DataToSend,SizeDataToSend);
+	*/
+
+	uint8_t* MsgData;
+	uint32_t Size;
+	PrepareEndOfMsg((void*)myMessage, (void*)&MsgData, (void*)&Size);
+
+	MsgData[0] = 0x50;
+	MsgData[1] = 0x5;
+	MsgData[2] = 0x1;
+
+	unsigned long iMustView = playerStruct->playerID;
+	if (iMustView != NWN::PLAYERID_INVALIDID) {
+		PrepaSendMessageToPlayer(iMustView, MsgData, Size, 0);
+	}
+}
+
+
+
+
+/*
+void testMessage(uint32_t oPC, uint32_t iObject)
+{
+	CNWSPlayerStruct* playerStruct =  GetPCBlockFromCreature(oPC);
+	if (playerStruct == NULL)
+		return;
+
+	uint32_t* pWorkingTable = **(uint32_t***)(playerStruct->pTable);
+	if (pWorkingTable == NULL)
+		return;
+
+	pWorkingTable
+
+
+	char** pSubTable = *playerStruct->pTable;
+
+}
+*/
+#endif
 
 
 bool sendMusicMessage(int iType, int iOption, int iValue, int mustView)
@@ -1539,5 +1899,4 @@ bool sendMusicMessage(int iType, int iOption, int iValue, int mustView)
 	}
 	return result;
 }
-
 

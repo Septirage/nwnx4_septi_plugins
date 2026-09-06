@@ -1,4 +1,4 @@
-plugin_version = '"1.5.3"'
+plugin_version = '"1.5.6"'
 plugin_name = 'xp_aspectManager'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -10,9 +10,12 @@ plugin_shared_lib = shared_library(plugin_name,
         nwnx4_repo_path / 'src/misc/Patch.cpp',
         '../../septutil/crypto.cpp',
         '../../septutil/srvadmin.cpp',
+        '../../septutil/NwN2Utilities.cpp',
+        '../../septutil/NwN2Message.cpp',
         'appListManagement.cpp',
         'aspectManager.cpp',
         'aspectManagerUtils.cpp',
+        'aspectForViewer.cpp',
 
         'objectSpatial.cpp',
         'functionFixes.cpp',
