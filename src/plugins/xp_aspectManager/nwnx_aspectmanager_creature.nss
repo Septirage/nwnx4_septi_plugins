@@ -2,7 +2,8 @@
 // nwnx_aspectmanager_creature - creature specific functions of the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified By:	Septirage			2026-02-22	Add Get/Set IsRaiseable/IsDeadSelectable  (1.5.3)
+// Last Modified By:	Septirage			2026-09-06	Fix typo in GetCreatureTotalWeight_xpAM, Get/SetCreatureEquipmentWeight_xpAM functions names + fix SetCreatureAge_xpAM
+//						Septirage			2026-02-22	Add Get/Set IsRaiseable/IsDeadSelectable  (1.5.3)
 //						Septirage			2025-07-08	Add Get/Set NeverDrawHelmet/NeverShowArmor  (1.4.7)
 //						Septirage			2024-09-08	Add Test functions Get/SetWeight  (1.4.5)
 //						Septirage			2024-07-14	Add Get/SetRace_xpAM (1.4.4)
@@ -107,13 +108,13 @@ int GetCreatureIsDeadSelectable_xpAM(object oCreature);
 //TotalWeight
 void RecalculateCreatureTotalWeight_xpAM(object oCreature, int iValue);
 
-int GetCreatureTotalWeight_xpAm(object oCreature);
+int GetCreatureTotalWeight_xpAM(object oCreature);
 
 
 //Equipment weight
-void SetCreatureEquipmentWeight(object oCreature, int iValue);
+void SetCreatureEquipmentWeight_xpAM(object oCreature, int iValue);
 
-int GetCreatureEquipmentWeight(object oCreature);
+int GetCreatureEquipmentWeight_xpAM(object oCreature);
 
 
 /**************************** Creature Appearance ***************************/
@@ -371,7 +372,7 @@ void SetCreatureAge_xpAM(object oCreature, int iAge, int bPersist)
 	if(bPersist == TRUE)
 		sType += "Persist";
 
-	NWNXSetInt("AspectManager", "creature", sType, ObjectToInt(oCreature), bPersist);
+	NWNXSetInt("AspectManager", "creature", sType, ObjectToInt(oCreature), iAge);
 }
 
 int GetCreatureAge_xpAM(object oCreature, int bPersist)
@@ -479,17 +480,17 @@ void RecalculateCreatureTotalWeight_xpAM(object oCreature, int iValue)
 	NWNXSetInt("AspectManager", "creature", "WeightTotal", ObjectToInt(oCreature), iValue);
 }
 
-int GetCreatureTotalWeight_xpAm(object oCreature)
+int GetCreatureTotalWeight_xpAM(object oCreature)
 {
 	return NWNXGetInt("AspectManager", "creature", "WeightTotal", ObjectToInt(oCreature));
 }
 
-void SetCreatureEquipmentWeight(object oCreature, int iValue)
+void SetCreatureEquipmentWeight_xpAM(object oCreature, int iValue)
 {
 	NWNXSetInt("AspectManager", "creature", "WeightEquipment", ObjectToInt(oCreature), iValue);
 }
 
-int GetCreatureEquipmentWeight(object oCreature)
+int GetCreatureEquipmentWeight_xpAM(object oCreature)
 {
 	return NWNXGetInt("AspectManager", "creature", "WeightEquipment", ObjectToInt(oCreature));
 }

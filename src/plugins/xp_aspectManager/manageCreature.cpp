@@ -890,15 +890,15 @@ float CreatureGetFloat(char* cCommand, int iObjectID) {
 		return GetCreaturePersistScaleY(Object);
 	else if (sCommand == "PersistScaleZ")
 		return GetCreaturePersistScaleZ(Object);
-	else if (sCommand == cst_ModelPiece) {
+	else if (sCommand.rfind(cst_ModelPiece, 0) == 0) {
 		sCommand = sCommand.substr(cst_ModelPiece.size());
 		char* pEnd;
 		int iModelPiece = strtol(sCommand.c_str(), &pEnd, 10);
 		sCommand = pEnd;
 
-		if(sCommand == "fVScroll")
-			return GetCreatureArmorPieceVScroll(Object, iModelPiece); 
-		else if(sCommand == "fUScroll")
+		if(sCommand == "VScroll")
+			return GetCreatureArmorPieceVScroll(Object, iModelPiece);
+		else if(sCommand == "UScroll")
 			return GetCreatureArmorPieceUScroll(Object, iModelPiece);
 	}
 
@@ -929,15 +929,15 @@ void CreatureSetFloat(char* cCommand, int iObjectID, float fValue) {
 		return SetCreaturePersistScaleY(Object, fValue);
 	else if (sCommand == "PersistScaleZ")
 		return SetCreaturePersistScaleZ(Object, fValue);
-	else if (sCommand == cst_ModelPiece) {
+	else if (sCommand.rfind(cst_ModelPiece, 0) == 0) {
 		sCommand = sCommand.substr(cst_ModelPiece.size());
 		char* pEnd;
 		int iModelPiece = strtol(sCommand.c_str(), &pEnd, 10);
 		sCommand = pEnd;
 
-		if(sCommand == "fVScroll")
-			return SetCreatureArmorPieceVScroll(Object, iModelPiece, fValue); 
-		else if(sCommand == "fUScroll")
+		if(sCommand == "VScroll")
+			return SetCreatureArmorPieceVScroll(Object, iModelPiece, fValue);
+		else if(sCommand == "UScroll")
 			return SetCreatureArmorPieceUScroll(Object, iModelPiece, fValue);
 	}
 }

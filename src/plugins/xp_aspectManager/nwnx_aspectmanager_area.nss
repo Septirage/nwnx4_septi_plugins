@@ -2,7 +2,8 @@
 // nwnx_aspectmanager_area - area specific functions of the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified By:	Septirage			2024-09-08	Add function GetAreaCreatorID  (1.4.5)
+// Last Modified By:	Septirage           2026-02-22  Fix GetAreaDNCSkyZenithColor_xpAM function
+//						Septirage           2024-09-08	Add function GetAreaCreatorID  (1.4.5)
 //						Septirage           2024-02-28
 //--------------------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -971,6 +972,6 @@ void SetAreaDNCSkyZenithColor_xpAM(object oArea, int iDNC, string sRGB)
 
 string GetAreaDNCSkyZenithColor_xpAM(object oArea, int iDNC)
 {
-	string sCmd = "DNC" + IntToString(iDNC) + "SkyHorizon";
+	string sCmd = "DNC" + IntToString(iDNC) + "SkyZenith";
 	return NWNXGetString("AspectManager", "area", sCmd, ObjectToInt(oArea));
 }

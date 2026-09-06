@@ -1659,7 +1659,7 @@ void __fastcall SendIconUpdateMessage(uint8_t* pItem, uint32_t uNewIcon)
 			return;
 
 		//On a tout ici... On va construire le message
-		//dans le parcours.. on remplacera vers GCA plutôt que GRA si l'inventaire est ouvert par le viewer
+		//dans le parcours.. on remplacera vers GCA plutï¿½t que GRA si l'inventaire est ouvert par le viewer
 		
 
 		forEachPCBlock([&](CNWSPlayerStruct* p) -> bool {
@@ -1771,7 +1771,7 @@ void testMessage(uint32_t oPC, uint32_t iObjectToUpdate)
 	if (playerStruct == NULL)
 		return;
 
-	// AmItemEquipedBy (pour permettre de gérer les objets équipés... Mais au pire on fait le refresh classique)
+	// AmItemEquipedBy (pour permettre de gï¿½rer les objets ï¿½quipï¿½s... Mais au pire on fait le refresh classique)
 
 	{
 		GameObjectManager m_ObjectManager;
@@ -1814,7 +1814,7 @@ void testMessage(uint32_t oPC, uint32_t iObjectToUpdate)
 	piVar3 = (int *)(**(code **)(*piVar3 + 0x3c))();
 	Build_G?D_G?A_G?U(param_1_00,param_2,piVar3,iVar8,pvVar5,cVar10,cVar11);
 
-	pour soit même, après un faux gra =>
+	pour soit mï¿½me, aprï¿½s un faux gra =>
 	GIA, 
 	emplacement (2^slot) 
 	IDObject
@@ -2031,7 +2031,8 @@ bool SendUpdatePCName(uint32_t oChanged, uint32_t oReceiver, std::string sFirstN
 	{
 		if (bSetName)
 			oIdChanged = oChanged;
-		return false;
+		else
+			return false;
 
 	}
 	else
@@ -2112,138 +2113,4 @@ bool SendUpdatePCName(uint32_t oChanged, uint32_t oReceiver, std::string sFirstN
 
 	return bResult;
 }
-
-
-
-
-
-
-
-#ifdef PASDEFINE
-bool SendUpdatePCName(uint32_t oChanged, uint32_t oReceiver, std::string sAccount, std::string sFirstName, std::string sLastName)
-{
-	static bool bInitialized = false;
-	static uint32_t* fakeCELocString;
-	static uint32_t* ptrFakeLString;
-	static uint32_t* fakeLocalizedString;
-
-	if(bInitialized)
-	{
-		fakeCELocString = new uint32_t[3];
-		fakeCELocString[0] = 0;
-		ptrFakeLString = new uint32_t[1];
-		ptrFakeLString[0] = (uint32_t)fakeCELocString;
-
-		fakeLocalizedString = new uint32_t[4];
-		fakeLocalizedString[0] = 0xFFFFFFFF;
-		fakeLocalizedString[1] = (uint32_t)ptrFakeLString;
-		fakeLocalizedString[2] = 1;
-		fakeLocalizedString[3] = 1;
-
-
-		//fakeCELocString[1] = ;
-		fakeCELocString[2] = 0;
-	}
-
-
-	uint32_t receiverPCID = GetPCIDFromCreature(oReceiver);
-	uint32_t changedPCID = GetPCIDFromCreature(oChanged);
-
-	CNWSPlayerStruct* pStructChanged = GetPCBlockFromCreature(oChanged);
-
-	if (receiverPCID == NWN::PLAYERID_INVALIDID || pStructChanged == NULL)
-		return;
-
-	int* ptrMsg = GetCNWSMessage();
-
-	InitMessageBlock(ptrMsg, NULL, 0x100, 0xFFFFFFFF, 1);
-
-	CallUpdateMsgHash(ptrMsg, NULL,  1);
-
-	AddX32ToMsg(pStructChanged->playerID, ptrMsg);
-	AddX32ToMsg(pStructChanged->ownedCreature | 0x80000000, ptrMsg);
-
-	using Func = uint32_t(__thiscall*)(CNWSPlayerStruct*);
-	Func fn = reinterpret_cast<Func>(pStructChanged->vftable[1]);
-	uint32_t result = fn(pStructChanged);
-
-
-	CallUpdateMsgHash(ptrMsg, NULL, (result != 0)?1:0 );
-	
-	NWN::CExoString sAccountName = {.m_sString       = sAccount.data(), .m_nBufferLength = std::size(sAccount) + 1};
-
-	AddCExoString(sAccountName, ptrMsg);
-
-	CallUpdateMsgHash(ptrMsg, NULL, 1);
-
-	AddX32ToMsg(pStructChanged->ownedCreature | 0x80000000, ptrMsg);
-
-
-	fakeCELocString[1] = (uint32_t) sFirstName.data();
-	fakeCELocString[2] = std::size(sFirstName) +1;
-
-	AddLocalizedNameToMsg(ptrMsg, NULL, fakeLocalizedString, 0);
-
-	fakeCELocString[1] = (uint32_t) sLastName.data();
-	fakeCELocString[2] = std::size(sLastName) +1;
-
-	AddLocalizedNameToMsg(ptrMsg, NULL, fakeLocalizedString, 0);
-
-	//AmCrtPortraitId
-	if (0xfffd < uPortraitId) {
-		//GetGender 
-		if (gender == 1)
-			0xfffe;
-	}
-
-	AddValueToMsgx10(ptrMsg, NULL, uPortraitId, 0x10);
-	if (0xfffd < uVar4) {
-
-	}
-
-}
-
-bool SendUpdatePCName(uint32_t oPC, uint32_t oReceiver, std::string sFirstName, std::string sLastName)
-{
-	unsigned long iMustView = GetObjectToPlayerId(oReceiver);
-
-	GameObjectManager m_ObjectManager;
-	NWN::CGameObject *Object = m_ObjectManager.GetGameObject( (NWN::OBJECTID) oPC );
-	if (Object == NULL)
-		return;
-
-	NWN::OBJECTID idItem = *(NWN::OBJECTID*)(pItem + 0x730 + 0xA0);
-	unsigned char* myMessage = (unsigned char*)GetCNWSMessage();
-
-	NWN::OBJECT_TYPE possessorType = Object->GetObjectType();
-	if (possessorType == NWN::OBJECT_TYPE_CREATURE)
-	{
-	}
-
-	static uint32_t* fakeCELocString;
-	static uint32_t* ptrFakeLString;
-	static uint32_t* fakeLocalizedString;
-
-
-
-	fakeCELocString = new uint32_t[3];
-	fakeCELocString[0] = 0;
-	ptrFakeLString = new uint32_t[1];
-	ptrFakeLString[0] = (uint32_t)fakeCELocString;
-
-	fakeLocalizedString = new uint32_t[4];
-	fakeLocalizedString[0] = 0xFFFFFFFF;
-	fakeLocalizedString[1] = (uint32_t) ptrFakeLString;
-	fakeLocalizedString[2] = 1;
-	fakeLocalizedString[3] = 1;
-
-
-	fakeCELocString[1] = (uint32_t) texteBase;
-	fakeCELocString[2] = 9;
-
-
-
-
-}
-#endif
 

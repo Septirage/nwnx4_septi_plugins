@@ -680,7 +680,7 @@ void AppearanceListManagement::ChangeVisualCategory(char* cRRG_VisualCat, int iP
 		return;
 
 	std::string sNewVisualCat = sCode_NewVisualCat.substr(tPos+1);
-	std::string sCode = sCode_NewVisualCat.substr(tPos);
+	std::string sCode = sCode_NewVisualCat.substr(0, tPos);
 
 	//Test the existance
 	if (categorizedOutfitsMap.count(sRRG) != 0)
@@ -778,9 +778,13 @@ std::string AppearanceListManagement::GetVariationCode(char* cRRG_VCat, int iPar
 		{
 			if(categorizedOutfitsMap[sRRG][iPart].count(sVisualCat) != 0)
 			{
-				auto it = categorizedOutfitsMap[sRRG][iPart][sVisualCat].begin();
-				std::advance (it,iIdx);
-				sResult = *it;
+				auto& lst = categorizedOutfitsMap[sRRG][iPart][sVisualCat];
+				if (iIdx >= 0 && (size_t)iIdx < lst.size())
+				{
+					auto it = lst.begin();
+					std::advance (it,iIdx);
+					sResult = *it;
+				}
 			}
 		}
 	}
@@ -1102,8 +1106,7 @@ int AppearanceListManagement::ListSystemGetInt(std::string sCommand, char* sPara
 		size_t pos = str.find_last_of('#');
 		if (pos != std::string::npos) {
 			s1 = str.substr(0, pos);
-			if((pos+1) > str.size())
-				s2 = str.substr(pos + 1);
+			s2 = str.substr(pos + 1);
 		} else {
 			s1 = str;
 		}

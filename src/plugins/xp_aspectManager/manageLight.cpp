@@ -194,7 +194,7 @@ void LightSetInt(char* cCommand, int iObjectID, int iValue) {
 		SetLightIsFlicker(Object, iValue != 0);
 	else if (sCommand == "FlickerType")
 		SetLightFlickerType(Object, iValue);
-	else if (sCommand == "CastShadow")
+	else if (sCommand == "CastsShadow")
 		SetLightCastShadow(Object, iValue != 0);
 
 }

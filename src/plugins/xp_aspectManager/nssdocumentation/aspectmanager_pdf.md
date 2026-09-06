@@ -1,25 +1,15 @@
+<div class="cover-title">
+<div class="cover-heading">
+xp_AspectManager
+<br>
+functions Guide
+</div>
 
-a
+<div class="cover-version">
+for plugin v1.5.6 -2026-09-07 by Septirage
+</div>
 
-a
-
-a
-
-a
-
-a
-
-a
-
-a
-
-.
-.
-.
-.
-.
-.
-.
+</div>
 
 
 
@@ -146,6 +136,9 @@ Refresh, View & Collision
 [MaskObjectForPC\_xpAM](#maskobjectforpc_xpam)  
 [SetObjectDynamicCollision\_xpAM](#setobjectdynamiccollision_xpam)  
 [GetObjectDynamicCollision\_xpAM](#getobjectdynamiccollision_xpam)  
+[SetObjectDynamicCollision\_xpAM](#setobjectdynamiccollision_xpam)  
+[SetPCListNameForViewer\_xpAM](#setpclistnameforviewer_xpam)  
+[SetCreatureNameForViewer\_xpAM](#setcreaturenameforviewer_xpam)  
    </td>
  </tr>
 </table><div style="page-break-after: always;"></div>
@@ -418,6 +411,14 @@ WeaponSpecific
 [GetItemWeaponFX\_xpAM](#getitemweaponfx_xpam)  
 [SetItemWeaponPart\_xpAM](#setitemweaponpart_xpam)  
 [GetItemWeaponPart\_xpAM](#getitemweaponpart_xpam)  
+  
+ItemProperties  
+[AddItemProperty\_xpAM](#additemproperty_xpam)  
+[GetItemPropertyID\_xpAM](#getitempropertyid_xpam) 
+[GetNumItemProperties\_xpAM](#getnumitemproperties_xpam) 
+[GetSpecificItemProperty\_xpAM](#getspecificitemproperty_xpam) 
+[GetSpecificItemPropertyByID\_xpAM](#getspecificitempropertybyid_xpam) 
+[GetSpecificItemPropertyID\_xpAM](#getspecificitempropertyid_xpam) 
 </td>
 <td style="vertical-align:top">
   
@@ -543,6 +544,8 @@ Constants List
 
 <div style="page-break-after: always;"></div>
 
+<div class="fnblock">
+
 # SetIsDestroyable\_xpAM
 ```cpp
 void SetIsDestroyable_xpAM(object oObject, int bDestroyable);
@@ -555,7 +558,11 @@ Set the destroyable status of oObject.
 * `oObject` - The object to set the bDestroyable status for.
 * `bDestroyable` - TRUE or FALSE
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetIsDestroyable\_xpAM
 ```cpp
@@ -570,7 +577,10 @@ Get CurrentHitPoints of oObject.
 ## Return Value
 The IsDestroyable status of the object.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCurrentHitPoints\_xpAM
 ```cpp
@@ -589,7 +599,11 @@ Set CurrentHitPoints of oObject to iHP.
 
 This is the Current "base" HitPoints, without the possible Temporary HitPoints
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCurrentHitPoints\_xpAM
 ```cpp
@@ -609,7 +623,11 @@ The CurrentHitPoints of the object.
 
 This is the Current "base" HitPoints, without the possible Temporary HitPoints
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetTemporaryHitPoints\_xpAM
 ```cpp
@@ -622,7 +640,10 @@ Set Temporary HitPoints of oObject to iHP.
 * `oObject` - The object to set the Temporary HitPoints for.
 * `iHP` - The Temporary HitPoints to set.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetTemporaryHitPoints\_xpAM
 ```cpp
@@ -637,7 +658,11 @@ Get Temporary HitPoints of oObject.
 ## Return Value
 The Temporary HitPoints of the object.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetMaxHitPoints\_xpAM
 ```cpp
@@ -650,7 +675,11 @@ Set Max HitPoints of oObject to iHP.
 * `oObject` - The object to set the Max HitPoints for.
 * `iHP` - The Max HitPoints to set.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetMaxHitPoints\_xpAM
 ```cpp
@@ -665,7 +694,10 @@ Get Max HitPoints of oObject.
 ## Return Value
 The Max HitPoints of the object.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetModMaxHitPoints\_xpAM
 ```cpp
@@ -678,7 +710,11 @@ Set the Modifier value of Max HitPoints of oObject to iHP.
 * `oObject` - The object to set the Modifier value of Max HitPoints for.
 * `iHP` - The Modifier value to set.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetModMaxHitPoints\_xpAM
 ```cpp
@@ -693,7 +729,11 @@ Get the Modifier value of Max HitPoints of oObject.
 ## Return Value
 The Modifier value of Max HitPoints of the object.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAppearance\_xpAM
 ```cpp
@@ -706,7 +746,10 @@ Set Appearance of oObject to iApp. Will be based on respective 2DA tables. Work 
 * `oObject` - The object to set the Appearance for. (Door or Placeable)
 * `iApp` - The corresponding 2DA index of the appearance to set.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAppearance\_xpAM
 ```cpp
@@ -721,7 +764,11 @@ Get Appearance of oObject. Will be related to respective 2DA tables. Work for Do
 ## Return Value
 The corresponding 2DA index of the appearance of the object.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetUVScroll\_xpAM
 ```cpp
@@ -734,7 +781,11 @@ Enable or Disable UVScroll for oObject. Work for placeable.
 * `oObject` - The object to enable or disable UVScroll for. (Placeable only)
 * `bActive` - The flag to enable (TRUE) or disable (FALSE) UVScroll.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetUVScroll\_xpAM
 ```cpp
@@ -749,7 +800,10 @@ Get the activation status of UVScroll for oObject. Work for placeable.
 ## Return Value
 The activation status of UVScroll for the object (TRUE if enabled, FALSE if disabled).
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetUScroll\_xpAM
 ```cpp
@@ -762,7 +816,11 @@ Set UScroll speed for oObject to fUScroll. Work for placeable.
 * `oObject` - The object to set the UScroll speed for. (Placeable only)
 * `fUScroll` - The UScroll speed to set.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetUScroll\_xpAM
 ```cpp
@@ -777,7 +835,11 @@ Get UScroll speed for oObject. Work for placeable.
 ## Return Value
 The UScroll speed of the object.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetVScroll\_xpAM
 ```cpp
@@ -790,8 +852,10 @@ Set VScroll speed for oObject to fUScroll. Work for placeable.
 * `oObject` - The object to set the VScroll speed for. (Placeable only)
 * `fVScroll` - The VScroll speed to set.
 
+</div>
 
-<div style="page-break-after: always;"></div>
+
+<div class="fnblock">
 
 # GetVScroll\_xpAM
 ```cpp
@@ -806,7 +870,11 @@ Get VScroll speed for oObject. Work for placeable.
 ## Return Value
 The VScroll speed of the object.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetHasInventory\_xpAM
 ```cpp
@@ -819,7 +887,11 @@ Enable or Disable the inventory for oObject Placeable.
 * `oObject` - The Placeable to enable or disable the inventory for.
 * `bHasInventory` - The flag to enable (TRUE) or disable (FALSE) the inventory.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetHasInventory\_xpAM
 ```cpp
@@ -834,7 +906,10 @@ Return the value of HasInventory Flag for oObject Placeable.
 ## Return Value
 The value of the HasInventory flag for the object (TRUE if enabled, FALSE if disabled).
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetInventoryMaxSize\_xpAM
 ```cpp
@@ -851,7 +926,11 @@ Set the MaximumInventorySize of Inventory for oObject to iMaxSize. Work for Plac
 
 iMaxSize max value is 142.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetInventoryMaxSize\_xpAM
 ```cpp
@@ -866,7 +945,11 @@ Get the MaximumInventorySize of Inventory for oObject Placeable, Item and Creatu
 ## Return Value
 The MaximumInventorySize of the object.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetInventoryNbItem\_xpAM
 ```cpp
@@ -881,7 +964,10 @@ Get the number of objects in the oObject inventory. Work for Placeable, Item and
 ## Return Value
 The number of items in the inventory of the object.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAutoRemoveKey\_xpAM
 ```cpp
@@ -894,7 +980,11 @@ Set the AutoRemoveKey Flag value for oObject. Work for Placeable, Door.
 * `oObject` - The object to set the AutoRemoveKey flag for.
 * `bAutoRemove` - The flag to enable (TRUE) or disable (FALSE) AutoRemoveKey.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAutoRemoveKey\_xpAM
 ```cpp
@@ -909,7 +999,11 @@ Get the AutoRemoveKey Flag value for oObject. Work for Placeable, Door.
 ## Return Value
 The value of the AutoRemoveKey flag for the object (TRUE if enabled, FALSE if disabled).
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetTriggerType\_xpAM
 ```cpp
@@ -924,7 +1018,10 @@ Get the trigger type (return a [TRIGGER\_TYPE\_\*](#trigger-types-trigger_type_)
 ## Return Value
 The trigger type as a [TRIGGER\_TYPE\_\*](#trigger-types-trigger_type_) constant.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetTriggerType\_xpAM
 ```cpp
@@ -937,7 +1034,11 @@ Set trigger type, use [TRIGGER\_TYPE\_\*](#trigger-types-trigger_type_) constant
 * `oObject` - The object to set the trigger type for.
 * `iType` - The trigger type as a [TRIGGER\_TYPE\_\*](#trigger-types-trigger_type_) constant.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetTriggerGeometry\_xpAM
 ```cpp
@@ -950,7 +1051,11 @@ Set a new Geometry for oTrigger.
 * `oTrigger` - The trigger object to set the geometry for.
 * `sNewGeometry` - The new geometry in the format "NumOfPoint Point1X Point1Y Point1Z Point2X Point2Y Point2Z ...".
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetIsInvisibleTransition\_xpAM
 ```cpp
@@ -963,7 +1068,10 @@ Set the Invisible Transition flag for oObject. Work for Door.
 * `oObject` - The object to set the Invisible Transition flag for.
 * `bInvisibleTransition` - The flag to enable (TRUE) or disable (FALSE) Invisible Transition.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetIsInvisibleTransition\_xpAM
 ```cpp
@@ -978,7 +1086,11 @@ Get the Invisible Transition flag for oObject. Work for Door.
 ## Return Value
 The value of the Invisible Transition flag for the object (TRUE if enabled, FALSE if disabled).
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetIsPartyTransition\_xpAM
 ```cpp
@@ -991,7 +1103,11 @@ Set the Party Transition flag for oObject. Work for Door or Trigger.
 * `oObject` - The object to set the Party Transition flag for.
 * `bPartyTransition` - The flag to enable (TRUE) or disable (FALSE) Party Transition.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetIsPartyTransition\_xpAM
 ```cpp
@@ -1006,7 +1122,10 @@ Get the Party Transition flag for oObject. Work for Door or Trigger.
 ## Return Value
 The value of the Party Transition flag for the object (TRUE if enabled, FALSE if disabled).
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetTransitionLinkObjectType\_xpAM
 ```cpp
@@ -1019,7 +1138,11 @@ Set the Transition Link Object Type of oObject to iType. iType must be a [TRANSI
 * `oObject` - The object to set the Transition Link Object Type for.
 * `iType` - The Transition Link Object Type as a [TRANSITION\_TYPE\_\*](#transition-types-transition_type_) constant.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetTransitionLinkObjectType\_xpAM
 ```cpp
@@ -1034,7 +1157,11 @@ Get the [TRANSITION\_TYPE\_\*](#transition-types-transition_type_) used for oObj
 ## Return Value
 The Transition Link Object Type as a [TRANSITION\_TYPE\_\*](#transition-types-transition_type_) constant.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLoadScreenID\_xpAM
 ```cpp
@@ -1047,7 +1174,10 @@ Set the LoadScreenID for oObject to iIDScreen. Work for Area, Door, Trigger.
 * `oObject` - The object to set the LoadScreenID for.
 * `iIDScreen` - The LoadScreenID to set.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetLoadScreenID\_xpAM
 ```cpp
@@ -1062,7 +1192,11 @@ Get the LoadScreenID for oObject. Work for Area, Door, Trigger.
 ## Return Value
 The LoadScreenID of the object.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetTransitionDestination\_xpAM
 ```cpp
@@ -1075,7 +1209,11 @@ Set the Transition Destination (object Tag) for oObject. Work for Door, Trigger.
 * `oObject` - The object to set the Transition Destination for.
 * `sTransitionDest` - The Transition Destination as an object tag.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetTransitionDestination\_xpAM
 ```cpp
@@ -1090,7 +1228,10 @@ Get the Transition Destination of oObject. Work for Door, Trigger.
 ## Return Value
 The Transition Destination as an object tag.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetMagicResistance\_xpAM
 ```cpp
@@ -1104,7 +1245,11 @@ Set the Magic Resistance for oObject. If bReduc is set to TRUE, you will set the
 * `iValue` - The Magic Resistance value to set.
 * `bReduc` - The flag to indicate if the value is a reduction (TRUE) or not (FALSE).
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetMagicResistance\_xpAM
 ```cpp
@@ -1120,8 +1265,12 @@ Get the Magic Resistance for oObject. If bReduc is set to TRUE, you will get the
 ## Return Value
 The Magic Resistance value or the reduction value if bReduc is TRUE.
 
+</div>
+
 ---
 
+
+<div class="fnblock">
 
 # SetReflexSavingThrow\_xpAM
 ```cpp
@@ -1134,7 +1283,10 @@ Set the Reflex Saving Throw on a creature, door, or placeable.
 * `oObject` - The object to set the Reflex Saving Throw for.
 * `iSaving` - The Reflex Saving Throw value to set.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetFortitudeSavingThrow\_xpAM
 ```cpp
@@ -1147,7 +1299,11 @@ Set the Fortitude Saving Throw on a creature, door, or placeable.
 * `oObject` - The object to set the Fortitude Saving Throw for.
 * `iSaving` - The Fortitude Saving Throw value to set.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetWillSavingThrow\_xpAM
 ```cpp
@@ -1160,7 +1316,11 @@ Set the Will Saving Throw on a creature, door, or placeable.
 * `oObject` - The object to set the Will Saving Throw for.
 * `iSaving` - The Will Saving Throw value to set.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetFactionID\_xpAM
 ```cpp
@@ -1175,7 +1335,10 @@ Return the FactionID of oObject. Work for Creature, Door, Placeable, Trigger.
 ## Return Value
 The FactionID of the object.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetIsBaseFaction\_xpAM
 ```cpp
@@ -1190,7 +1353,11 @@ Return TRUE if the idFaction is one of the preconfiguredFaction.
 ## Return Value
 TRUE if the FactionID is a preconfigured faction, FALSE otherwise.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAppearanceSEF\_xpAM
 ```cpp
@@ -1203,7 +1370,11 @@ Set sSEF visual effect to oObject. Work for Creature, Item, Placeable, PlacedEff
 * `oObject` - The object to set the visual effect for.
 * `sSEF` - The visual effect to set.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAppearanceSEF\_xpAM
 ```cpp
@@ -1218,7 +1389,10 @@ Get the current visual effect applied to oObject. Work for Creature, Item, Place
 ## Return Value
 The current visual effect applied to the object.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetColor\_xpAM
 ```cpp
@@ -1232,7 +1406,11 @@ Set the iColor color of oObject to sRGB. oObject: The object to change. Door or 
 * `iColor` - The color to change (1, 2, or 3).
 * `sRGB` - The color in #RRGGBB format.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetColor\_xpAM
 ```cpp
@@ -1248,7 +1426,11 @@ Return the "iColor" color of oObject. In #RRGGBB format. oObject: a Door or Plac
 ## Return Value
 The color in #RRGGBB format.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetFacing\_xpAM
 ```cpp
@@ -1261,7 +1443,10 @@ Cause the oObject to immediately face fFacing. fFacing is expressed as anticlock
 * `oObject` - The object to set the facing for.
 * `fFacing` - The facing in anticlockwise degrees from Due East.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetPosition\_xpAM
 ```cpp
@@ -1274,7 +1459,11 @@ Set the position of oObject.
 * `oObject` - The object to set the position for.
 * `fX`, `fY`, `fZ` - The coordinates of the new position.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetPositionAndFacing\_xpAM
 ```cpp
@@ -1288,7 +1477,11 @@ Set the position and orientation of oObject.
 * `fX`, `fY`, `fZ` - The coordinates of the new position.
 * `fFacing` - The facing in anticlockwise degrees from Due East.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # MusicBackgroundDayForPC\_xpAM
 ```cpp
@@ -1301,7 +1494,11 @@ Change the current MusicBackgroundDay to nTrack for oPC in its current area.
 * `oPC` - The PC to change the MusicBackgroundDay for.
 * `nTrack` - The new MusicBackgroundDay track.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # MusicBackgroundNightForPC\_xpAM
 ```cpp
@@ -1314,7 +1511,11 @@ Change the current MusicBackgroundNight to nTrack for oPC in its current area.
 * `oPC` - The PC to change the MusicBackgroundNight for.
 * `nTrack` - The new MusicBackgroundNight track.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # MusicBattleForPC\_xpAM
 ```cpp
@@ -1327,7 +1528,11 @@ Change the current MusicBattle to nTrack for oPC in its current area.
 * `oPC` - The PC to change the MusicBattle for.
 * `nTrack` - The new MusicBattle track.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # MusicBackgroundRunForPC\_xpAM
 ```cpp
@@ -1340,7 +1545,11 @@ Start or Stop the current MusicBackground for oPC.
 * `oPC` - The PC to start or stop the MusicBackground for.
 * `bStart` - The flag to start (TRUE) or stop (FALSE) the MusicBackground.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # MusicBattleRunForPC\_xpAM
 ```cpp
@@ -1353,7 +1562,11 @@ Start or Stop the current MusicBattle for oPC.
 * `oPC` - The PC to start or stop the MusicBattle for.
 * `bStart` - The flag to start (TRUE) or stop (FALSE) the MusicBattle.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # RefreshCreatureForPC\_xpAM
 ```cpp
@@ -1366,7 +1579,11 @@ Refresh the visual of oCreatureToRefresh for oPCMustView.
 * `oCreatureToRefresh` - The creature to refresh the visual for.
 * `oPCMustView` - The PC that must view the refreshed visual.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # RefreshCreature\_xpAM
 ```cpp
@@ -1378,7 +1595,11 @@ Refresh the visual of oCreatureToRefresh for every PC.
 
 * `oCreatureToRefresh` - The creature to refresh the visual for.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # RefreshEquipedItemForPC\_xpAM
 ```cpp
@@ -1392,7 +1613,11 @@ Refresh the visual of an equipped item of oCreatureToRefresh for oPCMustView. iS
 * `oCreatureToRefresh` - The creature to refresh the equipped item visual for.
 * `oMustView` - The PC that must view the refreshed visual.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # RefreshEquipedItem\_xpAM
 ```cpp
@@ -1405,7 +1630,10 @@ Refresh the visual of an equipped item of oCreatureToRefresh for every PC. iSlot
 * `iSlotToRefresh` - The inventory slot to refresh the equipped item for (INVENTORY\_SLOT\_\* constant).
 * `oCreatureToRefresh` - The creature to refresh the equipped item visual for.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # RefreshObjectForPC\_xpAM
 ```cpp
@@ -1418,7 +1646,11 @@ Refresh the visual of the object oObjectToRefresh for oPC.
 * `oObjectToRefresh` - The object to refresh the visual for.
 * `oPC` - The PC that must view the refreshed visual.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # RefreshObject\_xpAM
 ```cpp
@@ -1430,7 +1662,11 @@ Refresh the visual of the object oObjectToRefresh for every concerned.
 
 * `oObjectToRefresh` - The object to refresh the visual for.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # ShowObject\_xpAM
 ```cpp
@@ -1442,7 +1678,11 @@ Show the visual of the object oObjectToShow.
 
 * `oObjectToShow` - The object to show the visual for.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # ShowObjectForPC\_xpAM
 ```cpp
@@ -1455,7 +1695,10 @@ Show the visual of the object oObjectToShow for oPC.
 * `oObjectToShow` - The object to show the visual for.
 * `oPC` - The PC that must view the shown visual.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # MaskObject\_xpAM
 ```cpp
@@ -1467,7 +1710,11 @@ Hide the visual of the object oObjectToMask for every concerned.
 
 * `oObjectToMask` - The object to hide the visual for.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # MaskObjectForPC\_xpAM
 ```cpp
@@ -1480,7 +1727,11 @@ Hide the visual of the object oObjectToMask for oPC.
 * `oObjectToMask` - The object to hide the visual for.
 * `oPC` - The PC that must view the hidden visual.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetObjectDynamicCollision\_xpAM
 ```cpp
@@ -1493,7 +1744,11 @@ Enable or Disable DynamicCollision of oPlaceable.
 * `oPlaceable` - The placeable object to enable or disable DynamicCollision for.
 * `bDynamicCollision` - The flag to enable (TRUE) or disable (FALSE) DynamicCollision.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetObjectDynamicCollision\_xpAM
 ```cpp
@@ -1508,7 +1763,71 @@ Get status of DynamicCollision of oPlaceable.
 ## Return Value
 The status of DynamicCollision for the object (TRUE if enabled, FALSE if disabled).
 
-<div style="page-break-after: always;"></div>
+</div>
+
+---
+
+<div class="fnblock">
+
+# SetPCListNameForViewer\_xpAM
+```cpp
+void SetPCListNameForViewer_xpAM(object oPC, string sFirstName, string sLastName, object oViewer);
+```
+Changes the name displayed for a PC in the player list and private message list for a specific viewer.
+
+The change is only visible to oViewer and does not modify the actual first name or last name of oPC.
+
+## Parameters
+
+* `oPC` - The PC whose displayed name will be changed.
+* `sFirstName` - The new first name to display.
+* `sLastName` - The new last name to display.
+* `oViewer` - The PC for whom the new name will be displayed.
+
+## Notes
+The name is viewer-specific. Different players can therefore see different names for the same PC.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# SetCreatureNameForViewer\_xpAM
+```cpp
+void SetCreatureNameForViewer_xpAM(object oCreature, string sFirstName, string sLastName, object oViewer);
+```
+Changes the name displayed for a creature for a specific viewer.
+
+The change is only visible to oViewer and does not modify the actual first name or last name of oCreature.
+
+This affects the name displayed by the client for the creature, including its overhead name, portrait, combat log, dialogues, and other contexts where the creature's name is displayed.
+
+## Parameters
+
+* `oCreature` - The creature whose displayed name will be changed.
+* `sFirstName` - The new first name to display.
+* `sLastName` - The new last name to display.
+* `oViewer` - The PC for whom the new name will be displayed.
+
+## Notes
+
+The name is viewer-specific. Different players can therefore see different names for the same creature.
+
+## Limitations 
+
+This function does not affect all occurrences of the creature's name.
+
+Some NWN2 communication messages, such as certain OOC messages, include the creature's name directly in the message text instead of providing the recipient when resolving the creature's name. In these cases, the viewer-specific name cannot be applied by this function.
+
+The UsePlayerNameForOOCMsg option can be enabled to use the player's PlayerName instead of the character's name in the affected messages.
+
+</div>
+
+---
+
+
+<div class="fnblock">
 
 # SetCreatureAge\_xpAM
 
@@ -1527,7 +1846,11 @@ Set the Age of oCreature
 * `iAge` - The age to set
 * `bPersist` - Set to TRUE to change the persisted value, FALSE to change the current value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureAge\_xpAM
 
@@ -1548,7 +1871,10 @@ Get the Age of oCreature
 
 The age of the creature.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # RecalculateCreatureTotalWeight\_xpAM
 
@@ -1563,7 +1889,11 @@ Will recalculate inventory weight on creature. Usefull if you use [SetCreatureEq
 
 * `oCreature` - The creature on which you want to force a refresh
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureTotalWeight\_xpAM
 
@@ -1582,12 +1912,16 @@ Get the current weight carried by the creature.
 
 The current weight carried by the creature
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureEquipmentWeight\_xpAM
 
 ```cpp
-int SetCreatureEquipmentWeight_xpAM(
+int GetCreatureEquipmentWeight_xpAM(
     object oCreature
 );
 ```
@@ -1601,7 +1935,11 @@ Get the current equiped weight of the creature. If you don't set it, this value 
 
 The current weight of the equipment carried by the creature
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureEquipmentWeight\_xpAM
 
@@ -1624,7 +1962,10 @@ This mean that you can use this function to add weight on a creature, or remove 
 
 * `oCreature` - The creature to get the carried weight for
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCreatureSoundSet\_xpAM
 
@@ -1641,7 +1982,11 @@ Set the SoundSet of oCreature
 * `oCreature` - The creature to set the sound set for
 * `iSoundSet` - The sound set to use
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureSoundSet\_xpAM
 
@@ -1660,7 +2005,11 @@ Get the SoundSet of oCreature
 
 The sound set of the creature.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureRace\_xpAM
 
@@ -1677,7 +2026,10 @@ Set the Race of oCreature
 * `oCreature` - The creature to set the race for
 * `iRace` - The Race index from racialtype.2DA to use
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureRace\_xpAM
 
@@ -1696,7 +2048,11 @@ Get the Race of oCreature
 
 The race index from racialtype.2DA of the creature.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureSubRace\_xpAM
 
@@ -1713,7 +2069,11 @@ Set the SubRace of oCreature
 * `oCreature` - The creature to set the race for
 * `iSubRace` - The SubRace index from racialsubtype.2DA to use
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureSubRace\_xpAM
 
@@ -1732,7 +2092,10 @@ Get the SubRace of oCreature
 
 The subrace index from racialsubtype.2DA of the creature.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCreatureSpecificAC\_xpAM
 
@@ -1761,7 +2124,10 @@ If you set a specific AC, it will be overwritten by other factors that also set 
 For example, setting AC_TYPE_ARMORVAL_SEPT to 18 will be overwritten when the oCreature equips armor. 
 Another example: when a creature receives Mage Armor, the AC_TYPE_ARMOR_SEPT will be overwritten but NOT the reduced AC_TYPE_ARMOR_SEPT.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureSpecificAC\_xpAM
 
@@ -1785,7 +2151,11 @@ Get the Specific Armor Class (AC) of oCreature
 
 The specific armor class (AC) of the creature.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureTattoos\_xpAM
 
@@ -1802,7 +2172,10 @@ Not working for tattoo but can be used to store a 16bits value.
 * `oCreature` - The creature to store the value for
 * `iValue` - The 16bits value to store
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureTattoos\_xpAM
 
@@ -1821,7 +2194,11 @@ Not working for tattoo but can be used to get a stored 16bits value.
 
 The stored 16bits value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureNeverShowArmor\_xpAM
 
@@ -1840,7 +2217,11 @@ Will return the NeverShowArmor flag
 
 The value of NeverShowArmor flag.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureNeverShowArmor\_xpAM
 
@@ -1857,7 +2238,11 @@ Will set the NeverShowArmor flag
 * `oCreature` - The creature to get the value for
 * `bNeverShowArmor` - The TRUE/FALSE value for this flag
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureNeverDrawHelmet\_xpAM
 
@@ -1876,7 +2261,11 @@ Will return the NeverDrawHelmet flag
 
 The value of NeverDrawHelmet flag.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureNeverDrawHelmet\_xpAM
 
@@ -1893,7 +2282,11 @@ Will set the NeverDrawHelmet flag
 * `oCreature` - The creature to get the value for
 * `bNeverDrawHelmet` - The new value for the flag
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureIsRaiseable\_xpAM
 
@@ -1910,7 +2303,11 @@ Will set the IsRaiseable flag
 * `oCreature` - The creature to set the value for
 * `bIsRaiseable` - If this is TRUE, the creature can be raised via resurrection.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureIsRaiseable\_xpAM
 
@@ -1929,7 +2326,11 @@ Will return the IsRaiseableFlag flag
 
 The value of isRaiseable flag.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureIsDeadSelectable\_xpAM
 
@@ -1946,7 +2347,11 @@ Will set the IsSelectableWhenDead flag
 * `oCreature` - The creature to set the value for
 * `bSelectableWhenDead` - If this is TRUE, the creature is selectable after death.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureIsDeadSelectable\_xpAM
 
@@ -1965,9 +2370,12 @@ Will return the IsSelectableWhenDead flag
 
 The value of IsSelectableWhenDead flag.
 
+</div>
+
 ---
 
-<div style="page-break-after: always;"></div>
+
+<div class="fnblock">
 
 # SetCreatureVisualGender\_xpAM
 
@@ -1984,7 +2392,11 @@ Needed if you change the Gender of an creature
 * `oCreature` - The creature to set the visual gender for
 * `iVisualGender` - The visual gender to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureVisualGender\_xpAM
 
@@ -2003,7 +2415,11 @@ Get the visual gender of a creature
 
 The visual gender of the creature.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureHead\_xpAM
 
@@ -2022,7 +2438,11 @@ Change the Head of oCreature.
 * `iVariation` - The head variation to use
 * `bPersist` - Set to TRUE to change the persisted value, FALSE to change the current value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureHead\_xpAM
 
@@ -2043,7 +2463,10 @@ Get the Head of oCreature
 
 The head variation of the creature.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCreatureHair\_xpAM
 
@@ -2062,7 +2485,11 @@ Change the Hair of oCreature.
 * `iVariation` - The hair variation to use
 * `bPersist` - Set to TRUE to change the persisted value, FALSE to change the current value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureHair\_xpAM
 
@@ -2083,7 +2510,10 @@ Get the Hair of oCreature
 
 The hair variation of the creature.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCreatureFacialHair\_xpAM
 
@@ -2102,7 +2532,11 @@ Change the Facial Hair of oCreature.
 * `iVariation` - The facial hair variation to use
 * `bPersist` - Set to TRUE to change the persisted value, FALSE to change the current value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureFacialHair\_xpAM
 
@@ -2123,7 +2557,10 @@ Get the Facial Hair of oCreature
 
 The facial hair variation of the creature.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCreatureTail\_xpAM
 
@@ -2142,7 +2579,11 @@ Change the Tail of oCreature.
 * `iVariation` - The tail variation to use
 * `bPersist` - Set to TRUE to change the persisted value, FALSE to change the current value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureTail\_xpAM
 
@@ -2163,7 +2604,10 @@ Get the Tail of oCreature
 
 The tail variation of the creature.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCreatureWings\_xpAM
 
@@ -2182,7 +2626,11 @@ Change the Wings of oCreature.
 * `iVariation` - The wings variation to use
 * `bPersist` - Set to TRUE to change the persisted value, FALSE to change the current value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureWings\_xpAM
 
@@ -2203,7 +2651,10 @@ Get the Wings of oCreature
 
 The wings variation of the creature.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCreatureColor\_xpAM
 
@@ -2224,7 +2675,11 @@ Change the choosen color of oCreature.
 * `sRGB` - a RGB string value, on the "#FFFFFF" (or #FFFFFFFF) format
 * `bPersist` - Set to TRUE to change the persisted value, FALSE to change the current value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureColor\_xpAM
 
@@ -2247,7 +2702,10 @@ Get the choosen color of oCreature.
 
 The RGB string value of the chosen color.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCreaturePersistScale\_xpAM
 
@@ -2266,7 +2724,11 @@ Change the Persisted scale of oCreature based on specific nAxis.
 * `nAxis` - [SCALE\_*](#scale-axis-constants-scale_) constant, the scale axis to set.
 * `fScale` - The scale value to use
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreaturePersistScale\_xpAM
 
@@ -2287,7 +2749,10 @@ Get the Persisted scale of the object based on which axis is looked up.
 
 The scale value of the creature on the specified axis.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCreatureModelPartMask\_xpAM
 
@@ -2308,7 +2773,11 @@ Change the iModelPart mask, allowing you to show or hide model part on the creat
 iMask is bitmask based with : 
 0x1: Helm, 0x2: Gloves,  0x4: Boots, 0x8: Belt, 0x10: Cloak
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureModelPartMask\_xpAM
 
@@ -2331,7 +2800,10 @@ The model part mask of the creature.
 Return Value is bitmask based with : 
 0x1: Helm, 0x2: Gloves,  0x4: Boots, 0x8: Belt, 0x10: Cloak
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetCreatureVisualVariation\_xpAM
 
@@ -2348,7 +2820,11 @@ Set the iVariation for the oCreature model (without armor)
 * `oCreature` - The creature to change the model variation for
 * `iVariation` - The model variation to use
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetCreatureVisualVariation\_xpAM
 
@@ -2367,7 +2843,11 @@ Get the iVariation for the oCreature model (without armor)
 
 The model variation of the creature.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureVisualCategory\_xpAM
 
@@ -2384,7 +2864,10 @@ Set the Category (armorvisualdata.2da) for the oCreature model (without armor)
 * `oCreature` - The creature to change the model category for
 * `iCategory` - The model category to use
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureVisualCategory\_xpAM
 
@@ -2403,7 +2886,11 @@ Get the Category (armorvisualdata.2da) for the oCreature model (without armor)
 
 The model category of the creature.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureVisualColor\_xpAM
 
@@ -2422,7 +2909,10 @@ Set the visual Color for oCreature (Seems to be persisted but not used)
 * `iColor` - The color to use
 * `sRGB` - a RGB string value, on the "#FFFFFF" (or #FFFFFFFF) format
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureVisualColor\_xpAM
 
@@ -2443,7 +2933,11 @@ Get the visual Color for oCreature (Seems to be persisted but not used)
 
 The RGB string value of the visual color.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureVisualModelPartVariation\_xpAM
 
@@ -2462,7 +2956,10 @@ Set the ModelPart Variation for oCreature Visual.
 * `iModelPart` - ARMOR\_MODEL\_PART\_* constant
 * `iVariation` - The model part variation to use
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureVisualModelPartVariation\_xpAM
 
@@ -2483,7 +2980,11 @@ Get the ModelPart Variation for oCreature Visual.
 
 The model part variation of the creature.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureVisualModelPartCategory\_xpAM
 
@@ -2502,7 +3003,10 @@ Set the ModelPart Visual Category for oCreature Visual (armorvisualdata.2DA ID).
 * `iModelPart` - ARMOR\_MODEL\_PART\_* constant
 * `iCategory` - The model part category to use
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureVisualModelPartCategory\_xpAM
 
@@ -2523,7 +3027,11 @@ Get the ModelPart Visual Category for oCreature Visual (armorvisualdata.2DA ID).
 
 The model part category of the creature.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureVisualModelPartColor\_xpAM
 
@@ -2544,7 +3052,10 @@ Set the Color of the iModelPart of oCreature Visual
 * `iColor` - 1, 2 or 3
 * `sRGB` - a RGB string value, on the "#FFFFFF" (or #FFFFFFFF) format
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureVisualModelPartColor\_xpAM
 
@@ -2567,7 +3078,11 @@ Get the Color of the iModelPart of oCreature Visual
 
 The RGB string value of the model part color.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureVisualModelPieceVariation\_xpAM
 
@@ -2586,7 +3101,10 @@ Set the ModelPiece Variation for oCreature Visual. Use ARMOR\_MODEL\_PIECE\_* co
 * `iModelPiece` - ARMOR\_MODEL\_PIECE\_* constant
 * `iVariation` - The model piece variation to use
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureVisualModelPieceVariation\_xpAM
 
@@ -2607,7 +3125,11 @@ Get the ModelPiece Variation for oCreature Visual. Use ARMOR\_MODEL\_PIECE\_* co
 
 The model piece variation of the creature.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureVisualModelPieceColor\_xpAM
 
@@ -2628,7 +3150,10 @@ Set the Color of the iModelPiece of oCreature Visual
 * `iColor` - 1, 2 or 3
 * `sRGB` - a RGB string value, on the "#FFFFFF" (or #FFFFFFFF) format
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureVisualModelPieceColor\_xpAM
 
@@ -2651,7 +3176,11 @@ Get the Color of the iModelPiece of oCreature Visual
 
 The RGB string value of the model piece color.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureVisualModelPieceIsUVScroll\_xpAM
 
@@ -2670,7 +3199,10 @@ Enable or Disable the UVScroll of the iModelPiece of oCreature Visual
 * `iModelPiece` - ARMOR\_MODEL\_PIECE\_* constant
 * `bActivate` - Set to TRUE to enable the UVScroll, FALSE to disable it
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureVisualModelPieceIsUVScroll\_xpAM
 
@@ -2691,7 +3223,11 @@ Get the activation status for the UVScroll of the iModelPiece of oCreature Visua
 
 The activation status of the UVScroll for the model piece.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureVisualModelPieceUScroll\_xpAM
 
@@ -2710,7 +3246,10 @@ Set the UScroll speed for the iModelPiece of oCreature Visual
 * `iModelPiece` - ARMOR\_MODEL\_PIECE\_* constant
 * `fValue` - The UScroll speed to use
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureVisualModelPieceUScroll\_xpAM
 
@@ -2731,7 +3270,11 @@ Get the UScroll speed for the iModelPiece of oCreature Visual
 
 The UScroll speed of the model piece.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetCreatureVisualModelPieceVScroll\_xpAM
 
@@ -2750,7 +3293,10 @@ Set the VScroll speed for the iModelPiece of oCreature Visual
 * `iModelPiece` - ARMOR\_MODEL\_PIECE\_* constant
 * `fValue` - The VScroll speed to use
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetCreatureVisualModelPieceVScroll\_xpAM
 
@@ -2771,7 +3317,11 @@ Get the VScroll speed for the iModelPiece of oCreature Visual
 
 The VScroll speed of the model piece.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaFlags\_xpAM
 
@@ -2790,7 +3340,11 @@ Set the AreaFlags (define Exterior, Natural, Subteran or not)
 iFlags can be composed using the [AREA\_FLAG\_*](#area-flag-area_flag_) constants. 
 Example : AREA_FLAG_NATURAL | AREA_FLAG_INTERIOR will be a natural and interior area.$
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaFlags\_xpAM
 
@@ -2808,7 +3362,11 @@ Get the AreaFlags (define Exterior, Natural, Subteran or not)
 The area flags. Will be composed of [AREA\_FLAG\_*](#area-flag-area_flag_) values.
 For example, an interior and natural area will return a value equal to AREA_FLAG_NATURAL | AREA_FLAG_INTERIOR
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaNoRest\_xpAM
 
@@ -2822,7 +3380,11 @@ Enable or disable possibility of Rest in oArea
 * `oArea` - The area to set the rest restriction for
 * `bNoRest` - Whether to disable rest (TRUE) or not (FALSE)
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaNoRest\_xpAM
 
@@ -2839,7 +3401,11 @@ Get the possibility of Rest in oArea
 
 TRUE if rest is disabled, FALSE otherwise.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaPVPMode\_xpAM
 
@@ -2853,7 +3419,10 @@ Set the PVP Mode of oArea
 * `oArea` - The area to set the PVP mode for
 * `iPvPMode` - The PVP mode to set ([PVP\_SETTING\_*](#pvp-setting-pvp_setting_) constant)
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaPVPMode\_xpAM
 
@@ -2870,7 +3439,11 @@ Get the PVP Mode of oArea
 
 The PVP mode ([PVP\_SETTING\_*](#pvp-setting-pvp_setting_) constant).
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaModSpotCheck\_xpAM
 
@@ -2884,7 +3457,11 @@ Set the Spot Modificator for this Area
 * `oArea` - The area to set the spot modifier for
 * `iModSpot` - The spot modifier to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaModSpotCheck\_xpAM
 
@@ -2901,7 +3478,10 @@ Get the Spot Modificator for this Area
 
 The spot modifier.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaModListenCheck\_xpAM
 
@@ -2915,7 +3495,11 @@ Set the Listen Modificator for this Area
 * `oArea` - The area to set the listen modifier for
 * `iModListen` - The listen modifier to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaModListenCheck\_xpAM
 
@@ -2932,7 +3516,11 @@ Get the Listen Modificator for this Area
 
 The listen modifier.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaSkyRing\_xpAM
 
@@ -2947,7 +3535,10 @@ Set the SkyRing for oArea
 * `sSkyRing` - The sky ring to set ("N", "S", "E" or "W")
 * `iVal` - The desired Skyring.2DA id
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaSkyRing\_xpAM
 
@@ -2965,7 +3556,11 @@ Get the SkyRing for oArea
 
 The Skyring.2DA id.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaHasDirectionalLight\_xpAM
 
@@ -2979,7 +3574,11 @@ Enable or Disable the DirectionalLight for oArea
 * `oArea` - The area to set the directional light for
 * `bHasDirLight` - Whether to enable (TRUE) or disable (FALSE) the directional light
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaHasDirectionalLight\_xpAM
 
@@ -2996,7 +3595,10 @@ Get the status of the DirectionalLight of oArea
 
 TRUE if the directional light is enabled, FALSE otherwise.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaIsDirLightCastShadow\_xpAM
 
@@ -3010,7 +3612,11 @@ Choose if the area DirectionalLight cast Shadow or not
 * `oArea` - The area to set the directional light shadow for
 * `bDirLShadow` - Whether the directional light should cast shadows (TRUE) or not (FALSE)
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaIsDirLightCastShadow\_xpAM
 
@@ -3027,7 +3633,11 @@ Get if the area DirectionalLight cast shadows or not
 
 TRUE if the directional light casts shadows, FALSE otherwise.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaHasDayNightCycle\_xpAM
 
@@ -3041,7 +3651,10 @@ Enable or Disable the Day/Night Cycle for oArea
 * `oArea` - The area to set the day/night cycle for
 * `bHasDNC` - Whether to enable (TRUE) or disable (FALSE) the day/night cycle
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaHasDayNightCycle\_xpAM
 
@@ -3058,7 +3671,11 @@ Get the activation status of Day/Night Cycle for oArea
 
 TRUE if the day/night cycle is enabled, FALSE otherwise.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaIsAlwaysNight\_xpAM
 
@@ -3072,7 +3689,11 @@ If Day/Night Cycle is set to false, choose if oArea is always in Night not
 * `oArea` - The area to set the night status for
 * `bNight` - Whether the area should be in night (TRUE) or not (FALSE)
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaIsAlwaysNight\_xpAM
 
@@ -3089,7 +3710,10 @@ If Day/Night Cycle is set to false, get if oArea is always in Night not
 
 TRUE if the area is always in night, FALSE otherwise.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaUseDayNightFog\_xpAM
 
@@ -3103,7 +3727,11 @@ If set to TRUE then the fog color will update as time passes.
 * `oArea` - The area to set the day/night fog for
 * `bUseDNF` - Whether to enable (TRUE) or disable (FALSE) the day/night fog
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaUseDayNightFog\_xpAM
 
@@ -3120,7 +3748,11 @@ Get if fog color update with cycle or not
 
 TRUE if the day/night fog is enabled, FALSE otherwise.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCCoronaIntensity\_xpAM
 
@@ -3135,7 +3767,10 @@ Set the Sun (or moon) Corona Intensity during iDNC
 * `iDNC` - The time of day to set the intensity for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fIntensity` - The intensity to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCCoronaIntensity\_xpAM
 
@@ -3153,7 +3788,11 @@ Get the Sun (or moon) Corona Intensity during this iDNC
 
 The corona intensity.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCShadowIntensity\_xpAM
 
@@ -3168,7 +3807,11 @@ Set the Shadow Intensity during iDNC
 * `iDNC` - The time of day to set the intensity for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fIntensity` - The intensity to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCShadowIntensity\_xpAM
 
@@ -3186,7 +3829,10 @@ Get the Shadow Intensity during iDNC
 
 The shadow intensity.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaDNCSkyRingColorInterpretation\_xpAM
 
@@ -3201,7 +3847,11 @@ Set the "speed" of transition between Horizon and Zenith Color
 * `iDNC` - The time of day to set the interpretation for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fLerp` - The "speed" of transition to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCSkyRingColorInterpretation\_xpAM
 
@@ -3219,7 +3869,11 @@ Get the "speed" of transition between Horizon and Zenith Color
 
 The "speed" of transition.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCSkyDomeModel\_xpAM
 
@@ -3234,7 +3888,10 @@ Set the SkyDomeModel of oArea during iDNC
 * `iDNC` - The time of day to set the model for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `sSkyDome` - The sky dome model to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCSkyDomeModel\_xpAM
 
@@ -3253,9 +3910,14 @@ Set the SkyDomeModel of oArea during iDNC
 The sky dome model.
 
 Bloom
+
+</div>
+
 ---
 
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCBloomBLRadius\_xpAM
 
@@ -3270,7 +3932,11 @@ Set the Bloom Blur Radius
 * `iDNC` - The time of day to set the radius for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fRadius` - The bloom blur radius to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCBloomBLRadius\_xpAM
 
@@ -3288,7 +3954,10 @@ Get the Bloom Blur Radius
 
 The bloom blur radius.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaDNCBloomGLIntensity\_xpAM
 
@@ -3303,7 +3972,11 @@ Set the Bloom Glow Intensity
 * `iDNC` - The time of day to set the intensity for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fIntensity` - The bloom glow intensity to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCBloomGLIntensity\_xpAM
 
@@ -3321,7 +3994,11 @@ Get the Bloom Glow Intensity
 
 The bloom glow intensity.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCBloomHLIntensity\_xpAM
 
@@ -3336,7 +4013,10 @@ Set the Bloom Highlight Intensity
 * `iDNC` - The time of day to set the intensity for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fIntensity` - The bloom highlight intensity to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCBloomHLIntensity\_xpAM
 
@@ -3354,7 +4034,11 @@ Get the Bloom Highlight Intensity
 
 The bloom highlight intensity.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCBloomHLThreshold\_xpAM
 
@@ -3369,7 +4053,11 @@ Set the Bloom Highlight Threshold
 * `iDNC` - The time of day to set the threshold for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fIntensity` - The bloom highlight threshold to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCBloomHLThreshold\_xpAM
 
@@ -3387,7 +4075,10 @@ Get the Bloom Highlight Threshold
 
 The bloom highlight threshold.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaDNCBloomSCIntensity\_xpAM
 
@@ -3402,7 +4093,11 @@ Set the Bloom Scene Intensity
 * `iDNC` - The time of day to set the intensity for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fIntensity` - The bloom scene intensity to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCBloomSCIntensity\_xpAM
 
@@ -3420,7 +4115,11 @@ Get the Bloom Scene Intensity
 
 The bloom scene intensity.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCHDRAvg\_xpAM
 
@@ -3435,7 +4134,10 @@ Set the HDR Average Value
 * `iDNC` - The time of day to set the value for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fHDR` - The HDR average value to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCHDRAvg\_xpAM
 
@@ -3453,7 +4155,11 @@ Get the HDR Average Value
 
 The HDR average value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCHDRMax\_xpAM
 
@@ -3468,7 +4174,11 @@ Set the HDR Maximum Value
 * `iDNC` - The time of day to set the value for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fHDR` - The HDR maximum value to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCHDRMax\_xpAM
 
@@ -3486,7 +4196,10 @@ Get the HDR Maximum Value
 
 The HDR maximum value.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaDNCHDRExposure\_xpAM
 
@@ -3501,7 +4214,11 @@ Set the HDR Exposure Value
 * `iDNC` - The time of day to set the value for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fHDR` - The HDR exposure value to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCHDRExposure\_xpAM
 
@@ -3519,7 +4236,11 @@ Get the HDR Exposure Value
 
 The HDR exposure value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCHDRHighlight\_xpAM
 
@@ -3534,7 +4255,10 @@ Set the HDR Highlight Value
 * `iDNC` - The time of day to set the value for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fHDR` - The HDR highlight value to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCHDRHighlight\_xpAM
 
@@ -3552,7 +4276,11 @@ Get the HDR Highlight Value
 
 The HDR highlight value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCCloudCover\_xpAM
 
@@ -3567,7 +4295,11 @@ Set the Cloud Cover
 * `iDNC` - The time of day to set the cover for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fCover` - The cloud cover to set (value between 0 and 1.5)
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCCloudCover\_xpAM
 
@@ -3585,7 +4317,10 @@ Get the Cloud Cover
 
 The cloud cover (value between 0 and 1.5).
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaCreatorID\_xpAM
 
@@ -3606,7 +4341,11 @@ This is not really used in base game but, with EnhancedFeatures plugin, it will 
 
 The CreatorID of oArea
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCCloudMoveX\_xpAM
 
@@ -3626,7 +4365,10 @@ Set the Cloud Movement in the East-West direction
 A positive values causing movement toward the west. 
 Unless the weather is extreme, you will likely want values of 0.1 or less.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCCloudMoveX\_xpAM
 
@@ -3645,7 +4387,11 @@ Get the Cloud Movement in the East-West direction
 The cloud movement in the East-West direction.
 A positive value represent a movement toward the west.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCCloudMoveY\_xpAM
 
@@ -3665,7 +4411,11 @@ Set the Cloud Movement in the North-South direction
 A positive values causing movement toward the South. 
 Unless the weather is extreme, you will likely want values of 0.1 or less.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCCloudMoveY\_xpAM
 
@@ -3684,7 +4434,11 @@ Get the Cloud Movement in the North-South direction
 The cloud movement in the North-South direction.
 A positive value represent a movement toward the South.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCDesaturateColor\_xpAM
 
@@ -3699,7 +4453,11 @@ Enable or Disable the Desaturation effect
 * `iDNC` - The time of day to set the effect for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `bDesaturate` - Whether to enable (TRUE) or disable (FALSE) the desaturation effect
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCDesaturateColor\_xpAM
 
@@ -3717,7 +4475,11 @@ Get the status of desaturation effect
 
 TRUE if desaturation is enabled, FALSE otherwise.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCDesaturateFactor\_xpAM
 
@@ -3736,7 +4498,10 @@ Set the desaturation factor
 
 If DesaturateColor is TRUE, then this value controls the amount of leeching of the color.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCDesaturateFactor\_xpAM
 
@@ -3754,7 +4519,11 @@ Get the desaturation factor
 
 The desaturation factor (value from 0 to 1).
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCGroundLightIntensity\_xpAM
 
@@ -3769,7 +4538,11 @@ Set the GroundLight Intensity
 * `iDNC` - The time of day to set the intensity for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fIntensity` - The ground light intensity to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCGroundLightIntensity\_xpAM
 
@@ -3787,7 +4560,10 @@ Get the GroundLight Intensity
 
 The ground light intensity.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaDNCGroundLightColor\_xpAM
 
@@ -3803,7 +4579,11 @@ Set the GroundLight Color
 * `sColorType` - The type of color to set ("Ambient", "Diffuse", or "Specular")
 * `sRGB` - The RGB value of the color to set (on #RRGGBB format)
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCGroundLightColor\_xpAM
 
@@ -3822,7 +4602,11 @@ Get the GroundLight Color
 
 The RGB value of the ground light color (on #RRGGGBB format).
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCSkylightIntensity\_xpAM
 
@@ -3837,7 +4621,10 @@ Set the SkyLight Intensity
 * `iDNC` - The time of day to set the intensity for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fIntensity` - The skylight intensity to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCSkylightIntensity\_xpAM
 
@@ -3855,7 +4642,11 @@ Get the SkyLight Intensity
 
 The skylight intensity.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCSkylightColor\_xpAM
 
@@ -3871,7 +4662,11 @@ Set the SkyLight Color
 * `sColorType` - The type of color to set ("Ambient", "Diffuse", or "Specular")
 * `sRGB` - The RGB value of the color to set (in #RRGGGBB format)
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCSkylightColor\_xpAM
 
@@ -3890,7 +4685,10 @@ Get the SkyLight Color
 
 The RGB value of the skylight color (in #RRGGGBB format).
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaDNCSunMoonIntensity\_xpAM
 
@@ -3905,7 +4703,11 @@ Set the Sun/Moon Intensity
 * `iDNC` - The time of day to set the intensity for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fIntensity` - The sun/moon intensity to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCSunMoonIntensity\_xpAM
 
@@ -3923,7 +4725,11 @@ Get the Sun/Moon Intensity
 
 The sun/moon intensity.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCSunMoonColor\_xpAM
 
@@ -3939,7 +4745,10 @@ Set the Sun/Moon Color
 * `sColorType` - The type of color to set ("Ambient", "Diffuse", or "Specular")
 * `sRGB` - The RGB value of the color to set (in #RRGGGBB format)
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCSunMoonColor\_xpAM
 
@@ -3958,7 +4767,11 @@ Get the Sun/Moon Color
 
 The RGB value of the sun/moon color (in #RRGGGBB format).
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCSunMoonDirX\_xpAM
 
@@ -3973,7 +4786,11 @@ Set the Sun/Moon Direction in the X axis
 * `iDNC` - The time of day to set the direction for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fDir` - The sun/moon direction in the X axis to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCSunMoonDirX\_xpAM
 
@@ -3991,7 +4808,10 @@ Get the Sun/Moon Direction in the X axis
 
 The sun/moon direction in the X axis.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaDNCSunMoonDirY\_xpAM
 
@@ -4006,7 +4826,11 @@ Set the Sun/Moon Direction in the Y axis
 * `iDNC` - The time of day to set the direction for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fDir` - The sun/moon direction in the Y axis to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCSunMoonDirY\_xpAM
 
@@ -4024,7 +4848,11 @@ Get the Sun/Moon Direction in the Y axis
 
 The sun/moon direction in the Y axis.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCSunMoonDirZ\_xpAM
 
@@ -4039,7 +4867,10 @@ Set the Sun/Moon Direction in the Z axis
 * `iDNC` - The time of day to set the direction for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fDir` - The sun/moon direction in the Z axis to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCSunMoonDirZ\_xpAM
 
@@ -4057,7 +4888,11 @@ Get the Sun/Moon Direction in the Z axis
 
 The sun/moon direction in the Z axis.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCFogStart\_xpAM
 
@@ -4072,7 +4907,11 @@ Set the Fog Start value
 * `iDNC` - The time of day to set the value for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fStart` - The fog start value to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCFogStart\_xpAM
 
@@ -4090,7 +4929,10 @@ Get the Fog Start value
 
 The fog start value.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaDNCFogEnd\_xpAM
 
@@ -4105,7 +4947,11 @@ Set the Fog End value
 * `iDNC` - The time of day to set the value for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fEnd` - The fog end value to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCFogEnd\_xpAM
 
@@ -4123,7 +4969,11 @@ Get the Fog End value
 
 The fog end value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCFogFarClip\_xpAM
 
@@ -4138,7 +4988,10 @@ Set the Fog Far Clip value
 * `iDNC` - The time of day to set the value for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `fFarClip` - The fog far clip value to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCFogFarClip\_xpAM
 
@@ -4156,7 +5009,11 @@ Get the Fog Far Clip value
 
 The fog far clip value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCFogColor\_xpAM
 
@@ -4171,7 +5028,11 @@ Set the Fog Color
 * `iDNC` - The time of day to set the color for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `sRGB` - The RGB value of the color to set (in #RRGGGBB format)
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCFogColor\_xpAM
 
@@ -4189,7 +5050,10 @@ Get the Fog Color
 
 The RGB value of the fog color (in #RRGGGBB format).
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetAreaDNCSkyHorizonColor\_xpAM
 
@@ -4204,7 +5068,11 @@ Set the SkyHorizon Color
 * `iDNC` - The time of day to set the color for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `sRGB` - The RGB value of the color to set (in #RRGGGBB format)
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetAreaDNCSkyHorizonColor\_xpAM
 
@@ -4222,7 +5090,11 @@ Get the SkyHorizon Color
 
 The RGB value of the SkyHorizon color (in #RRGGGBB format).
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetAreaDNCSkyZenithColor\_xpAM
 
@@ -4237,7 +5109,10 @@ Set the SkyZenith Color
 * `iDNC` - The time of day to set the color for ([DAYNIGHT\_*](#daynights-daynight_) constant)
 * `sRGB` - The RGB value of the color to set (in #RRGGGBB format)
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetAreaDNCSkyZenithColor\_xpAM
 
@@ -4255,7 +5130,11 @@ Get the SkyZenith Color
 
 The RGB value of the SkyZenith color (in #RRGGGBB format).
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetBaseItemType\_xpAM
 
@@ -4272,7 +5151,11 @@ Set the base item type (BASE\_ITEM\_* or Baseitems.2da ID) of oItem.
 * `oItem` - The item to set the base type for
 * `iItemType` - The base item type to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemAppearanceVariation\_xpAM
 
@@ -4289,7 +5172,10 @@ Set the Visual Variation of oItem
 * `oItem` - The item to set the visual variation for
 * `iVariation` - The visual variation to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemAppearanceVariation\_xpAM
 
@@ -4308,7 +5194,11 @@ Get the Visual Variation of oItem
 
 The visual variation of oItem
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemAppearanceCategory\_xpAM
 
@@ -4325,7 +5215,11 @@ Set the Visual Category of oItem (armorvisualdata.2DA ID)
 * `oItem` - The item to set the visual category for
 * `iCategory` - The visual category to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetItemAppearanceCategory\_xpAM
 
@@ -4344,7 +5238,11 @@ Get the Visual Category of oItem (armorvisualdata.2DA ID)
 
 The visual category of oItem
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemDescription\_xpAM
 
@@ -4363,7 +5261,11 @@ Set the Description of oItem.
 * `sDescription` - The description to set
 * `bIdentified` - If TRUE, set the identified description. If FALSE, set the non-identified description.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetItemDescription\_xpAM
 
@@ -4384,7 +5286,10 @@ Get the Description of oItem.
 
 The description of oItem
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetItemColor\_xpAM
 
@@ -4403,7 +5308,11 @@ Set the oItem Color.
 * `iColor` - 1, 2 or 3
 * `sRGB` - A RGB string value, on the "#FFFFFF" (or #FFFFFFFF) format
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetItemColor\_xpAM
 
@@ -4424,7 +5333,11 @@ Get the oItem Color.
 
 The color of oItem in RGB string format
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemCharges\_xpAM
 
@@ -4452,7 +5365,11 @@ Unless the original SetItemCharges function:
 Note that, some context menu can show an invalid usage amount if the # of charges is greater than 255.
 But, the right # of charge will still properly be managed and this is only a visual bug.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemWeaponFX\_xpAM
 
@@ -4469,7 +5386,11 @@ Set the "DamageEffect" of the Weapon (ITEM\_VISUAL\_* / iprp\_visualfx.2da)
 * `oItem` - The weapon to set the damage effect for
 * `iWpnFX` - The damage effect to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetItemWeaponFX\_xpAM
 
@@ -4488,7 +5409,11 @@ Get the "DamageEffect" of the Weapon (ITEM\_VISUAL\_* / iprp\_visualfx.2da)
 
 The damage effect of the weapon
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemWeaponPart\_xpAM
 
@@ -4507,7 +5432,11 @@ Set the iPart (WEAPON\_MODEL\_PART\_*) of oItem to Variation
 * `iPart` - The part to set the variation for (WEAPON\_MODEL\_PART\_* constant)
 * `iVariation` - The variation to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+---
+
+<div class="fnblock">
 
 # GetItemWeaponPart\_xpAM
 
@@ -4528,7 +5457,169 @@ Get the Variation of the iPart (WEAPON\_MODEL\_PART\_*) of oItem
 
 The variation of the part
 
+</div>
+
 ---
+
+<div class="fnblock">
+
+# AddItemProperty\_xpAM
+
+```cpp
+void AddItemProperty_xpAM(
+    object oItem,
+    int iType, 
+    int iSubType,
+    int iCostTableValue,
+    int iParamTableValue,
+    int iDurationType,
+    float fDuration=0.0f
+);
+```
+Create and add a defined ItemProperty on oItem
+
+## Parameters
+
+* `oItem` - The item to which the property will be added
+* `iType` - The property Type
+* `iSubType` - The property SubType
+* `iCostTableValue` - The property CostTableValue
+* `iParamTableValue` - The property ParamTableValue
+* `iDurationType` - The property duration type. Only DURATION_TYPE_TEMPORARY or DURATION_TYPE_PERMANENT are allowed
+* `fDuration` - The property duration if Temporary duration type is selected
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# GetItemPropertyID\_xpAM
+
+```cpp
+string GetItemPropertyID_xpAM(
+    itemproperty ip
+);
+```
+Get the ID of given itemproperty to be used with other AspectManager functions
+
+## Parameters
+
+* `ip` - The itemproperty to get the ID for
+
+## Return Value
+
+The ID of the itemproperty
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# GetNumItemProperties\_xpAM
+
+```cpp
+int GetNumItemProperties_xpAM(
+    object oItem,
+    int bCountTemporary
+);
+```
+Get the number of ItemProperty on oItem
+
+## Parameters
+
+* `oItem` - The item from which count the itemproperty
+* `bCountTemporary` - if FALSE, only PERMANANT itemproperty will be counted
+
+## Return Value
+
+The number of itemproperty on oItem. With TEMPORARY ones or without depending of bCountTemporary value
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# GetSpecificItemProperty\_xpAM
+
+```cpp
+itemproperty GetSpecificItemProperty_xpAM(
+    object oItem,
+    int nNth,
+    int bCountTemporary
+);
+```
+Get the the nth itemproperty of a specified item
+
+## Parameters
+
+* `oItem` - The item from which recover the itemproperty
+* `nNth` - The nth itemproperty to get
+* `bCountTemporary` - if FALSE, only PERMANANT itemproperty will be counted
+
+## Return Value
+
+The wanted itemproperty from oItem. Will return an invalid item property if invalid nNth
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# GetSpecificItemPropertyByID\_xpAM
+
+```cpp
+itemproperty GetSpecificItemPropertyByID_xpAM(
+    object oItem,
+    string sID
+);
+```
+Get the itemproperty of specific sID on oItem
+
+## Parameters
+
+* `oItem` - The item from which recover the itemproperty
+* `sID` - The itemproperty ID to search
+
+## Return Value
+
+The wanted itemproperty from oItem. Will return an invalid item property if nonexistent ID
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# GetSpecificItemPropertyID\_xpAM
+
+```cpp
+string GetSpecificItemPropertyID_xpAM(
+    object oItem,
+    int nNth,
+    int bCountTemporary
+);
+```
+Get the itemproperty ID of the nth itemproperty on oItem
+
+## Parameters
+
+* `oItem` - The item from which get the itemproperty ID
+* `nNth` - The nth itemproperty to get the ID from
+* `bCountTemporary` - if FALSE, only PERMANANT itemproperty will be counted
+
+## Return Value
+
+The wanted itemproperty ID. Will return an empty string if invalid index is asked
+
+</div>
+
+---
+
+<div class="fnblock">
 
 # SetItemModelPieceVariation\_xpAM
 
@@ -4547,7 +5638,10 @@ Set the ModelPiece Variation for oItem.
 * `iModelPiece` - The model piece to set the variation for  (ARMOR\_MODEL\_PIECE\_* constant)
 * `iVariation` - The variation to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemModelPieceVariation\_xpAM
 
@@ -4568,7 +5662,11 @@ Get the ModelPiece Variation for oItem.
 
 The variation of the model piece
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemModelPieceColor\_xpAM
 
@@ -4589,7 +5687,10 @@ Set the Color of the iModelPiece of oItem
 * `iColor` - 1, 2 or 3
 * `sRGB` - A RGB string value, on the "#FFFFFF" (or #FFFFFFFF) format
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemModelPieceColor\_xpAM
 
@@ -4612,7 +5713,11 @@ Get the Color of the iModelPiece of oItem
 
 The color of the model piece in RGB string format
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemModelPieceIsUVScroll\_xpAM
 
@@ -4631,7 +5736,10 @@ Enable or Disable the UVScroll of the iModelPiece of oItem
 * `iModelPiece` - The model piece to enable or disable the UVScroll for (ARMOR\_MODEL\_PIECE\_* constant)
 * `bUVScroll` - TRUE to enable UVScroll, FALSE to disable UVScroll
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemModelPieceIsUVScroll\_xpAM
 
@@ -4652,7 +5760,11 @@ Get the activation status for the UVScroll of the iModelPiece of oItem
 
 TRUE if UVScroll is enabled, FALSE if UVScroll is disabled
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemModelPieceUScroll\_xpAM
 
@@ -4671,7 +5783,10 @@ Set the UScroll speed for the iModelPiece of oItem
 * `iModelPiece` - The model piece to set the UScroll speed for (ARMOR\_MODEL\_PIECE\_* constant)
 * `fUScroll` - The UScroll speed to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemModelPieceUScroll\_xpAM
 
@@ -4692,7 +5807,11 @@ Get the UScroll speed for the iModelPiece of oItem
 
 The UScroll speed of the model piece
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemModelPieceVScroll\_xpAM
 
@@ -4711,7 +5830,10 @@ Set the VScroll speed for the iModelPiece of oItem
 * `iModelPiece` - The model piece to set the VScroll speed for (ARMOR\_MODEL\_PIECE\_* constant)
 * `fVScroll` - The VScroll speed to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemModelPieceVScroll\_xpAM
 
@@ -4732,7 +5854,11 @@ Get the VScroll speed for the iModelPiece of oItem
 
 The VScroll speed of the model piece
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemModelPartMask\_xpAM
 
@@ -4753,7 +5879,10 @@ Change the iModelPart Mask, allowing you to show or hide model part on the Item 
 iMask is bitmask based with : 
 0x1: Helm, 0x2: Gloves,  0x4: Boots, 0x8: Belt, 0x10: Cloak
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemModelPartMask\_xpAM
 
@@ -4777,7 +5906,11 @@ The model part mask of the Item.
 Return Value is bitmask based with : 
 0x1: Helm, 0x2: Gloves,  0x4: Boots, 0x8: Belt, 0x10: Cloak
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemModelPartVariation\_xpAM
 
@@ -4796,7 +5929,10 @@ Set the ModelPart Variation for oItem.
 * `iModelPart` - The model part to set the variation for (ARMOR\_MODEL\_PART\_* constant)
 * `iVariation` - The variation to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemModelPartVariation\_xpAM
 
@@ -4817,7 +5953,11 @@ Get the ModelPart Variation for oItem.
 
 The variation of the model part
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemModelPartCategory\_xpAM
 
@@ -4836,7 +5976,10 @@ Set the ModelPart Visual Category for oItem (armorvisualdata.2DA ID).
 * `iModelPart` - The model part to set the visual category for (ARMOR\_MODEL\_PART\_* constant)
 * `iCategory` - The visual category to set
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemModelPartCategory\_xpAM
 
@@ -4857,7 +6000,11 @@ Get the ModelPart Visual Category for oItem (armorvisualdata.2DA ID).
 
 The visual category of the model part
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemModelPartColor\_xpAM
 
@@ -4878,7 +6025,10 @@ Set the Color of the iModelPart of oItem
 * `iColor` - 1, 2 or 3
 * `sRGB` - A RGB string value, on the "#FFFFFF" (or #FFFFFFFF) format
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemModelPartColor\_xpAM
 
@@ -4901,7 +6051,11 @@ Get the Color of the iModelPart of oItem
 
 The color of the model part in RGB string format
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetItemBaseMaterialType\_xpAM
 
@@ -4920,7 +6074,10 @@ Get the BaseMaterialType of oItem
 
 The base material type of oItem, refer to iprp_materials.2da row.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetItemBaseCost\_xpAM
 
@@ -4942,7 +6099,11 @@ BaseCost is recalculated by the game on several occasion. See EnhancedFeature Ba
 BaseCost is not the price. The price (for an identified item) is calculated with BaseCost+CostModifier. Then modified by Merchant configuration and Appraise skill.
 For a stack. All the costs are for 1 item of the stack.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetItemBaseCost\_xpAM
 
@@ -4965,7 +6126,10 @@ The BaseCost of oItem
 BaseCost is not the price. The price (for an identified item) is calculated with BaseCost+CostModifier. Then modified by Merchant configuration and Appraise skill.
 For a stack. All the costs are for 1 item of the stack.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetItemNonIdentifiedCost\_xpAM
 
@@ -4987,7 +6151,11 @@ NonIdentifiedCost is recalculated by the game on several occasion. See EnhancedF
 NonIdentifiedCost is not the price. The price for an non identified item is calculated with NonIdentifiedCost. Then modified by Merchant configuration and Appraise skill.
 For a stack. All the costs are for 1 item of the stack.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetItemNonIdentifiedCost\_xpAM
 
@@ -5010,12 +6178,15 @@ The NonIdentifiedCost of oItem
 NonIdentifiedCost is not the price. The price for an non identified item is calculated with NonIdentifiedCost. Then modified by Merchant configuration and Appraise skill.
 For a stack. All the costs are for 1 item of the stack.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetItemCostModifier\_xpAM
 
 ```cpp
-void SetItemNonIdentifiedCost_xpAM(
+void SetItemCostModifier_xpAM(
     object oItem,
     int iCost
 );
@@ -5032,7 +6203,11 @@ For an identified item, the price is calculated with BaseCost+CostModifier (then
 So, if you set a negative value, it will decrease the price of oItem, else it will increase it.
 For a stack. All the costs are for 1 item of the stack.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetItemCostModifier\_xpAM
 
@@ -5056,9 +6231,10 @@ For an identified item, the price is calculated with BaseCost+CostModifier (then
 So, if you set a negative value, it will decrease the price of oItem, else it will increase it.
 For a stack. All the costs are for 1 item of the stack.
 
+</div>
 
 
-<div style="page-break-after: always;"></div>
+<div class="fnblock">
 
 # GetItemNbDamageReduction\_xpAM
 
@@ -5077,7 +6253,11 @@ Get the Number of DamageReduction for this Item
 
 The Number of DamageReduction on oItem
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # AddItemDamageReduction\_xpAM
 
@@ -5096,7 +6276,11 @@ Create and add a new DamageReduction on oItem
 * `iAmount` - The amount of DamageReduction
 * `bUseOrLogic` - Set to TRUE to use OR logic if you add several PiercingType on this DamageReduction. FALSE otherwise
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # RemoveItemDamageReduction\_xpAM
 
@@ -5113,8 +6297,10 @@ Remove a specific DamageReduction from oItem
 * `oItem` - The item object
 * `iDmgRedctIdx` - The index of the DamageReduction you want to Remove from oItem
 
+</div>
 
-<div style="page-break-after: always;"></div>
+
+<div class="fnblock">
 
 # SetItemDmgReductionAmount\_xpAM
 
@@ -5133,7 +6319,11 @@ Change the Amount of Damage Reduction for a specific DamageReduction for oItem
 * `iDmgRedctIdx` - The index of the DamageReduction you want change
 * `iAmount` - The new amount of damage reduction to set
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetItemDmgReductionAmount\_xpAM
 
@@ -5154,7 +6344,10 @@ Get the Amount of a specific DamageReduction of oItem.
 
 The Amount of a specific DamageReduction of oItem.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetItemDmgReductionUseOr\_xpAM
 
@@ -5173,7 +6366,11 @@ Change the UseOrLogic flag of a specific DamageReduction for oItem
 * `iDmgRedctIdx` - The index of the DamageReduction you want to change
 * `bUseOrLogic` - The new value of the flag
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetItemDmgReductionUseOr\_xpAM
 
@@ -5194,7 +6391,10 @@ Get the UseOrLogic flag of a specific DamageReduction of oItem.
 
 The UseOrLogic flag of a specific DamageReduction of oItem.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetItemDmgRedctNbPiercing\_xpAM
 
@@ -5215,7 +6415,11 @@ Get the Number of Piercing type for a specific DamageReduction of this Item
 
 The Number of PiercingType for the choosen DamageReduction on oItem
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # AddItemDmgRedctPiercing\_xpAM
 
@@ -5236,7 +6440,10 @@ Create and add a new Piercing type for a specific DamageReduction on oItem
 * `iType` - The DR_TYPE_* wanted
 * `iSubType` - Value depend of iType. For DR\_TYPE\_DMGTYPE: DAMAGE\_TYPE\_\*, DR\_TYPE\_GMATERIAL: GMATERIAL\_\*, DR\_TYPE\_ALIGNMENT: ALIGNMENT\_\*. For other, Subtype don't matter.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # RemoveItemDmgRedctPiercing\_xpAM
 
@@ -5255,7 +6462,11 @@ Remove a specific PiercingType from a specific DamageReduction from oItem
 * `iDmgRedctIdx` - The index of the DamageReduction you want to remove PiercingType from
 * `iPiercingIdx` - The index of PiercingIdx you want to remove
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemDmgRedctPiercingType\_xpAM
 
@@ -5276,8 +6487,10 @@ Change the Type of a specific PiercingType of a specific DamageReduction from oI
 * `iPiercingIdx` - The index of PiercingIdx you want to change
 * `iType` - The new DR\_TYPE\_\* to use for this PiercingType 
 
+</div>
 
-<div style="page-break-after: always;"></div>
+
+<div class="fnblock">
 
 # GetItemDmgRedctPiercingType\_xpAM
 
@@ -5300,12 +6513,16 @@ Get the DR\_TYPE\_\* value used as type for the choosen PiercingType
 
 The DR\_TYPE\_\* value used as type for the choosen PiercingType
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetItemDmgRedctPiercingSubType\_xpAM
 
 ```cpp
-void SetItemDmgRedctPiercingType_xpAM(
+void SetItemDmgRedctPiercingSubType_xpAM(
     object oItem,
     int iDmgRedctIdx,
     int iPiercingIdx,
@@ -5321,9 +6538,10 @@ Change the SubType of a specific PiercingType of a specific DamageReduction from
 * `iPiercingIdx` - The index of PiercingIdx you want to change
 * `iSubType` - The value depend of the Type. For DR\_TYPE\_DMGTYPE: DAMAGE\_TYPE\_\*, DR\_TYPE\_GMATERIAL: GMATERIAL\_\*, DR\_TYPE\_ALIGNMENT: ALIGNMENT\_\*. For other, Subtype doesn't matter.
 
+</div>
 
 
-<div style="page-break-after: always;"></div>
+<div class="fnblock">
 
 # GetItemDmgRedctPiercingSubType\_xpAM
 
@@ -5350,7 +6568,11 @@ The value depend of the Type.
 * DR\_TYPE\_ALIGNMENT: ALIGNMENT\_\*
 For other, Subtype doesn't matter
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightRange_xpAM
 
@@ -5367,7 +6589,10 @@ Set the maximum distance that the light's diffuse color will reach.
 * `oLight` - The light object
 * `fRange` - The maximum distance for the light's diffuse color
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetLightRange_xpAM
 
@@ -5386,7 +6611,11 @@ Get the maximum distance that the light's diffuse color will reach.
 
 The maximum distance that the light's diffuse color will reach.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightCastShadow_xpAM
 
@@ -5403,7 +6632,11 @@ Set if the light should cast shadows or not.
 * `oLight` - The light object
 * `bCastShadow` - True if the light should cast shadows, false otherwise
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetLightCastShadow_xpAM
 
@@ -5422,7 +6655,11 @@ Get if the light casts shadows or not.
 
 True if the light casts shadows, false otherwise.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightShadowIntensity_xpAM
 
@@ -5439,7 +6676,11 @@ Set the intensity of shadows cast by the light.
 * `oLight` - The light object
 * `fIntensity` - The shadow intensity
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetLightShadowIntensity_xpAM
 
@@ -5458,7 +6699,11 @@ Get the intensity of shadows cast by the light.
 
 The intensity of shadows cast by the light.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightColorIntensity_xpAM
 
@@ -5475,7 +6720,10 @@ Set the intensity (brightness) of the light within its range.
 * `oLight` - The light object
 * `fColorIntensity` - The light color intensity
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetLightColorIntensity_xpAM
 
@@ -5494,7 +6742,11 @@ Get the intensity (brightness) of the light within its range.
 
 The intensity (brightness) of the light within its range.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightColor_xpAM
 
@@ -5513,7 +6765,10 @@ Set the chosen light color value.
 * `sColorType` - The [LIGHT\_COLOR\_TYPE\_*](#light-color-types-light_color_type_) constant
 * `sRGB` - The RGB string value in the "#FFFFFF" (or #FFFFFFFF) format
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetLightColor_xpAM
 
@@ -5534,7 +6789,11 @@ Get the chosen light color value.
 
 The RGB string value of the chosen light color.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightIsLerp_xpAM
 
@@ -5551,7 +6810,11 @@ Enable or disable lerp for this light.
 * `oLight` - The light object
 * `bLerp` - True to enable lerp, false to disable
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetLightIsLerp_xpAM
 
@@ -5570,7 +6833,11 @@ Get the status of lerp for this light.
 
 True if lerp is enabled for the light, false otherwise.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightLerpPeriod_xpAM
 
@@ -5587,7 +6854,11 @@ Set the time in seconds for the light to cycle between the color and lerp target
 * `oLight` - The light object
 * `fLerpPeriod` - The lerp period in seconds
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetLightLerpPeriod_xpAM
 
@@ -5606,7 +6877,11 @@ Get the time in seconds for the light to cycle between the color and lerp target
 
 The time in seconds for the light to cycle between the color and lerp target color.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightLerpIntensity_xpAM
 
@@ -5623,7 +6898,11 @@ Set the intensity (brightness) of the lerp light within its range.
 * `oLight` - The light object
 * `fLerpIntensity` - The lerp light intensity
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetLightLerpIntensity_xpAM
 
@@ -5642,7 +6921,11 @@ Get the intensity (brightness) of the lerp light within its range.
 
 The intensity (brightness) of the lerp light within its range.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightLerpColor_xpAM
 
@@ -5661,7 +6944,10 @@ Set the chosen light lerp color value.
 * `sColorType` - The [LIGHT\_COLOR\_TYPE\_*](#light-color-types-light_color_type_) constant
 * `sRGB` - The RGB string value in the "#FFFFFF" (or #FFFFFFFF) format
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetLightLerpColor_xpAM
 
@@ -5682,7 +6968,11 @@ Get the chosen light lerp color value.
 
 The RGB string value of the chosen light lerp color.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightIsFlicker_xpAM
 
@@ -5699,7 +6989,11 @@ Enable or disable flicker for this light.
 * `oLight` - The light object
 * `bFlicker` - True to enable flicker, false to disable
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetLightIsFlicker_xpAM
 
@@ -5718,7 +7012,11 @@ Get the flicker activation status for this light.
 
 True if flicker is enabled for the light, false otherwise.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightFlickerType_xpAM
 
@@ -5735,7 +7033,11 @@ Set the light flicker type with a [FLICKER\_TYPE\_\*](#flicker-types-flicker_typ
 * `oLight` - The light object
 * `iFlickerType` - The [FLICKER\_TYPE\_\*](#flicker-types-flicker_type_) constant
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetLightFlickerType_xpAM
 
@@ -5754,7 +7056,10 @@ Get the [FLICKER\_TYPE\_\*](#flicker-types-flicker_type_) corresponding to the f
 
 The [FLICKER\_TYPE\_\*](#flicker-types-flicker_type_) constant corresponding to the flicker type.
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # SetLightFlickerVariance_xpAM
 
@@ -5771,7 +7076,11 @@ Set the flicker variance value.
 * `oLight` - The light object
 * `fVariance` - The flicker variance value
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # GetLightFlickerVariance_xpAM
 
@@ -5790,7 +7099,11 @@ Get the flicker variance value.
 
 The flicker variance value.
 
+</div>
+
 ---
+
+<div class="fnblock">
 
 # SetLightFlickerRate_xpAM
 
@@ -5807,7 +7120,10 @@ Set the flicker rate for this light.
 * `oLight` - The light object
 * `fRate` - The flicker rate
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # GetLightFlickerRate_xpAM
 
@@ -5826,10 +7142,14 @@ Get the flicker rate for this light.
 
 The flicker rate for the light.
 
+</div>
+
 <div style="page-break-after: always;"></div>
 
 Constants
 ---------
+
+<div class="fnblock">
 
 # Light Color Types (LIGHT\_COLOR\_TYPE\_\*)
 
@@ -5839,6 +7159,10 @@ Constants
 | LIGHT\_COLOR\_TYPE\_DIFFUSE | "Diffuse" |  |
 | LIGHT\_COLOR\_TYPE\_SPECULAR | "Specular" |  |
 
+</div>
+
+<div class="fnblock">
+
 # Transition Types (TRANSITION\_TYPE\_\*)
 
 | Name | Value | Description |
@@ -5846,6 +7170,10 @@ Constants
 | TRANSITION\_TYPE\_NONE | 0 |  |
 | TRANSITION\_TYPE\_DOOR | 1 |  |
 | TRANSITION\_TYPE\_WAYPOINT | 2 |  |
+
+</div>
+
+<div class="fnblock">
 
 # Flicker Types (FLICKER\_TYPE\_\*)
 
@@ -5855,7 +7183,10 @@ Constants
 | FLICKER\_TYPE\_BOUNCE | 1 |  |
 | FLICKER\_TYPE\_JUMPY | 2 |  |
 
-<div style="page-break-after: always;"></div>
+</div>
+
+
+<div class="fnblock">
 
 # Armor Model Parts (ARMOR\_MODEL\_PART\_*)
 
@@ -5868,6 +7199,10 @@ Constants
 | ARMOR\_MODEL\_PART\_CLOAK | 4 | Already existing in base nwnscript |
 | ARMOR\_MODEL\_PART\_ARMOR | 5 | Added by xp_aspectManager |
 
+</div>
+
+<div class="fnblock">
+
 # Trigger Types (TRIGGER\_TYPE\_\*)
 
 | Name | Value | Description |
@@ -5876,10 +7211,14 @@ Constants
 | TRIGGER\_TYPE\_TRANSITION | 1 |  |
 | TRIGGER\_TYPE\_TRAP | 2 |  |
 
+</div>
+
 <div style="page-break-after: always;"></div>
 
 Constants Creature
 ---
+
+<div class="fnblock">
 
 # Creature Color Constants (CREATURE\_COLOR\_*)
 
@@ -5895,6 +7234,10 @@ Constants Creature
 | CREATURE\_COLOR\_HAIR1\_SEPT | "ColorHair1" | Hair color 1 |
 | CREATURE\_COLOR\_HAIR2\_SEPT | "ColorHair2" | Hair color 2 |
 
+</div>
+
+<div class="fnblock">
+
 # Armor Class Type Constants (AC\_TYPE\_*)
 
 | Name | Value | Description |
@@ -5908,6 +7251,10 @@ Constants Creature
 | AC\_TYPE\_NATURAL\_SEPT | 9 | Natural armor |
 | AC\_TYPE\_DODGE\_SEPT | 11 | Dodge |
 
+</div>
+
+<div class="fnblock">
+
 # Scale Axis Constants (SCALE\_*)
 
 | Name | Value | Description |
@@ -5916,11 +7263,14 @@ Constants Creature
 | SCALE\_Y | 1 | Y-axis scale |
 | SCALE\_Z | 2 | Z-axis scale |
 
+</div>
 
 <div style="page-break-after: always;"></div>
 
 Constants Area
 ---------
+
+<div class="fnblock">
 
 # PVP Setting (PVP\_SETTING\_*)
 
@@ -5931,6 +7281,10 @@ Constants Area
 | PVP\_SETTING\_TOTAL | 2 |  |
 | PVP\_SETTING\_SERVER | 3 |  |
 
+</div>
+
+<div class="fnblock">
+
 # Area Flag (AREA\_FLAG\_*)
 
 | Name | Value | Description |
@@ -5938,6 +7292,10 @@ Constants Area
 | AREA\_FLAG\_INTERIOR | 0 |  |
 | AREA\_FLAG\_SUBTERRAN | 2 |  |
 | AREA\_FLAG\_NATURAL | 4 |  |
+
+</div>
+
+<div class="fnblock">
 
 # DayNights (DAYNIGHT\_*)
 
@@ -5952,5 +7310,6 @@ Constants Area
 | DAYNIGHT\_TRANSITION | 6 |  |
 | DAYNIGHT\_DEFAULT | 7 |  |
 
+</div>
 
 ---

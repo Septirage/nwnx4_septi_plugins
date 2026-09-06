@@ -1028,6 +1028,10 @@ bool parseGeometry(std::string sInputGeometry, std::vector<float>& vGeometry) {
 		return false;
 	}
 
+	if (n < 0 || n > 1000) {
+		return false;
+	}
+
 	vGeometry.resize(n * 3);
 
 	for (int i = 0; i < n * 3; i++) {
