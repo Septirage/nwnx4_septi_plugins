@@ -132,12 +132,12 @@ NWN::D3DXCOLOR* GetItemColorPtr(char* ItmPtr, std::string sCommand) {
 
 			char* ptrTemp = GetItemModelPiecePtr(ItmPtr, iModelPiece);
 			if (ptrTemp != NULL) {
-				if (sCommand == "Color2")
+				if (sCommand == "Color1")
+					retVal = (ptrTemp + AmItmModelPieceColor1);
+				else if (sCommand == "Color2")
 					retVal = (ptrTemp + AmItmModelPieceColor2);
 				else if (sCommand == "Color3")
 					retVal = (ptrTemp + AmItmModelPieceColor3);
-				else
-					retVal = (ptrTemp + AmItmModelPieceColor1);
 			}
 		}
 		else if (sCommand.rfind(cst_ModelPart, 0) == 0) {
@@ -148,12 +148,12 @@ NWN::D3DXCOLOR* GetItemColorPtr(char* ItmPtr, std::string sCommand) {
 			sCommand = pEnd;
 			char* ptrTemp = GetItemModelPartPtr(ItmPtr, iModelPart);
 			if (ptrTemp != NULL) {
-				if (sCommand == "Color2")
+				if (sCommand == "Color1")
+					retVal = (ptrTemp + AmItmModelPartColor1);
+				else if (sCommand == "Color2")
 					retVal = (ptrTemp + AmItmModelPartColor2);
 				else if (sCommand == "Color3")
 					retVal = (ptrTemp + AmItmModelPartColor3);
-				else
-					retVal = (ptrTemp + AmItmModelPartColor1);
 			}
 		}
 
@@ -260,7 +260,7 @@ int GetItmDmgRedctPiercingType(char* ItemPtr, uint32_t iDmgRedctIdx, uint32_t iP
 		if (iPiercingIdx < myDmgRedcts[iDmgRedctIdx].uSizeList)
 		{
 			AmItmDmgReductionType* myRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
-			return myRdctType->DmgRedctType;
+			return myRdctType[iPiercingIdx].DmgRedctType;
 		}
 	}
 	return 0;
@@ -275,7 +275,7 @@ void SetItmDmgRedctPiercingType(char* ItemPtr, uint32_t iDmgRedctIdx, uint32_t i
 		if (iPiercingIdx < myDmgRedcts[iDmgRedctIdx].uSizeList)
 		{
 			AmItmDmgReductionType* myRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
-			myRdctType->DmgRedctType = (iType&0xFFFF);
+			myRdctType[iPiercingIdx].DmgRedctType = (iType&0xFFFF);
 		}
 	}
 }
@@ -290,7 +290,7 @@ int GetItmDmgRedctPiercingSubType(char* ItemPtr, uint32_t iDmgRedctIdx, uint32_t
 		if (iPiercingIdx < myDmgRedcts[iDmgRedctIdx].uSizeList)
 		{
 			AmItmDmgReductionType* myRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
-			return myRdctType->DmgRedctSubType;
+			return myRdctType[iPiercingIdx].DmgRedctSubType;
 		}
 	}
 	return 0;

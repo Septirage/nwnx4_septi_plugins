@@ -1554,6 +1554,8 @@ Patch _PatchFixLowerSRFromFeat[] =
 {
 	Patch(OFFS_FIXSRLOWERFROMFEAT, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
 	Patch(OFFS_FIXSRLOWERFROMFEAT + 1, (relativefunc)FixLowerSRFromFeat),
+
+	Patch()
 };
 Patch* PatchFixLowerSRFromFeat = _PatchFixLowerSRFromFeat;
 
@@ -1561,6 +1563,8 @@ Patch _PatchFixSRItmProperty[] =
 {
 	Patch(OFFS_FIXSRITMPROPERTY, (char*)"\xe9\x00\x00\x00\x00", (int)5),
 	Patch(OFFS_FIXSRITMPROPERTY + 1, (relativefunc)FixSRItmProperty),
+
+	Patch()
 };
 Patch* PatchFixSRItmProperty = _PatchFixSRItmProperty;
 
@@ -1571,6 +1575,8 @@ Patch _PatchSpellPenetrationAOE[] =
 
 	Patch(OFFS_CALCULATESPAOE, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
 	Patch(OFFS_CALCULATESPAOE + 1, (relativefunc)FixFillAreaOfEffect),
+
+	Patch()
 };
 Patch* PatchSpellPenetrationAOE = _PatchSpellPenetrationAOE;
 

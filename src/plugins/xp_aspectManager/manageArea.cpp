@@ -121,13 +121,13 @@ void SetAreaSkyRing(char* areaPtr, int iIdx, int iValue) {
 			pSkyRing = (areaPtr + AmAreaSkyRingN);
 			break;
 		case 1:
-			pSkyRing = (areaPtr + AmAreaSkyRingN);
+			pSkyRing = (areaPtr + AmAreaSkyRingE);
 			break;
 		case 2:
-			pSkyRing = (areaPtr + AmAreaSkyRingN);
+			pSkyRing = (areaPtr + AmAreaSkyRingS);
 			break;
 		case 3:
-			pSkyRing = (areaPtr + AmAreaSkyRingN);
+			pSkyRing = (areaPtr + AmAreaSkyRingW);
 			break;
 		default:
 			return;
@@ -144,13 +144,13 @@ int GetAreaSkyRing(char* areaPtr, int iIdx) {
 			pSkyRing = (areaPtr + AmAreaSkyRingN);
 			break;
 		case 1:
-			pSkyRing = (areaPtr + AmAreaSkyRingN);
+			pSkyRing = (areaPtr + AmAreaSkyRingE);
 			break;
 		case 2:
-			pSkyRing = (areaPtr + AmAreaSkyRingN);
+			pSkyRing = (areaPtr + AmAreaSkyRingS);
 			break;
 		case 3:
-			pSkyRing = (areaPtr + AmAreaSkyRingN);
+			pSkyRing = (areaPtr + AmAreaSkyRingW);
 			break;
 		default:
 			return 0;
@@ -502,7 +502,7 @@ void AreaSetString(char* cCommand, int iObjectID, char* sValue) {
 		else if (sCommand == "FogColor")
 			SetFogColor(dncPtr, sValue);
 		else {
-			NWN::D3DXCOLOR* ObjColor = GetAreaColorPtr(areaPtr, sCommand);
+			NWN::D3DXCOLOR* ObjColor = GetAreaColorPtr(dncPtr, sCommand);
 			if (ObjColor != NULL) {
 				NWN::D3DXCOLOR myColor;
 				//Color is Ok, we can apply it

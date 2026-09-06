@@ -10,6 +10,7 @@
 #include "refreshObject.h"
 #include "objectSpatial.h"
 #include "functionFixes.h"
+#include "aspectForViewer.h"
 
 #include <NWN2Lib/NWN2.h>
 #include <NWN2Lib/NWN2Common.h>
@@ -701,6 +702,14 @@ AspectManager::Init(char* nwnxhome)
 		logger->Info("* ...Done.");
 	}
 
+	config->Read("UseAccountNameForOOCMsg", &iQuickPatch, 0);
+	if (iQuickPatch != 0)
+	{
+		logger->Info("* Start to apply UserName for OOC Messages patches");
+		PatchUserNameForOOCMsg();
+		logger->Info("* ...Done.");
+	}
+
 
 	int iUseListSyst = 1;
 	config->Read("UseListSystem", &iUseListSyst, 1);
@@ -1025,6 +1034,10 @@ bool parseGeometry(std::string sInputGeometry, std::vector<float>& vGeometry) {
 	std::istringstream iss(sInputGeometry);
 	int n;
     if (!(iss >> n)) {
+		return false;
+	}
+
+	if (n < 0 || n > 1000) {
 		return false;
 	}
 

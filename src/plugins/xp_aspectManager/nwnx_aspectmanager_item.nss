@@ -2,7 +2,8 @@
 // nwnx_aspectmanager_item - item specific functions of the AspectManager plugin
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
-// Last Modified by:	Septirage			2026-03-15  Add SetItemCharges + itemproperty functions (1.5.3)
+// Last Modified by:	Septirage			2026-09-06	Fix typo in functions names/parameters
+//						Septirage			2026-03-15  Add SetItemCharges + itemproperty functions (1.5.3)
 //						Septirage			2024-10-29  Add Get/set Cost Function + DmgReduction (1.4.6)
 //						Septirage			2024-05-18	Add Get/SetItemModelPartMask_xpAM (1.4.2)
 //						Septirage           2024-02-28
@@ -75,7 +76,7 @@ itemproperty GetSpecificItemProperty_xpAM(object oItem, int nNth, int bCountTemp
 // - oItem: the item from which recover the itemproperty
 // - sID: the itemproperty ID to search
 //Will return an invalid item property when the list is empty
-itemproperty GetSpecificItemPropertyByID_xpAm(object oItem, string sID);
+itemproperty GetSpecificItemPropertyByID_xpAM(object oItem, string sID);
 
 //Get the itemproperty ID of the nth itemproperty of specified item
 // - oItem: the item from which get the itemproperty
@@ -156,7 +157,7 @@ void AddItemProperty_xpAM(object oItem, int iType, int iSubType, int iCostTableV
 	NWNXSetString("AspectManager", "item", "AddProperty", ObjectToInt(oItem), params);
 }
 
-itemproperty GetSpecificItemPropertyByID_xpAm(object oItem, string sID)
+itemproperty GetSpecificItemPropertyByID_xpAM(object oItem, string sID)
 {
 	NWNXSetString("AspectManager", "item", "PrepareGetPropertyByID", ObjectToInt(oItem), sID);
 	return GetNextItemProperty(oItem);
@@ -220,7 +221,7 @@ float GetItemModelPieceUScroll_xpAM(object oItem, int iModelPiece);
 //	iModelPiece : ARMOR_MODEL_PIECE_* constant
 void SetItemModelPieceVScroll_xpAM(object oItem, int iModelPiece, float fVScroll);
 
-//Get the UScroll speed for the iModelPiece of oItem
+//Get the VScroll speed for the iModelPiece of oItem
 //	iModelPiece : ARMOR_MODEL_PIECE_* constant
 float GetItemModelPieceVScroll_xpAM(object oItem, int iModelPiece);
 
@@ -232,14 +233,14 @@ float GetItemModelPieceVScroll_xpAM(object oItem, int iModelPiece);
 //  item visual
 // It's bitmask based with : 
 // 0x1: Helm, 0x2: Gloves,  0x4: Boots, 0x8: Belt, 0x10: Cloak
-void SetItemModelPartMask_xpAM(object oCreature, int iMask);
+void SetItemModelPartMask_xpAM(object oItem, int iMask);
 
 
 //Get the iModelPart mask, tell you to which model part are shown or hiden 
 //  on the item visual
 // It's bitmask based with : 
 // 0x1: Helm, 0x2: Gloves,  0x4: Boots, 0x8: Belt, 0x10: Cloak
-int GetItemModelPartMask_xpAM(object oCreature);
+int GetItemModelPartMask_xpAM(object oItem);
 
 //Set the ModelPart Variation for oItem.
 //	iModelPart : ARMOR_MODEL_PART_* constant

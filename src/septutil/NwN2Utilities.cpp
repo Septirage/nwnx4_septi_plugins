@@ -7,11 +7,53 @@
 
 NWN::OBJECTID GetModuleID()
 {
-	int ptr = *(int*)OFFS_g_pAppManager;
-	ptr = *(int*)(ptr + 4);
-	ptr = *(int*)(ptr + 4);
-	NWN::OBJECTID result = *(NWN::OBJECTID*)(ptr + 0x10088);
+	NWN::CAppManager* pAppManager = *(NWN::CAppManager**)OFFS_g_pAppManager;
+	if (pAppManager == NULL)
+		return NWN::INVALIDOBJID;
+
+	NWN::CServerExoApp* pServerExoApp = pAppManager->m_pServerExoApp;
+	if (pServerExoApp == NULL)
+		return NWN::INVALIDOBJID;
+
+	NWN::CServerExoAppInternal* pExoAppInternal = pServerExoApp->m_pcExoAppInternal;
+	if (pExoAppInternal == NULL)
+		return NWN::INVALIDOBJID;
+
+	uint8_t* pBase = (uint8_t*)pExoAppInternal;
+	NWN::OBJECTID result = *(NWN::OBJECTID*)(pBase + 0x10088);
+
 	return result;
+}
+
+//OFFS_g_pAppManager
+//Must be redone to be based on struct instead ugly ptr management
+CNetBigPlayerInfo* GetCNetPlayerInfo(uint8_t idPlayer)
+{
+	NWN::CAppManager* pAppManager = *(NWN::CAppManager**)OFFS_g_pAppManager;
+	if (pAppManager == NULL)
+		return NULL;
+
+	NWN::CServerExoApp* pServerExoApp = pAppManager->m_pServerExoApp;
+	if (pServerExoApp == NULL)
+		return NULL;
+
+	NWN::CServerExoAppInternal* pExoAppInternal = pServerExoApp->m_pcExoAppInternal;
+	if (pExoAppInternal == NULL)
+		return NULL;
+
+	uint8_t* pBase = (uint8_t*)pExoAppInternal;
+	void* pNetLayerWrapper = *(void**)(pBase + 0x10068);
+	if (pNetLayerWrapper == NULL)
+		return NULL;
+
+	CShortNetLayerInternal* pNetLayer = *(CShortNetLayerInternal**)pNetLayerWrapper;
+	if (pNetLayer == NULL)
+		return NULL;
+
+	if (idPlayer >= NWN2_MAX_PLAYERS)
+		return NULL;
+
+	return &pNetLayer->Players[idPlayer];
 }
 
 
