@@ -1,5 +1,6 @@
 #include "RuleParser.h"
 #include "RuleCreatureFct.h"
+#include "CustomValues.h"
 #include "../../septutil/NwN2DataPos.h"
 
 #include <unordered_map>
@@ -29,7 +30,7 @@ namespace RuleParser
 		= { {"==", OP_EQUAL}, {"!=", OP_NOTEQUAL}, {"<", OP_LESS}, {"<=", OP_LESSEQUAL}, {">", OP_GREATER}, {">=", OP_GREATEREQUAL} };
 
 	std::unordered_map<std::string, uint32_t> functionValues
-		= { {"skill", FCT_SKILL}, {"ability", FCT_ABILITY}, {"classlevelsum", FCT_CLASSSUM}, {"classlevelmax", FCT_CLASSMAX} };
+		= { {"skill", FCT_SKILL}, {"ability", FCT_ABILITY}, {"classlevelsum", FCT_CLASSSUM}, {"classlevelmax", FCT_CLASSMAX}, {"customvalue", FCT_CUSTOMVALUE} };
 
 
 	std::unordered_map<std::string, uint32_t> m_areaTypeMap;
@@ -92,6 +93,10 @@ void processCurrentToken(const std::string& currentToken, std::vector<Token>& to
 		else if (lowerToken == "encumbranceheavy")
 		{
 			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_ENCUMBRANCE2});
+		}
+		else if (lowerToken == "incombat")
+		{
+			tokens.push_back({TokenType::SPECIAL, RULESPECIAL_INCOMBAT});
 		}
 		else if (operatorNumValues.find(currentToken) != operatorNumValues.end())
 		{
@@ -236,9 +241,9 @@ Rule* parseExpression(std::vector<Token>& tokens, int& pos)
 			pos++;
 			
 			//Check tParams number
-			if ((iFctType == FCT_SKILL || iFctType == FCT_ABILITY) && tParams.size() != 1)
+			if ((iFctType == FCT_SKILL || iFctType == FCT_ABILITY || iFctType == FCT_CUSTOMVALUE) && tParams.size() != 1)
 			{
-				throw std::runtime_error("Expected exactly one paramter for function Skill or Ability");
+				throw std::runtime_error("Expected exactly one paramter for function Skill, Ability or CustomValue");
 			}
 			else if (tParams.size() < 1) {
 				throw std::runtime_error("Expected at least one paramter for function");
@@ -250,6 +255,13 @@ Rule* parseExpression(std::vector<Token>& tokens, int& pos)
 				int iAbility = tParams.back();
 				if (iAbility < 0 || iAbility > 5)
 					throw std::runtime_error("Ability function must have a parameter from 0 to 5, you have put " + std::to_string(iAbility));
+			}
+
+			if (iFctType == FCT_CUSTOMVALUE)
+			{
+				int iCustomValue = tParams.back();
+				if (iCustomValue < 0 || iCustomValue >= GetCustomValuesNumber())
+					throw std::runtime_error("CustomValue function must have a parameter from 0 to nbCustomValue, you have put " + std::to_string(iCustomValue));
 			}
 
 			Rule* node = new Rule{ TokenType::FUNCTION, iFctType, nullptr, nullptr, tParams};
@@ -422,6 +434,10 @@ bool TestSpecial(int iSpecialType, int creaPtr)
 		iVal = *(uint8_t*)(creaPtr + AmCrtEncumbrance);
 		bResult = (iVal == 2);
 		break;
+	case RULESPECIAL_INCOMBAT:
+		iVal = *(uint32_t*)(creaPtr + AmCrtInCombat);
+		bResult = (iVal == 1);
+		break;
 	default:
 		bResult = false;
 	}
@@ -443,6 +459,8 @@ int evaluateRuleInt(Rule* node, RuleType cRuleType, int iPcAddr, bool& isValid)
 			return ClassLevelSum(node->params, CreaBlockStat);
 		else if (node->value == FCT_CLASSMAX)
 			return ClassLevelMax(node->params, CreaBlockStat);
+		else if (node->value == FCT_CUSTOMVALUE)
+			return GetCreatureCustomValue((GameObject*)iPcAddr, node->params.back());
 	}
 	else if (node->type == TokenType::NUM)
 	{

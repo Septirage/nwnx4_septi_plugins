@@ -36,6 +36,7 @@ const uint32_t FCT_CLASSSUM = 2;
 const uint32_t FCT_CLASSMAX = 3;
 const uint32_t FCT_MAX = 4;
 const uint32_t FCT_MIN = 5;
+const uint32_t FCT_CUSTOMVALUE = 6;
 
 enum class TokenType { OBJECT, OPERATOR, LPAREN, RPAREN, END, SPECIAL, FUNCTION, OPNUM, NUM };
 
@@ -46,6 +47,7 @@ const int RULESPECIAL_TRACKMODE = 3;
 const int RULESPECIAL_ENCUMBRANCE0 = 10;
 const int RULESPECIAL_ENCUMBRANCE1 = 11;
 const int RULESPECIAL_ENCUMBRANCE2 = 12;
+const int RULESPECIAL_INCOMBAT = 20;
 
 
 struct Token {
