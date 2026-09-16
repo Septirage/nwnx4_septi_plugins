@@ -84,9 +84,29 @@ void InitializeCELocString()
 #define HOOK_PrepareGUIMsgParty 0x00631a98
 #define HOOK_PrepareMsgPartyE	0x005772d1
 
+#define OFFS_USERNAME_SHOUT	0x0056395b
+#define OFFS_USERNAME_PARTY	0x005634de
+#define OFFS_USERNAME_TELL	0x005637de
+
+#define OFFS_MSGTALK_DM			0x0056b188
+#define OFFS_MSGWHISPER_DM		0x0056b2d8
+
+
+
 unsigned long ReturnToMsgPartyx14x15 = 0x00631a9d;
 unsigned long ReturnToPrepareMsgPartyE = 0x005772d7;
 unsigned long ReturnAfterPrepareMsgPartyE = 0x005772ee;
+
+
+
+unsigned long ReturnToPrepareMsgShout = 0x00563961;
+unsigned long ReturnAfterPrepareMsgShout = 0x00563a2d;
+
+unsigned long ReturnToPrepareMsgParty = 0x005634e4;
+unsigned long ReturnAfterPrepareMsgParty = 0x00563508;
+
+unsigned long ReturnToPrepareMsgTell = 0x005637e4;
+unsigned long ReturnAfterPrepareMsgTell = 0x00563808;
 
 
 bool __fastcall PreparePlayerName(NWN::CNWSCreature *ptrCrea)
@@ -116,7 +136,7 @@ bool __fastcall PreparePlayerName(NWN::CNWSCreature *ptrCrea)
 	return true;
 }
 
-NWN::CExoString* __fastcall PreparePlayerFullName(NWN::CNWSCreatureStatsCore* ptrCreaStat, NWN::CExoString* ptrRes)
+NWN::CExoString* __fastcall PreparePlayerFullName(NWN::CNWSCreatureStatsCore* ptrCreaStat, void* UNUSED, NWN::CExoString* ptrRes)
 {
 	InitializeCELocString();
 	NWN::CNWSCreature* Object = *(NWN::CNWSCreature**)((uint32_t)ptrCreaStat + 0xA4);
@@ -194,7 +214,107 @@ __declspec(naked) void PatchUserNameForMsgPartyE()
 	GotoSetFalseLocStr:
 		MOV		EAX, [fakeLocalizedString]
 		PUSH	EAX
+		MOV		EAX, [fakeLocalizedString2]
 		JMP		dword ptr[ReturnAfterPrepareMsgPartyE]
+	}
+}
+
+__declspec(naked) void UserNameForShout()
+{
+	__asm
+	{
+		MOV		ECX, EDI
+		CALL	PreparePlayerName
+
+		TEST	EAX, EAX
+		JNZ		GotoSetFalseLocStrShout
+
+		MOV		EAX, dword ptr[EDX + 0x148]
+		JMP		dword ptr[ReturnToPrepareMsgShout]
+
+	GotoSetFalseLocStrShout:
+
+		PUSH	0
+		MOV		EAX, [fakeLocalizedString]
+		PUSH	EAX
+		MOV		ECX, ESI
+		MOV		EAX, 0x005b7010
+		CALL	EAX
+
+		PUSH	0
+		MOV		EAX, [fakeLocalizedString2]
+		PUSH	EAX
+		MOV		ECX, ESI
+		MOV		EAX, 0x005b7010
+		CALL	EAX
+		
+		JMP		dword ptr[ReturnAfterPrepareMsgShout]
+	}
+}
+
+__declspec(naked) void UserNameForParty()
+{
+	__asm
+	{
+		MOV		ECX, EDI
+		CALL	PreparePlayerName
+
+		TEST	EAX, EAX
+		JNZ		GotoSetFalseLocStrParty
+
+		MOV		EAX, dword ptr[EDX + 0x148]
+		JMP		dword ptr[ReturnToPrepareMsgParty]
+
+	GotoSetFalseLocStrParty:
+
+		PUSH	0
+		MOV		EAX, [fakeLocalizedString]
+		PUSH	EAX
+		MOV		ECX, ESI
+		MOV		EAX, 0x005b7010
+		CALL	EAX
+
+		PUSH	0
+		MOV		EAX, [fakeLocalizedString2]
+		PUSH	EAX
+		MOV		ECX, ESI
+		MOV		EAX, 0x005b7010
+		CALL	EAX
+
+		JMP		dword ptr[ReturnAfterPrepareMsgParty]
+	}
+}
+
+__declspec(naked) void UserNameForTell()
+{
+	__asm
+	{
+		MOV		ECX, EDI
+		CALL	PreparePlayerName
+
+		TEST	EAX, EAX
+		JNZ		GotoSetFalseLocStrTell
+
+		MOV		EAX, dword ptr[EDX + 0x148]
+		JMP		dword ptr[ReturnToPrepareMsgTell]
+
+	GotoSetFalseLocStrTell:
+
+		PUSH	0
+		MOV		EAX, [fakeLocalizedString]
+		PUSH	EAX
+		MOV		ECX, ESI
+		MOV		EAX, 0x005b7010
+		CALL	EAX
+
+		PUSH	0
+		MOV		EAX, [fakeLocalizedString2]
+		PUSH	EAX
+		MOV		ECX, ESI
+		MOV		EAX, 0x005b7010
+		CALL	EAX
+
+		JMP		dword ptr[ReturnAfterPrepareMsgTell]
 	}
 }
 
@@ -316,6 +436,18 @@ Patch _PatchUseUserNameOnOOCMsg[] =
 
 	Patch(HOOK_PrepareGUIMsgParty, (char*)"\xe9\x00\x00\x00\x00", (int)5),
 	Patch(HOOK_PrepareGUIMsgParty + 1, (relativefunc)PatchUserNameForGUIParty),
+
+	Patch(OFFS_MSGTALK_DM, (char*)"\x90\x90", (int)2),
+	Patch(OFFS_MSGWHISPER_DM, (char*)"\x90\x90", (int)2),
+
+	Patch(OFFS_USERNAME_SHOUT, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
+	Patch(OFFS_USERNAME_SHOUT+1, (relativefunc)UserNameForShout),
+
+	Patch(OFFS_USERNAME_PARTY, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
+	Patch(OFFS_USERNAME_PARTY+1, (relativefunc)UserNameForParty),
+
+	Patch(OFFS_USERNAME_TELL, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
+	Patch(OFFS_USERNAME_TELL+1, (relativefunc)UserNameForTell),
 
 	Patch()
 };

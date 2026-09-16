@@ -705,7 +705,9 @@ AspectManager::Init(char* nwnxhome)
 	config->Read("UseAccountNameForOOCMsg", &iQuickPatch, 0);
 	if (iQuickPatch != 0)
 	{
+		logger->Info("* Start to apply UserName for OOC Messages patches");
 		PatchUserNameForOOCMsg();
+		logger->Info("* ...Done.");
 	}
 
 

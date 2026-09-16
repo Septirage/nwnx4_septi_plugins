@@ -792,12 +792,12 @@ void ShowObjectForPC_xpAM(object oObjectToShow, object oPC)
 
 void SetPCListNameForViewer_xpAM(object oPC, string sFirstName, string sLastName, object oViewer)
 {
-	NWNXSetInt("AspectManager", "updateName", "1|"+sFirstName+"|"+sLastName, ObjectToInt(oPC), ObjectToInt(oViewer));
+	NWNXSetInt("AspectManager", "updateName", "0|"+sFirstName+"|"+sLastName, ObjectToInt(oPC), ObjectToInt(oViewer));
 }
 
 void SetCreatureNameForViewer_xpAM(object oCreature, string sFirstName, string sLastName, object oViewer)
 {
-	NWNXSetInt("AspectManager", "updateName", "0|"+sFirstName+"|"+sLastName, ObjectToInt(oCreature), ObjectToInt(oViewer));
+	NWNXSetInt("AspectManager", "updateName", "1|"+sFirstName+"|"+sLastName, ObjectToInt(oCreature), ObjectToInt(oViewer));
 }
 
 
