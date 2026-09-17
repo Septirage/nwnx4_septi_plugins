@@ -24,7 +24,7 @@ typedef uint8_t (__thiscall* NWN2GetClassFromPosition_t)(void* pThis, uint8_t po
 NWN2GetClassFromPosition_t const NWN2GetClassFromPosition = (NWN2GetClassFromPosition_t)0x00752f70;
 
 
-typedef uint8_t (__thiscall *NWN2GetCasterLevelWithMods_t)(void* pThis, uint8_t param_2);
+typedef uint8_t (__thiscall *NWN2GetCasterLevelWithMods_t)(void* pThis, uint8_t param_2, uint32_t unused_spellid);
 
 NWN2GetCasterLevelWithMods_t const NWN2GetCasterLevelWithMods = (NWN2GetCasterLevelWithMods_t)0x75b740;
 
@@ -169,11 +169,13 @@ __declspec(naked) void FixLowerSRFromFeat()
 	}
 }
 
-uint32_t __fastcall CalculateSpellPenetration(uint8_t* pObject, uint8_t* pSpell, uint8_t* rTestValue)
+uint32_t __fastcall CalculateSpellPenetration(uint8_t* pObject, uint8_t* pSpell, uint32_t* rTestValue, uint32_t spellID)
 {
+
+
 	uint32_t spellPower = 0;
-	uint8_t* localTestValue;
-	uint8_t testValue;
+	uint32_t* localTestValue;
+	uint32_t testValue;
 	if (rTestValue == 0)
 	{
 		localTestValue = &testValue;
@@ -182,10 +184,16 @@ uint32_t __fastcall CalculateSpellPenetration(uint8_t* pObject, uint8_t* pSpell,
 	{
 		localTestValue = rTestValue;
 	}
-	*localTestValue = -1;
+	*localTestValue = 0xFFFFFFFF;
 
+	/*
 	auto vtable = *reinterpret_cast<NWN2_Gen_VTable**>(pObject);
-	vtable->IsCreature(pObject);
+	if (vtable->IsCreature(pObject) == 0)
+	{
+		//Not a creature... What to do ? should not happens ?... both point call it from 
+
+	}
+	*/
 
 	if (*(int*)(pObject + 0xe88) == 1) {
 		return *(uint32_t*)(pObject + 0xe8c);
@@ -202,24 +210,27 @@ uint32_t __fastcall CalculateSpellPenetration(uint8_t* pObject, uint8_t* pSpell,
 			spellPower = spellPower * 2 - 1;
 		}
 		else {
-			*localTestValue = 0;
 			if ((uint16_t)(sSpellValue - 0x583U) < 9) {
 				uint8_t pos = NWN2GetClassPosition(pCreaStat ,0x27);
 				if ((pos & 0xFF) < 4)
 				{
-					spellPower = NWN2GetCasterLevelWithMods(pCreaStat, pos & 0xFF);
+					spellPower = NWN2GetCasterLevelWithMods(pCreaStat, pos & 0xFF, spellID);
 					spellPower = spellPower & 0xFF;
-					*localTestValue = -1;
+					//*localTestValue = -1;
 				}
 				else
 				{
 					sSpellValue = -1;
+					*localTestValue = 0;
 				}
+			}
+			else {
+				*localTestValue = 0;
 			}
 		}
 	}
 	else {
-		spellPower = NWN2GetCasterLevelWithMods(pCreaStat, bCasterClassPosition);
+		spellPower = NWN2GetCasterLevelWithMods(pCreaStat, bCasterClassPosition, spellID);
 		spellPower = spellPower & 0xFF;
 	}
 
@@ -277,7 +288,6 @@ uint32_t __fastcall CalculateSpellPenetration(uint8_t* pObject, uint8_t* pSpell,
 		}
 	}
 
-
 	return spellPower;
 }
 
@@ -295,6 +305,7 @@ __declspec(naked) void CentralizeSpellPenetration()
 		MOV		EDX ,dword ptr [ESP + 0x20]
 		MOV		ECX, ESI
 
+		PUSH	EBX
 		PUSH	EAX
 
 		CALL	CalculateSpellPenetration
@@ -315,10 +326,13 @@ __declspec(naked) void FixFillAreaOfEffect()
 {
 	__asm
 	{
+		PUSH	EBX
+
 		MOV		EDX, dword ptr [ESI]
 		MOV		EAX, dword ptr [EDX + 0x17c]
 		MOV		ECX, ESI
 		CALL	EAX
+		MOV		EBX, EAX
 
 		MOV		ECX, 0x0086443C
 		MOV		ECX, [ECX]
@@ -331,6 +345,7 @@ __declspec(naked) void FixFillAreaOfEffect()
 		JZ		FixFillAreaSpNotFound
 
 
+		PUSH	EBX
 		PUSH	0
 		MOV		EDX, EAX
 		MOV		ECX, ESI
@@ -339,9 +354,11 @@ __declspec(naked) void FixFillAreaOfEffect()
 
 		MOV		dword ptr [EDI + 0x344], EAX
 
+		POP		EBX
 		JMP		dword ptr[ReturnAfterFillAOE]
 
 	FixFillAreaSpNotFound:
+		POP		EBX
 		MOV		AL, byte ptr [ESI + 0x2a0]
 		JMP		dword ptr[ReturnErrPtrFillAOE]
 
@@ -1846,14 +1863,6 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		{
 			i++;
 		}
-	}
-
-	config->Read("UseAccountNameForOOCMsg", &iTest, 0);
-	if (iTest == 1)
-	{
-		logger->Info("* Account name will be used for OOC msg");
-		i = 0;
-		//TODO
 	}
 
 

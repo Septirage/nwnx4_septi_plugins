@@ -675,6 +675,9 @@ DWORD WINAPI LancementTest(LPVOID lpParam)
 bool
 EnhancedFeatures::Init(char* nwnxhome)
 {
+	int iTest = 0;
+	int i = 0;
+
 	nwnxStringHome = nwnxhome;
 	m_sSpeedFeatFile = "";
 	m_sSkillHookFile = "";
@@ -716,6 +719,21 @@ EnhancedFeatures::Init(char* nwnxhome)
 		logger->Info(  "* WARNING: Failed to locate NWN2_Heap::Deallocate."  );
 
 
+	//CustomValues
+	config->Read("CustomValuesNb", &iTest, 0);
+	if(iTest > 0)
+	{
+		initCustomValuesNumber(iTest);
+
+		std::string sCustomValueRuleFile = "";
+		config->Read("CustomValueRuleFile", &sCustomValueRuleFile, std::string(""));
+		if (sCustomValueRuleFile != "")
+		{
+			std::string nxhome(nwnxhome);
+			m_sCustomValueRuleFile = sCustomValueRuleFile;
+			initCustomValuesHooks(nxhome, sCustomValueRuleFile);
+		}
+	}
 
 	//AreaTypeBitX
 	{
@@ -792,8 +810,7 @@ EnhancedFeatures::Init(char* nwnxhome)
 	//CallStore/Retrieve 
 	StoreRetrieveConfigAndApply(config);
 
-	int iTest = 0;
-	int i = 0;
+	iTest = 0;
 	config->Read("PatchDestroy", &iTest, 0);
 	if (iTest != 0)
 	{
@@ -873,22 +890,6 @@ EnhancedFeatures::Init(char* nwnxhome)
 		logger->Info("* Patch Time to allow SetTimeForArea");
 		InitTimeFeatures();
 	}
-
-	config->Read("CustomValuesNb", &iTest, 0);
-	if(iTest > 0)
-	{
-		initCustomValuesNumber(iTest);
-
-		std::string sCustomValueRuleFile = "";
-		config->Read("CustomValueRuleFile", &sCustomValueRuleFile, std::string(""));
-		if (sCustomValueRuleFile != "")
-		{
-			std::string nxhome(nwnxhome);
-			m_sCustomValueRuleFile = sCustomValueRuleFile;
-			initCustomValuesHooks(nxhome, sCustomValueRuleFile);
-		}
-	}
-
 
 	logger->Info("* Plugin initialized.");
 
