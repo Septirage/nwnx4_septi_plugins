@@ -103,6 +103,8 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 #define OFFS_FixItmPrpDmgBonusVsSAlign	0x0067e6ac
 
 #define OFFS_UPDATEIMMUNITY				0x00579a10
+#define OFFS_UPDATEIMUNITY_REMINCREASE	0x0065a1bc
+#define OFFS_UPDATEIMUNITY_REMDECREASE	0x0065a46c
 
 #define OFFS_DAMAGEBONUSCAP				0x005f674d
 #define OFFS_DAMAGEMALUSCAP				0x005f675b
@@ -112,6 +114,8 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 
 #define OFFS_CALCULATESPELLPEN			0x006b024a
 #define OFFS_CALCULATESPAOE				0x006ccfd2
+
+#define OFFS_PARRYWITHFLURRY			0x0063f3f9
 
 unsigned long EndFixSRItemProperty = 0x006d9386;
 unsigned long SetEffectVariable_ = 0x006558f0;
@@ -373,7 +377,7 @@ __declspec(naked) void FixUpdateImmunity()
 	__asm
 	{
 		MOV  EDX, dword ptr[ESP + 0x8]
-		CMP  EDX, 0xFFFFFFC0
+		CMP  EDX, 0xFFFFFF9C
 		
 		PUSH EBX
 		PUSH ESI
@@ -381,7 +385,7 @@ __declspec(naked) void FixUpdateImmunity()
 		MOV  EDI,ECX
 		
 		JGE  NotTooLow
-		MOV  EDX, 0xFFFFFFC0
+		MOV  EDX, 0xFFFFFF9C
 		JMP  EndUpdateImmunity
 
 		NotTooLow:
@@ -620,7 +624,7 @@ __declspec(naked) void FixCalcSafeLocationArea()
 		MOV		EAX, dword ptr [ESI + 0x144]
 
 		//bWalkStraighLineRequired ?
-		CMP		dword ptr [ESP + 0x18], 0x1
+		CMP		dword ptr [ESP + 0x14], 0x1
 		JNE		ContinueCalcSafe
 
 		//Yes, we need to be on same area
@@ -826,7 +830,7 @@ GoToTestRetry:
 
 
 
-unsigned long ReturnToSaveThrowFailed = 0x00639a9f;
+unsigned long ReturnToSaveThrowFailed = 0x00639b8f;
 unsigned long ReturnToGoBackSaveThrow = 0x00639aa5;
 
 
@@ -1545,6 +1549,9 @@ Patch _PatchFixImmunityOverflow[] =
 	Patch(OFFS_UPDATEIMMUNITY, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
 	Patch(OFFS_UPDATEIMMUNITY +1, (relativefunc)FixUpdateImmunity),
 
+	Patch(OFFS_UPDATEIMUNITY_REMINCREASE, (char*)"\x2b", (int)1),		// sub bl, ... => sub ebx, ...
+	Patch(OFFS_UPDATEIMUNITY_REMDECREASE, (char*)"\x03", (int)1),		// add al, ... => add eax, ...
+
 	Patch()
 };
 Patch* PatchFixImmunityOverflow = _PatchFixImmunityOverflow;
@@ -1596,6 +1603,13 @@ Patch _PatchSpellPenetrationAOE[] =
 	Patch()
 };
 Patch* PatchSpellPenetrationAOE = _PatchSpellPenetrationAOE;
+
+Patch _PatchParryWithFlurry[] =
+{
+	Patch(OFFS_PARRYWITHFLURRY, (char*)"\xeb\x11\x90\x90\x90\x90", (int)6),
+	Patch()
+};
+Patch* PatchParryWithFlurry = _PatchParryWithFlurry;
 
 
 bool SmallPatchFunctions(SimpleIniConfig* config)
@@ -1860,6 +1874,17 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		logger->Info("* FixSpellPenetrationAOE");
 		i = 0;
 		while (PatchSpellPenetrationAOE[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixParryWithFlurry", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixParryWithFlurry");
+		i = 0;
+		while (PatchParryWithFlurry[i].Apply())
 		{
 			i++;
 		}

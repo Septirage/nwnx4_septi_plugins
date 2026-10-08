@@ -224,7 +224,9 @@ __declspec(naked) void UserNameForShout()
 	__asm
 	{
 		MOV		ECX, EDI
+		PUSH	EDX
 		CALL	PreparePlayerName
+		POP		EDX
 
 		TEST	EAX, EAX
 		JNZ		GotoSetFalseLocStrShout
@@ -257,7 +259,9 @@ __declspec(naked) void UserNameForParty()
 	__asm
 	{
 		MOV		ECX, EDI
+		PUSH	EDX
 		CALL	PreparePlayerName
+		POP		EDX
 
 		TEST	EAX, EAX
 		JNZ		GotoSetFalseLocStrParty
@@ -290,7 +294,9 @@ __declspec(naked) void UserNameForTell()
 	__asm
 	{
 		MOV		ECX, EDI
+		PUSH	EDX
 		CALL	PreparePlayerName
+		POP		EDX
 
 		TEST	EAX, EAX
 		JNZ		GotoSetFalseLocStrTell

@@ -194,7 +194,7 @@ __declspec(naked) void CallSkillFeats()
 
 		//Go back to normal behavior
 		CMP	EAX, 0x1C
-		JGE	LeaveSkillFeats
+		JA	LeaveSkillFeats
 
 		JMP dword ptr[ReturnSkillFeats]
 		//JMP	dword ptr[EAX*0x4 + 0x00758670]

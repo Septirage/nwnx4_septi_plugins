@@ -23,6 +23,7 @@
 #include "SmallHookFunctions.h"
 #include "StoreRetrievePatch.h"
 #include "CustomValues.h"
+#include "BAFeatRule.h"
 
 #include "MagicFunctions.h"
 #include "TalkFunctions.h"
@@ -801,6 +802,15 @@ EnhancedFeatures::Init(char* nwnxhome)
 		initHPFeat(nxhome, sHitPointFeatFile);
 	}
 
+	std::string sBonusAttackFeatFile = "";
+	config->Read("BonusAttackFeatsFile", &sBonusAttackFeatFile, std::string(""));
+	if(sBonusAttackFeatFile != "")
+	{
+		std::string nxhome(nwnxhome);
+		m_sBonusAttackFeatFile = sBonusAttackFeatFile;
+		initBAFeat(nxhome, sBonusAttackFeatFile);
+	}
+
 
 	//Call Small Functions. (will be improved latter)
 	SmallPatchFunctions(config);
@@ -1036,6 +1046,11 @@ void EnhancedFeatures::SetInt([[maybe_unused]] char* sFunction,
 	{
 		desinitHPFeat();
 		return initHPFeat(nwnxStringHome, m_sHitPointFeatFile);
+	}
+	else if (function == "ReloadBonusAttackFile" && m_sBonusAttackFeatFile != "")
+	{
+		desinitBAFeat();
+		return initBAFeat(nwnxStringHome, m_sBonusAttackFeatFile);
 	}
 	else if (function == "TimeFunction")
 	{
