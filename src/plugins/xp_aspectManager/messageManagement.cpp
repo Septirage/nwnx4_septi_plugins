@@ -17,6 +17,7 @@
 
 
 #define FUNC_PREPAREMSG			0x0056df15
+#define FUNC_LUODESTRUCTOR_NOHOOK	0x005b9665
 #define FUNC_CREATE55PART		0x00565760
 #define FUNC_ENDPART			0x0056ded0
 #define FUNC_FINISHPREPARATION	0x0074E080
@@ -36,6 +37,9 @@
 
 
 //OFFS_g_pAppManager
+
+typedef void (__cdecl * NWN2Heap_Deallocate_Proc)(void *p);
+extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 
 
 HMODULE XPBugfix; 
@@ -187,6 +191,23 @@ __declspec(naked) int* __fastcall FonctionPrepare(void *messageBlock, void* Unus
 
 
 		mov		edx, FUNC_PREPAREMSG;
+		jmp		edx;
+	}
+}
+
+//CLastUpdateObject destructor, called after its first 5 bytes (where xp_bugfix puts its hook).
+//Our temporary LUO is not in the xp_bugfix LUO table : OnDeleteLUO would __debugbreak on it.
+//Memory must then be freed with NWN2Heap_Deallocate
+__declspec(naked) void __fastcall DestroyLastUpdateObject(__in void* pLUO)
+{
+	__asm
+	{
+		push	ebp;
+		push	esi;
+		push	edi;
+		mov		esi, ecx;
+
+		mov		edx, FUNC_LUODESTRUCTOR_NOHOOK;
 		jmp		edx;
 	}
 }
@@ -630,6 +651,9 @@ bool ramasserObjet(int iAffected, int mustView, int iItem)
 	memset(Data, 0, sizeof(Data));
 
 	Object = m_ObjectManager.GetGameObject((NWN::OBJECTID)iItem);
+	if (Object == NULL)
+		return false;
+
 	std::memcpy ( Data, ramasserEquipement, 0x25 );
 
 
@@ -813,6 +837,11 @@ uint32_t addObjectToWorld(int mustView, GameObject* Object, uint8_t* myMessage)
 	uint32_t sizeToSend = 0;
 	FinishMessagePreparation((void*)messageBlock, (void*)NULL, (void*)&ptrToMsg, (void*)&sizeToSend);
 
+	//The temporary LUO was not added to the player list (tempPatch) : nobody else will free it
+	DestroyLastUpdateObject(monRet);
+	if (NWN2Heap_Deallocate)
+		NWN2Heap_Deallocate(monRet);
+
 	return sizeToSend;
 }
 
@@ -826,8 +855,12 @@ bool deposeObject(int iInventorySlot, int iAffected, int mustView, int iItem)
 	NWN::CNWSCreature * Creature;
 
 	Object = m_ObjectManager.GetGameObject((NWN::OBJECTID)iItem);
+	if (Object == NULL)
+		return false;
 	Item = Object->AsItem();
 	ObjectC = m_ObjectManager.GetGameObject( (NWN::OBJECTID) iAffected );
+	if (Item == NULL || ObjectC == NULL)
+		return false;
 
 	unsigned long Size = 0;
 	bool result = false;
@@ -908,7 +941,11 @@ bool showObject(int iInventorySlot, int iAffected, int iItem, int mustView)
 	GameObjectManager m_ObjectManager;
 	GameObject* Object  = m_ObjectManager.GetGameObject((NWN::OBJECTID)iItem);
 	GameObject* CreaPtr = m_ObjectManager.GetGameObject((NWN::OBJECTID)iAffected);
+	if (Object == NULL || CreaPtr == NULL)
+		return false;
 	NWN::CNWSItem* Item  = Object->AsItem();
+	if (Item == NULL)
+		return false;
 	uint8_t* pAppearance = (((uint8_t*)CreaPtr) + 0x183C);
 
 	////////////// TAKED BACK ///////////////
