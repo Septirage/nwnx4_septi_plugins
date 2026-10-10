@@ -292,9 +292,10 @@ void initWeaponFinesse(std::string nxhome, std::string sFileName)
 
 	if (bOkRead && ini.has("General"))
 	{
-		if (ini.get("General").has("RemoveBaseWpnFinesseRules"))
+		//"RemoveBaseWpnFinesseRules" : old name, still accepted
+		for (const char* sKey : { "RemoveBaseWeaponFinesseRules", "RemoveBaseWpnFinesseRules" })
 		{
-			if (ini.get("General").get("RemoveBaseWpnFinesseRules") == "1")
+			if (ini.get("General").has(sKey) && ini.get("General").get(sKey) == "1")
 			{
 				iRemoveBaseWeaponFinesse = 1;
 			}

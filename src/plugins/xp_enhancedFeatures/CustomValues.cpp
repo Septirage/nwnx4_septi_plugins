@@ -126,6 +126,11 @@ int EvaluateCustomValueRules(GameObject* pCreature, int iIdx, std::unordered_map
 		}
 	}
 
+	//Computed values are evaluated in the middle of another rule evaluation (BA, HP, Skill...) :
+	//keep the activated rules of the caller aside and give them back at the end
+	std::unordered_set<int> callerActivatedRuleSet;
+	callerActivatedRuleSet.swap(RuleParser::m_activatedRuleSet);
+
 	int iBonusTotal = 0;
 	for (CustomValueRuleSet* myRule : it->second)
 	{
@@ -146,7 +151,7 @@ int EvaluateCustomValueRules(GameObject* pCreature, int iIdx, std::unordered_map
 		}
 	}
 
-	RuleParser::m_activatedRuleSet.clear();
+	RuleParser::m_activatedRuleSet.swap(callerActivatedRuleSet);
 	return iBonusTotal;
 }
 

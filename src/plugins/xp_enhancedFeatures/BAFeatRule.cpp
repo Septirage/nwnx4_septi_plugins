@@ -20,10 +20,16 @@
 extern std::unique_ptr<LogNWNX> logger;
 
 unsigned long ReturnBAFeatBeforeLastFeatEnd = 0x005b13a8;
+unsigned long ReturnBAMeleeEnd = 0x0059da07;		//POP EBX / ADD ESP,8 / RET 0xC
+unsigned long ReturnBARangedEnd = 0x0059db02;		//RET 8
 
 #define OFFS_BonusAttackFeatStart		0x005b13a3
 #define OFFS_BonusAttackFeatKeepEsi1	0x005b135a
 #define OFFS_BonusAttackFeatKeepEsi2	0x005b1378
+
+#define OFFS_BonusAttackMeleeEnd		0x0059da02		//End of GetMeleeAttackBonus
+#define OFFS_BonusAttackRangedEnd		0x0059dafd		//End of GetRangedAttackBonus
+#define OFFS_InlineRangedAttackBonus	0x005ad838		//UpdateCombatInformation inline copy of GetRangedAttackBonus
 
 
 struct BARuleSet {
@@ -193,11 +199,64 @@ __declspec(naked) void CallBonusAttackFeats()
 }
 
 
+//End of GetMeleeAttackBonus (character sheet, TouchAttackMelee, DM stats). ESI = stats, EBX = result
+__declspec(naked) void CallBonusAttackFeatsMelee()
+{
+	__asm
+	{
+		MOV		ECX, ESI
+		XOR		EDX, EDX
+
+		CALL bonusAttackFeatApplication
+
+		ADD		EBX, EAX
+
+		POP		EDI
+		POP		ESI
+		POP		EBP
+		MOV		EAX, EBX
+
+		JMP		dword ptr[ReturnBAMeleeEnd]
+	}
+}
+
+
+//End of GetRangedAttackBonus (character sheet, TouchAttackRanged, DM stats). ESI = stats, EBX = result
+__declspec(naked) void CallBonusAttackFeatsRanged()
+{
+	__asm
+	{
+		MOV		ECX, ESI
+		XOR		EDX, EDX
+
+		CALL bonusAttackFeatApplication
+
+		ADD		EBX, EAX
+
+		POP		EDI
+		POP		ESI
+		MOV		EAX, EBX
+		POP		EBX
+
+		JMP		dword ptr[ReturnBARangedEnd]
+	}
+}
+
+
 Patch _BonusAttackFeatPatches[] = {
 	Patch(OFFS_BonusAttackFeatKeepEsi1, (char*)"\x9a", (int)1),		//mov esi, ... => mov ebx
 	Patch(OFFS_BonusAttackFeatKeepEsi2, (char*)"\xcb", (int)1),		//mov ecx,esi => mov ecx,ebx
 	Patch((DWORD)OFFS_BonusAttackFeatStart, (char*)"\xe9", (int)1),
     Patch(OFFS_BonusAttackFeatStart + 1, (relativefunc)CallBonusAttackFeats),
+
+	Patch((DWORD)OFFS_BonusAttackMeleeEnd, (char*)"\xe9", (int)1),
+	Patch(OFFS_BonusAttackMeleeEnd + 1, (relativefunc)CallBonusAttackFeatsMelee),
+
+	Patch((DWORD)OFFS_BonusAttackRangedEnd, (char*)"\xe9", (int)1),
+	Patch(OFFS_BonusAttackRangedEnd + 1, (relativefunc)CallBonusAttackFeatsRanged),
+
+	//PUSH 0 / PUSH 0 / MOV ECX,EBP / CALL GetRangedAttackBonus (0x59da10) / JMP 0x5ad8ad
+	Patch(OFFS_InlineRangedAttackBonus, (char*)"\x6a\x00\x6a\x00\x8b\xcd\xe8\xcd\x01\xff\xff\xeb\x68", (int)13),
 
 	Patch()
 };
@@ -328,10 +387,35 @@ void initBAFeat(std::string nxhome, std::string sFileName)
 	{
 		isBAAlreadyPatched = false;
 
-		BonusAttackFeatPatches[3].Remove();
-		BonusAttackFeatPatches[2].Remove();
-		BonusAttackFeatPatches[1].Remove();
-		BonusAttackFeatPatches[0].Remove();
+		//Remove in reverse order (last element is the empty Patch())
+		for (int i = (int)(sizeof(_BonusAttackFeatPatches) / sizeof(Patch)) - 2; i >= 0; i--)
+			BonusAttackFeatPatches[i].Remove();
 	}
+}
+
+
+//Ask the engine to recompute the combat information (character sheet) of oCreature.
+//Done at the next player update, and only sent to the client if something changed.
+void RefreshCombatInformation(int objectID)
+{
+	NWN::OBJECTID ObjectId = (NWN::OBJECTID)objectID;
+	GameObject* Object;
+	GameObjectManager m_ObjectManager;
+
+	if ((ObjectId & NWN::INVALIDOBJID) != 0)
+		ObjectId &= ~(NWN::LISTTYPE_MASK);
+
+	if ((Object = m_ObjectManager.GetGameObject(ObjectId)) == NULL)
+		return;
+
+	if (Object->GetObjectType() != NWN::OBJECT_TYPE_CREATURE)
+		return;
+
+	uint8_t* pStats = *(uint8_t**)((uint8_t*)Object + 0x1FC4);
+	if (pStats == NULL)
+		return;
+
+	//"Combat information must be updated" flag (also set by AddFeat, effects, SetCombatMode...)
+	*(uint32_t*)(pStats + 0xE10) = 1;
 }
 

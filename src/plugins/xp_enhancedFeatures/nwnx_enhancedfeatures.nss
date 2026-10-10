@@ -45,6 +45,9 @@ void XPEnhancedFeatures_ReloadReduceSpeedFile();
 // Will Reload the configuration of your HitPointFile
 void XPEnhancedFeatures_ReloadHitPointFile();
 
+// Will Reload the configuration of your BonusAttackFeatsFile
+void XPEnhancedFeatures_ReloadBonusAttackFile();
+
 
 
 /***************************** CustomValues Functions *****************************/
@@ -60,6 +63,15 @@ int GetCustomValue_EFF(object oCreature, int nIdx);
 // nIdx			- The index of the customValue
 // iValue		- The value to set
 void SetCustomValue_EFF(object oCreature, int nIdx, int iValue);
+
+
+/************************** Combat Information Functions **************************/
+
+// Ask the server to recompute the combat information (attack bonus... on the character sheet)
+// of oCreature. Use it when something used by your rules changed (CustomValue, area...).
+// Done at the next update of the player, and only sent if something really changed.
+// oCreature	- The creature
+void RefreshCombatInformation_EFF(object oCreature);
 
 
 /********************************* Chat Functions *********************************/
@@ -127,7 +139,12 @@ void  XPEnhancedFeatures_ReloadReduceSpeedFile()
 
 void  XPEnhancedFeatures_ReloadHitPointFile()
 {
-	NWNXSetInt( "EnhancedFeatures", "ReloadHitPointFile", "", -1, 0);	
+	NWNXSetInt( "EnhancedFeatures", "ReloadHitPointFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadBonusAttackFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadBonusAttackFile", "", -1, 0);
 }
 
 
@@ -171,4 +188,9 @@ int GetCustomValue_EFF(object oCreature, int nIdx)
 void SetCustomValue_EFF(object oCreature, int nIdx, int iValue)
 {
 	NWNXSetInt("EnhancedFeatures", "CustomValue", IntToString(nIdx), ObjectToInt(oCreature), iValue);
+}
+
+void RefreshCombatInformation_EFF(object oCreature)
+{
+	NWNXSetInt("EnhancedFeatures", "RefreshCombatInformation", "", ObjectToInt(oCreature), 0);
 }

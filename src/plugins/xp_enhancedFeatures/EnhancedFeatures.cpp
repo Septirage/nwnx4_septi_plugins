@@ -1052,6 +1052,10 @@ void EnhancedFeatures::SetInt([[maybe_unused]] char* sFunction,
 		desinitBAFeat();
 		return initBAFeat(nwnxStringHome, m_sBonusAttackFeatFile);
 	}
+	else if (function == "RefreshCombatInformation")
+	{
+		return RefreshCombatInformation(nParam2);
+	}
 	else if (function == "TimeFunction")
 	{
 		SetIntTimeFunction(sParam1, nParam2, nValue);
