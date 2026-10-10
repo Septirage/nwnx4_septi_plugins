@@ -137,8 +137,9 @@ Refresh, View & Collision
 [SetObjectDynamicCollision\_xpAM](#setobjectdynamiccollision_xpam)  
 [GetObjectDynamicCollision\_xpAM](#getobjectdynamiccollision_xpam)  
 [SetObjectDynamicCollision\_xpAM](#setobjectdynamiccollision_xpam)  
-[SetPCListNameForViewer\_xpAM](#setpclistnameforviewer_xpam)  
 [SetCreatureNameForViewer\_xpAM](#setcreaturenameforviewer_xpam)  
+[ClearCreatureNameForViewer\_xpAM](#clearcreaturenameforviewer_xpam)  
+[ForgetCreatureNames\_xpAM](#forgetcreaturenames_xpam)  
    </td>
  </tr>
 </table><div style="page-break-after: always;"></div>
@@ -1769,30 +1770,6 @@ The status of DynamicCollision for the object (TRUE if enabled, FALSE if disable
 
 <div class="fnblock">
 
-# SetPCListNameForViewer\_xpAM
-```cpp
-void SetPCListNameForViewer_xpAM(object oPC, string sFirstName, string sLastName, object oViewer);
-```
-Changes the name displayed for a PC in the player list and private message list for a specific viewer.
-
-The change is only visible to oViewer and does not modify the actual first name or last name of oPC.
-
-## Parameters
-
-* `oPC` - The PC whose displayed name will be changed.
-* `sFirstName` - The new first name to display.
-* `sLastName` - The new last name to display.
-* `oViewer` - The PC for whom the new name will be displayed.
-
-## Notes
-The name is viewer-specific. Different players can therefore see different names for the same PC.
-
-</div>
-
----
-
-<div class="fnblock">
-
 # SetCreatureNameForViewer\_xpAM
 ```cpp
 void SetCreatureNameForViewer_xpAM(object oCreature, string sFirstName, string sLastName, object oViewer);
@@ -1801,26 +1778,65 @@ Changes the name displayed for a creature for a specific viewer.
 
 The change is only visible to oViewer and does not modify the actual first name or last name of oCreature.
 
-This affects the name displayed by the client for the creature, including its overhead name, portrait, combat log, dialogues, and other contexts where the creature's name is displayed.
+This affects the name displayed by the client for the creature, including its overhead name, portrait, combat log, dialogues, examine window, and other contexts where the creature's name is displayed. If oCreature is a PC, its name in the player list and private message list is also changed for oViewer.
+
+With `KeepNameForViewer = 1` (ini), the name is kept by the plugin: each time the server sends the creature's name again to oViewer (creature appearing again, SetFirstName/SetLastName/SetDescription, appearance change, examine...), the kept name is sent instead of the real one. It stays until ClearCreatureNameForViewer\_xpAM or ForgetCreatureNames\_xpAM is called. Calling the function again simply replaces the kept name.
+
+With `KeepNameForViewer = 0`, the name is only sent once and the server may send the real name again later.
 
 ## Parameters
 
 * `oCreature` - The creature whose displayed name will be changed.
-* `sFirstName` - The new first name to display.
+* `sFirstName` - The new first name to display (cannot contain the character `|`).
 * `sLastName` - The new last name to display.
-* `oViewer` - The PC for whom the new name will be displayed.
+* `oViewer` - The PC for whom the new name will be displayed. It must be the character of the player (not a possessed creature).
 
 ## Notes
 
 The name is viewer-specific. Different players can therefore see different names for the same creature.
 
-## Limitations 
+Object IDs are never reused, so a forgotten ForgetCreatureNames\_xpAM call only keeps some unused memory until the server restarts.
 
-This function does not affect all occurrences of the creature's name.
+## Limitations 
 
 Some NWN2 communication messages, such as certain OOC messages, include the creature's name directly in the message text instead of providing the recipient when resolving the creature's name. In these cases, the viewer-specific name cannot be applied by this function.
 
-The UsePlayerNameForOOCMsg option can be enabled to use the player's PlayerName instead of the character's name in the affected messages.
+The UseAccountNameForOOCMsg option can be enabled to use the player's account name instead of the character's name in the affected messages (shout, party, tell, party invitation...).
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# ClearCreatureNameForViewer\_xpAM
+```cpp
+void ClearCreatureNameForViewer_xpAM(object oCreature, object oViewer);
+```
+Removes the name kept by SetCreatureNameForViewer\_xpAM for oCreature and oViewer, and sends the real name of oCreature to oViewer (creature name, and player list name if oCreature is a PC).
+
+## Parameters
+
+* `oCreature` - The creature whose real name will be displayed again.
+* `oViewer` - The PC who will see the real name again.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# ForgetCreatureNames\_xpAM
+```cpp
+void ForgetCreatureNames_xpAM(object oCreature);
+```
+Removes every name kept for oCreature: the names oCreature sees for other creatures and the names under which oCreature is seen by others. Nothing is sent to the clients.
+
+Should be called when a player leaves the server (OnClientLeave), and optionally when a named creature is destroyed.
+
+## Parameters
+
+* `oCreature` - The creature (or player character) to forget.
 
 </div>
 
