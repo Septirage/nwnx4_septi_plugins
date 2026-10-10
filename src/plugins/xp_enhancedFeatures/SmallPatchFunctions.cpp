@@ -103,8 +103,9 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 #define OFFS_FixItmPrpDmgBonusVsSAlign	0x0067e6ac
 
 #define OFFS_UPDATEIMMUNITY				0x00579a10
-#define OFFS_UPDATEIMUNITY_REMINCREASE	0x0065a1bc
-#define OFFS_UPDATEIMUNITY_REMDECREASE	0x0065a46c
+#define OFFS_FIXDAMAGEREDUCTIONSORT		0x005846b5
+#define OFFS_UPDATEIMMUNITY_REMINCREASE	0x0065a1bc
+#define OFFS_UPDATEIMMUNITY_REMDECREASE	0x0065a46c
 
 #define OFFS_DAMAGEBONUSCAP				0x005f674d
 #define OFFS_DAMAGEMALUSCAP				0x005f675b
@@ -1549,8 +1550,8 @@ Patch _PatchFixImmunityOverflow[] =
 	Patch(OFFS_UPDATEIMMUNITY, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
 	Patch(OFFS_UPDATEIMMUNITY +1, (relativefunc)FixUpdateImmunity),
 
-	Patch(OFFS_UPDATEIMUNITY_REMINCREASE, (char*)"\x2b", (int)1),		// sub bl, ... => sub ebx, ...
-	Patch(OFFS_UPDATEIMUNITY_REMDECREASE, (char*)"\x03", (int)1),		// add al, ... => add eax, ...
+	Patch(OFFS_UPDATEIMMUNITY_REMINCREASE, (char*)"\x2b", (int)1),		// sub bl, ... => sub ebx, ...
+	Patch(OFFS_UPDATEIMMUNITY_REMDECREASE, (char*)"\x03", (int)1),		// add al, ... => add eax, ...
 
 	Patch()
 };
@@ -1573,6 +1574,16 @@ Patch _PatchFixBleedingWound[] =
 	Patch()
 };
 Patch* PatchFixBleedingWound = _PatchFixBleedingWound;
+
+// DR list must stay sorted (biggest first): the engine inserts a new DR one slot too early
+// (InsertAt(i-1) instead of InsertAt(i)) when it falls between two existing ones.
+Patch _PatchFixDamageReductionSort[] =
+{
+	Patch(OFFS_FIXDAMAGEREDUCTIONSORT, (char*)"\x90\x90\x90", (int)3), // add eax,-1 => nop
+
+	Patch()
+};
+Patch* PatchFixDamageReductionSort = _PatchFixDamageReductionSort;
 
 Patch _PatchFixLowerSRFromFeat[] =
 {
@@ -1841,6 +1852,17 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		logger->Info("* FixBleedingWound");
 		i = 0;
 		while (PatchFixBleedingWound[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixDamageReductionSort", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixDamageReductionSort");
+		i = 0;
+		while (PatchFixDamageReductionSort[i].Apply())
 		{
 			i++;
 		}
