@@ -267,7 +267,7 @@ void SendDisplayMessageInfo(unsigned long playerID, const std::string_view& scen
 	auto msgData = ByteWriter{msgDataSize + 1};
 
 
-	msgData.write({0x50, 0x24, 0x09});
+	msgData.write({0x50, 0x24, 0x05});	//Message box (server MsgPopUpGUIPanel_5, as DisplayMessageBox)
 	msgData.write((uint32_t)msgDataSize);
 	msgData.write((uint32_t)sText.size());
 	msgData.write(sText);
@@ -594,7 +594,7 @@ BOOL __stdcall MsgServOnReceive(
 						{
 							bIllegal = true;
 						}
-						else if (data[1] == 0x2)
+						else if (data[1] == 0x2 && data.size() > 2)
 						{
 							uint8_t cSubType = data[2];
 							//Don't allow to create or load character
@@ -626,7 +626,7 @@ BOOL __stdcall MsgServOnReceive(
 		//Only if we want to active Anticheat module.
 		{
 			//EndOfLevelUp
-			if (Data[0] == 0x70 && Data[1] == 0x1D && Data[2] == 0x00 && g_msgServ->bAnticheatLvlUp)
+			if (Length >= 3 && Data[0] == 0x70 && Data[1] == 0x1D && Data[2] == 0x00 && g_msgServ->bAnticheatLvlUp)
 			{
 				int iResLvlUp = CheckForLevelUp(playerId, Data, Length, accountName, g_msgServ);
 				if (iResLvlUp <= 0)
@@ -795,7 +795,7 @@ MsgServ::Init(char* nwnxhome)
 		 //bCallScriptOnLvlUpError = (iCallScriptOnLvlUpError != 0);
 		 //if (bCallScriptOnLvlUpError)
 		 {
-			 config->Read("ScriptLvlUpError", &ScriptLvlUpError, std::string(""));
+			 config->Read("ScriptOnLvlUpError", &ScriptLvlUpError, std::string(""));
 			 if (ScriptLvlUpError == "")
 				 bCallScriptOnLvlUpError = false;
 			 else
