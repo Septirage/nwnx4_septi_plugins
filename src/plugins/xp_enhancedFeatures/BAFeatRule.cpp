@@ -246,13 +246,13 @@ __declspec(naked) void CallBonusAttackFeatsRanged()
 Patch _BonusAttackFeatPatches[] = {
 	Patch(OFFS_BonusAttackFeatKeepEsi1, (char*)"\x9a", (int)1),		//mov esi, ... => mov ebx
 	Patch(OFFS_BonusAttackFeatKeepEsi2, (char*)"\xcb", (int)1),		//mov ecx,esi => mov ecx,ebx
-	Patch((DWORD)OFFS_BonusAttackFeatStart, (char*)"\xe9", (int)1),
+	Patch((DWORD)OFFS_BonusAttackFeatStart, (char*)"\xe9\x00\x00\x00\x00", (int)5),
     Patch(OFFS_BonusAttackFeatStart + 1, (relativefunc)CallBonusAttackFeats),
 
-	Patch((DWORD)OFFS_BonusAttackMeleeEnd, (char*)"\xe9", (int)1),
+	Patch((DWORD)OFFS_BonusAttackMeleeEnd, (char*)"\xe9\x00\x00\x00\x00", (int)5),
 	Patch(OFFS_BonusAttackMeleeEnd + 1, (relativefunc)CallBonusAttackFeatsMelee),
 
-	Patch((DWORD)OFFS_BonusAttackRangedEnd, (char*)"\xe9", (int)1),
+	Patch((DWORD)OFFS_BonusAttackRangedEnd, (char*)"\xe9\x00\x00\x00\x00", (int)5),
 	Patch(OFFS_BonusAttackRangedEnd + 1, (relativefunc)CallBonusAttackFeatsRanged),
 
 	//PUSH 0 / PUSH 0 / MOV ECX,EBP / CALL GetRangedAttackBonus (0x59da10) / JMP 0x5ad8ad
@@ -283,13 +283,8 @@ void initBAFeat(std::string nxhome, std::string sFileName)
 	inifile.append("\\");
 	inifile.append(sFileName);
 
-	// first, create a file instance
 	mINI::INIFile file(inifile);
-
-	// next, create a structure that will hold data
 	mINI::INIStructure ini;
-
-	// now we can read the file
 	bool bOkRead = file.read(ini);
 
 	if (!bOkRead)
@@ -305,10 +300,8 @@ void initBAFeat(std::string nxhome, std::string sFileName)
 		}
 	}
 
-	//BonusAttackFeat
 	if (bOkRead)
 	{
-		//Now parse the BAFeatRules
 		int iRuleNumber = 1;
 		std::string sBonusAttackFeatRuleBase = "BonusAttackRule";
 
@@ -326,8 +319,6 @@ void initBAFeat(std::string nxhome, std::string sFileName)
 				{
 					//Ok, we can test and parse other fields
 					bool bValidRule = true;
-
-					//if (ini.get(sBonusAttackFeatRuleX).has("name"))
 
 					if (ini.get(sBonusAttackFeatRuleX).has("Area"))
 					{
@@ -374,7 +365,6 @@ void initBAFeat(std::string nxhome, std::string sFileName)
 	}
 
 
-	//BAFeats
 	if (bOkRead && !isBAAlreadyPatched)
 	{
 		isBAAlreadyPatched = true;
@@ -387,7 +377,6 @@ void initBAFeat(std::string nxhome, std::string sFileName)
 	{
 		isBAAlreadyPatched = false;
 
-		//Remove in reverse order (last element is the empty Patch())
 		for (int i = (int)(sizeof(_BonusAttackFeatPatches) / sizeof(Patch)) - 2; i >= 0; i--)
 			BonusAttackFeatPatches[i].Remove();
 	}

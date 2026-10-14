@@ -1660,7 +1660,7 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		}
 	}
 
-	config->Read("DisablespellcraftSave", &iTest, 0);
+	config->Read("DisableSpellCraftSave", &iTest, 0);
 	if (iTest == 1)
 	{
 		i = 0;

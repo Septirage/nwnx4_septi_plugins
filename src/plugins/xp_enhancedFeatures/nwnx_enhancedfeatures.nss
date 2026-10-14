@@ -48,6 +48,21 @@ void XPEnhancedFeatures_ReloadHitPointFile();
 // Will Reload the configuration of your BonusAttackFeatsFile
 void XPEnhancedFeatures_ReloadBonusAttackFile();
 
+// Will Reload the configuration of your SavingThrowFile
+void XPEnhancedFeatures_ReloadSavingThrowFile();
+
+// Will Reload the configuration of your CriticalFile
+void XPEnhancedFeatures_ReloadCriticalFile();
+
+// Will Reload the configuration of your ArmorClassFile
+void XPEnhancedFeatures_ReloadArmorClassFile();
+
+// Will Reload the configuration of your DamageFile
+void XPEnhancedFeatures_ReloadDamageFile();
+
+// Will Reload the configuration of your DamageReductionFile
+void XPEnhancedFeatures_ReloadDamageReductionFile();
+
 
 
 /***************************** CustomValues Functions *****************************/
@@ -72,6 +87,16 @@ void SetCustomValue_EFF(object oCreature, int nIdx, int iValue);
 // Done at the next update of the player, and only sent if something really changed.
 // oCreature	- The creature
 void RefreshCombatInformation_EFF(object oCreature);
+
+// Return the saving throw of oCreature against nSaveType.
+// The effect and feat bonuses are capped at +20, as in the save roll.
+// oCreature	- The creature
+// nSavingThrow	- SAVING_THROW_FORT, SAVING_THROW_REFLEX or SAVING_THROW_WILL
+// nSaveType	- SAVING_THROW_TYPE_*
+// oVersus		- The object the save is against, as for a save roll: a creature (effects against its race or
+//				  alignment), a spell area of effect (bonuses against the spells, spell schools, Spellcraft...),
+//				  or OBJECT_INVALID
+int GetSavingThrowVsType_EFF(object oCreature, int nSavingThrow, int nSaveType = SAVING_THROW_TYPE_NONE, object oVersus = OBJECT_INVALID);
 
 
 /********************************* Chat Functions *********************************/
@@ -147,6 +172,31 @@ void  XPEnhancedFeatures_ReloadBonusAttackFile()
 	NWNXSetInt( "EnhancedFeatures", "ReloadBonusAttackFile", "", -1, 0);
 }
 
+void  XPEnhancedFeatures_ReloadSavingThrowFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadSavingThrowFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadCriticalFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadCriticalFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadArmorClassFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadArmorClassFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadDamageFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadDamageFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadDamageReductionFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadDamageReductionFile", "", -1, 0);
+}
+
 
 void SetTimeForPC_EFF(object oPC, int iHour)
 {
@@ -193,4 +243,9 @@ void SetCustomValue_EFF(object oCreature, int nIdx, int iValue)
 void RefreshCombatInformation_EFF(object oCreature)
 {
 	NWNXSetInt("EnhancedFeatures", "RefreshCombatInformation", "", ObjectToInt(oCreature), 0);
+}
+
+int GetSavingThrowVsType_EFF(object oCreature, int nSavingThrow, int nSaveType, object oVersus)
+{
+	return NWNXGetInt("EnhancedFeatures", "SavingThrowVsType", IntToString(nSavingThrow) + "|" + IntToString(nSaveType) + "|" + IntToString(ObjectToInt(oVersus)), ObjectToInt(oCreature));
 }

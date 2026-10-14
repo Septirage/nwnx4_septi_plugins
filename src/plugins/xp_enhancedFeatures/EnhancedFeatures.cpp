@@ -24,6 +24,11 @@
 #include "StoreRetrievePatch.h"
 #include "CustomValues.h"
 #include "BAFeatRule.h"
+#include "SavingThrowRule.h"
+#include "CriticalRule.h"
+#include "ArmorClassRule.h"
+#include "DamageRule.h"
+#include "DamageReductionRule.h"
 
 #include "MagicFunctions.h"
 #include "TalkFunctions.h"
@@ -811,6 +816,61 @@ EnhancedFeatures::Init(char* nwnxhome)
 		initBAFeat(nxhome, sBonusAttackFeatFile);
 	}
 
+	std::string sSavingThrowFile = "";
+	config->Read("SavingThrowFile", &sSavingThrowFile, std::string(""));
+	if(sSavingThrowFile != "")
+	{
+		std::string nxhome(nwnxhome);
+		m_sSavingThrowFile = sSavingThrowFile;
+		initSavingThrowRule(nxhome, sSavingThrowFile);
+	}
+
+	std::string sCriticalFile = "";
+	config->Read("CriticalFile", &sCriticalFile, std::string(""));
+	if(sCriticalFile != "")
+	{
+		std::string nxhome(nwnxhome);
+		m_sCriticalFile = sCriticalFile;
+		initCriticalRule(nxhome, sCriticalFile);
+	}
+
+	std::string sArmorClassFile = "";
+	config->Read("ArmorClassFile", &sArmorClassFile, std::string(""));
+	if(sArmorClassFile != "")
+	{
+		std::string nxhome(nwnxhome);
+		m_sArmorClassFile = sArmorClassFile;
+		initArmorClassRule(nxhome, sArmorClassFile);
+	}
+
+	std::string sDamageFile = "";
+	config->Read("DamageFile", &sDamageFile, std::string(""));
+	if(sDamageFile != "")
+	{
+		std::string nxhome(nwnxhome);
+		m_sDamageFile = sDamageFile;
+		initDamageRule(nxhome, sDamageFile);
+	}
+
+	std::string sDamageReductionFile = "";
+	config->Read("DamageReductionFile", &sDamageReductionFile, std::string(""));
+	if(sDamageReductionFile != "")
+	{
+		std::string nxhome(nwnxhome);
+		m_sDamageReductionFile = sDamageReductionFile;
+		initDamageReductionRule(nxhome, sDamageReductionFile);
+	}
+
+	iTest = 0;
+	bGetSvThrowVsTypeAdded = false;
+	config->Read("AddGetSavingThrowVsTypeFct", &iTest, 1);
+	if (iTest != 0)
+	{
+		initSavingThrowPatch();
+		bGetSvThrowVsTypeAdded = true;
+		logger->Info("* GetSavingThrowVsType function added");
+	}
+
 
 	//Call Small Functions. (will be improved latter)
 	SmallPatchFunctions(config);
@@ -982,6 +1042,33 @@ EnhancedFeatures::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nP
 	{
 		return GetIntTimeFunction(sParam1, nParam2);
 	}
+	else if (function == "SavingThrowVsType")
+	{
+		if(bGetSvThrowVsTypeAdded)
+		{
+			//sParam1 = "save|save type|versus object"
+			int iValues[3] = { 0, 0, 0 };
+			std::string_view sParams{sParam1};
+			bool bOk = true;
+			for (int i = 0; i < 3 && bOk; i++)
+			{
+				size_t uEnd = (i < 2) ? sParams.find('|') : sParams.size();
+				bOk = (uEnd != std::string_view::npos)
+					&& std::from_chars(sParams.data(), sParams.data() + uEnd, iValues[i]).ec == std::errc{};
+				if (bOk && i < 2)
+					sParams.remove_prefix(uEnd + 1);
+			}
+			if (!bOk)
+			{
+				logger->Err(("EnhancedFeatures_GetInt: SavingThrowVsType invalide '" + std::string(sParam1) + "'").c_str());
+				return 0;
+			}
+			return GetSavingThrowVsType(nParam2, iValues[0], iValues[1], iValues[2]);
+		} else {
+			logger->Err("EnhancedFeatures_GetInt: SavingThrowVsType not added, please enable it in the ini File with option AddGetSavingThrowVsTypeFct");
+			return 0;
+		}
+	}
 
 	
 	if(function == "SecretDelete")
@@ -1051,6 +1138,31 @@ void EnhancedFeatures::SetInt([[maybe_unused]] char* sFunction,
 	{
 		desinitBAFeat();
 		return initBAFeat(nwnxStringHome, m_sBonusAttackFeatFile);
+	}
+	else if (function == "ReloadSavingThrowFile" && m_sSavingThrowFile != "")
+	{
+		desinitSavingThrowRule();
+		return initSavingThrowRule(nwnxStringHome, m_sSavingThrowFile);
+	}
+	else if (function == "ReloadCriticalFile" && m_sCriticalFile != "")
+	{
+		desinitCriticalRule();
+		return initCriticalRule(nwnxStringHome, m_sCriticalFile);
+	}
+	else if (function == "ReloadArmorClassFile" && m_sArmorClassFile != "")
+	{
+		desinitArmorClassRule();
+		return initArmorClassRule(nwnxStringHome, m_sArmorClassFile);
+	}
+	else if (function == "ReloadDamageFile" && m_sDamageFile != "")
+	{
+		desinitDamageRule();
+		return initDamageRule(nwnxStringHome, m_sDamageFile);
+	}
+	else if (function == "ReloadDamageReductionFile" && m_sDamageReductionFile != "")
+	{
+		desinitDamageReductionRule();
+		return initDamageReductionRule(nwnxStringHome, m_sDamageReductionFile);
 	}
 	else if (function == "RefreshCombatInformation")
 	{
