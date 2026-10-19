@@ -70,10 +70,13 @@ NWN2DA::racialtypes2DA GetRacialRow(uint32_t iRaceRow)
 		else if (g_races2da[iRaceRow].m_Index > iRaceRow)
 		{
 			uint32_t iIdx = iRaceRow;
-			while (iIdx >= 0)
+			while (true)
 			{
 				if(g_races2da[iIdx].m_Index == iRaceRow)
 					return (g_races2da + iIdx);
+				//iIdx is unsigned: stop at the first row
+				if (iIdx == 0)
+					break;
 				iIdx--;
 			}
 		}
@@ -95,10 +98,13 @@ NWN2DA::racialSubtypes2DA GetSubRacialRow(uint32_t iSubRaceRow)
 		else if (g_subraces2da[iSubRaceRow].m_Index > iSubRaceRow)
 		{
 			uint32_t iIdx = iSubRaceRow;
-			while (iIdx >= 0)
+			while (true)
 			{
 				if(g_subraces2da[iIdx].m_Index == iSubRaceRow)
 					return (g_subraces2da + iIdx);
+				//iIdx is unsigned: stop at the first row
+				if (iIdx == 0)
+					break;
 				iIdx--;
 			}
 		}
@@ -120,10 +126,13 @@ NWN2DA::classes2DA GetClasseRow(uint32_t iClassRow)
 		else if (g_classes2da[iClassRow].m_ClassRow > iClassRow)
 		{
 			uint32_t iIdx = iClassRow;
-			while (iIdx >= 0)
+			while (true)
 			{
 				if(g_classes2da[iIdx].m_ClassRow == iClassRow)
 					return (g_classes2da + iIdx);
+				//iIdx is unsigned: stop at the first row
+				if (iIdx == 0)
+					break;
 				iIdx--;
 			}
 		}
@@ -145,10 +154,13 @@ NWN2DA::feats2DA GetFeatRow(uint32_t iFeatRow)
 		else if (g_feats2da[iFeatRow].m_featIdx > iFeatRow)
 		{
 			uint32_t iIdx = iFeatRow;
-			while (iIdx >= 0)
+			while (true)
 			{
 				if(g_feats2da[iIdx].m_featIdx == iFeatRow)
 					return (g_feats2da + iIdx);
+				//iIdx is unsigned: stop at the first row
+				if (iIdx == 0)
+					break;
 				iIdx--;
 			}
 		}
