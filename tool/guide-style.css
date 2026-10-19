@@ -1,0 +1,80 @@
+/* Style shared by all the plugin guides (used by tool/build_guide_pdf.py).
+   A guide that needs a different setting puts a <style> block at its top. */
+body { font-family: Calibri, Carlito, Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.4; }
+
+/* Cover page */
+.cover-title { padding-top: 120px; }
+.cover-heading { font-size: 36pt; text-decoration: underline; text-align: center; line-height: normal; }
+.cover-version { margin-top: 12px; font-size: 13px; font-style: italic; text-align: right; }
+.pagebreak { page-break-after: always; break-after: page; }
+
+/* Table of contents */
+.toc { margin-top: 60px; }
+.toc-title { font-size: 16pt; color: #17365d; border-bottom: 1px solid #4f81bd; padding-bottom: 4px; margin-bottom: 14px; }
+
+.toc-list { list-style: none; padding-left: 0; margin: 0; }
+.toc-list li { margin: 6px 0; }
+.toc-list li.l2 { margin-left: 22px; }
+.toc-list li.l3 { margin-left: 44px; font-size: 10pt; }
+.toc-list a { display: flex; align-items: baseline; color: #17365d; text-decoration: none; }
+.toc-list .dots { flex: 1; border-bottom: 1px dotted #8a9bb5; margin: 0 6px; }
+.toc-list li.l1 > a { font-weight: bold; }
+
+/* Section table of contents (<!-- MINITOC -->): the level 4 headings of one section, on two columns
+   (the build script sets the number of rows) */
+.minitoc { list-style: none; padding: 8px 12px; margin: 10px 0 20px; display: grid; grid-auto-flow: column; grid-template-columns: 1fr 1fr; column-gap: 28px; font-size: 10pt; background: #f3f6fa; border-left: 3px solid #4f81bd; break-inside: avoid; page-break-inside: avoid; }
+.minitoc li { margin: 3px 0; break-inside: avoid; }
+.minitoc a { display: flex; align-items: baseline; color: #17365d; text-decoration: none; }
+.minitoc .dots { flex: 1; border-bottom: 1px dotted #8a9bb5; margin: 0 6px; }
+
+/* Headings */
+h1, h2, h3, h4 { font-family: Calibri, Carlito, Arial, Helvetica, sans-serif; }
+h1 { color: #17365d; font-size: 24pt; font-weight: normal; border-bottom: 1px solid #4f81bd; padding-bottom: 4px; margin-top: 0; }
+h2 { color: #365f91; font-size: 16pt; margin-top: 30px; }
+h3 { color: #4f81bd; font-size: 13pt; margin-top: 24px; }
+h4 { color: #365f91; font-size: 11pt; margin: 18px 0 6px; }
+/* A level 4 section (heading + text), wrapped by the build script: kept on one page */
+.keep { break-inside: avoid; page-break-inside: avoid; }
+
+/* Tables */
+table { border-collapse: collapse; width: 100%; margin: 12px 0; table-layout: auto; }
+table { font-size: 10pt; }
+th, td { border: 1px solid #b7c4d6; padding: 6px 10px; vertical-align: top; text-align: left; }
+th { background: #dbe5f1; color: #17365d; }
+table, tr { page-break-inside: avoid; break-inside: avoid; }
+/* First column: names (in code) stay in one piece, plain text can wrap */
+td:first-child code { white-space: nowrap; }
+/* Options tables (wrapped in <div class="options">): the 2nd column holds the default value */
+.options table { table-layout: fixed; }
+.options th:nth-child(1) { width: 27%; }
+.options th:nth-child(2) { width: 17%; text-align: center; }
+.options td:nth-child(2) { text-align: center; }
+/* Errors tables (wrapped in <div class="errors">): error name, parameters, meaning */
+.errors table { table-layout: fixed; }
+.errors th:nth-child(1) { width: 30%; }
+.errors th:nth-child(2) { width: 32%; }
+.errors td { word-break: break-word; }
+thead { display: table-header-group; }
+thead tr, h2, h3, h4 { page-break-after: avoid; break-after: avoid; }
+/* the first paragraph of a section stays with what follows it */
+h3 + p { page-break-after: avoid; break-after: avoid; }
+code { word-break: break-word; }
+/* Option / parameter names (first column) in red, like the old docx */
+td:first-child code { color: #c00000; }
+/* Tables of pairs (wrapped in <div class="pairs">): name, value, name, value */
+.pairs td:nth-child(3) code { color: #c00000; white-space: nowrap; }
+/* Tables of names to copy (wrapped in <div class="names">): a name is never cut */
+.names code { white-space: nowrap; word-break: normal; font-size: 8.5pt; }
+.names th, .names td { padding: 6px 7px; }
+
+pre { page-break-inside: avoid; margin: 12px 0; white-space: pre-wrap; word-break: break-word; }
+p, li { orphans: 3; widows: 3; }
+/* keep an introducing sentence ("Example:", "For this file:") with the code block or image that follows */
+p:has(+ pre), p:has(+ p > img), p:has(+ img), p:has(+ table), p:has(+ ul) { break-after: avoid; page-break-after: avoid; }
+p:has(> img) { break-inside: avoid; }
+/* keep short lists (8 items or fewer) in one piece */
+ul:not(:has(li:nth-child(9))), ol:not(:has(li:nth-child(9))) { break-inside: avoid; page-break-inside: avoid; }
+img { max-width: 100%; margin: 8px 0; }
+
+/* Changelog: a version line is a bold paragraph on its own (not a heading, so it is not in the table of contents) */
+p.boldline { margin: 24px 0 6px; color: #365f91; font-size: 12pt; }

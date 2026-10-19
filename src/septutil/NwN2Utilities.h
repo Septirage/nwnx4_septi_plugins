@@ -1,10 +1,11 @@
-#if !defined(NWN2_INTERN2DA_H)
-#define NWN2_INTERN2DA_H
+#if !defined(NWN2_UTILITIES_H)
+#define NWN2_UTILITIES_H
 
 
 #include <NWN2Lib/NWN2.h>
 #include <NWN2Lib/NWN2Common.h>
 #include <cstdint>
+#include <string>
 
 #define NWN2_MAX_PLAYERS               0x60
 
@@ -115,6 +116,18 @@ CNWSPlayerStruct* GetPCBlockFromCreature(uint32_t oCreature);
 CNetBigPlayerInfo* GetCNetPlayerInfo(uint8_t idPlayer);
 int* GetCNWSMessage();
 NWN::OBJECTID GetModuleID();
+
+// ----------------------------------------------------------------------------
+// Engine strings (CExoString)
+// ----------------------------------------------------------------------------
+
+// Converts an engine CExoString to a std::string.
+// The engine buffer length counts the final '\0': it is not kept in the result.
+std::string ExoStringToString(const NWN::CExoString* myExoString);
+
+// Frees the content of a CExoString filled by the engine (for example by NWNGetGFFCExoString, see nwn2gff.h)
+typedef void (__thiscall* NWNDestroyCExoString_t)(NWN::CExoString* pString);
+extern NWNDestroyCExoString_t const NWNDestroyCExoString;
 
 
 #endif
