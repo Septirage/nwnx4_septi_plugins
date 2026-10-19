@@ -3,7 +3,7 @@
 // Original Scripter:  Septirage
 //--------------------------------------------------------------------------------------------
 // Last Modified By:	Septirage			2026-08-23	v1.1.17 - Add Get/SetCustomValue functions
-// 					    Septirage			2025-02-02	v1.1.14 - Add Time and Chat functions
+// 					    Septirage			2026-02-02	v1.1.14 - Add Time and Chat functions
 // 					    Septirage			2025-06-27	v1.1.10	- Add the XPEnhancedFeatures_ReloadHitPointFile function
 // 					    Septirage			2025-04-23	v1.1.8	- Add the EFFECT_TYPE_* constants
 // 					    Septirage			2024-10-25	v1.1.0	- Add the XPEnhancedFeatures_ReloadReduceSpeedFile function 
@@ -33,10 +33,10 @@ const int EFFECT_TYPE_SUMMONCREATURE = 126;
 // Will Reload the configuration of your SpeedFeatsFile
 void  XPEnhancedFeatures_ReloadSpeedFile();
 
-// Will Reload the configuration of your SkillFeatsFile
+// Will Reload the configuration of your WeaponFinesseFile
 void XPEnhancedFeatures_ReloadWpnFinesseFile();
 
-// Will Reload the configuration of your WeaponFinesseFile
+// Will Reload the configuration of your SkillFeatsFile
 void  XPEnhancedFeatures_ReloadSkillFile();
 
 // Will Reload the configuration of your ReduceSpeedFile
@@ -44,6 +44,29 @@ void XPEnhancedFeatures_ReloadReduceSpeedFile();
 
 // Will Reload the configuration of your HitPointFile
 void XPEnhancedFeatures_ReloadHitPointFile();
+
+// Will Reload the configuration of your BonusAttackFeatsFile
+void XPEnhancedFeatures_ReloadBonusAttackFile();
+
+// Will Reload the configuration of your SavingThrowFile
+void XPEnhancedFeatures_ReloadSavingThrowFile();
+
+// Will Reload the configuration of your CriticalFile
+void XPEnhancedFeatures_ReloadCriticalFile();
+
+// Will Reload the configuration of your ArmorClassFile
+void XPEnhancedFeatures_ReloadArmorClassFile();
+
+// Will Reload the configuration of your DamageFile
+void XPEnhancedFeatures_ReloadDamageFile();
+
+// Will Reload the configuration of your DamageReductionFile
+void XPEnhancedFeatures_ReloadDamageReductionFile();
+
+// Will Reload the configuration of your CustomValueRuleFile
+// The values stored on the creatures are kept. If an index changes of mode (Raw, Computed, Evolution),
+// its stored value is used again as soon as it is no longer Computed.
+void XPEnhancedFeatures_ReloadCustomValueFile();
 
 
 
@@ -60,6 +83,25 @@ int GetCustomValue_EFF(object oCreature, int nIdx);
 // nIdx			- The index of the customValue
 // iValue		- The value to set
 void SetCustomValue_EFF(object oCreature, int nIdx, int iValue);
+
+
+/************************** Combat Information Functions **************************/
+
+// Ask the server to recompute the combat information (attack bonus... on the character sheet)
+// of oCreature. Use it when something used by your rules changed (CustomValue, area...).
+// Done at the next update of the player, and only sent if something really changed.
+// oCreature	- The creature
+void RefreshCombatInformation_EFF(object oCreature);
+
+// Return the saving throw of oCreature against nSaveType.
+// The effect and feat bonuses are capped at +20, as in the save roll.
+// oCreature	- The creature
+// nSavingThrow	- SAVING_THROW_FORT, SAVING_THROW_REFLEX or SAVING_THROW_WILL
+// nSaveType	- SAVING_THROW_TYPE_*
+// oVersus		- The object the save is against, as for a save roll: a creature (effects against its race or
+//				  alignment), a spell area of effect (bonuses against the spells, spell schools, Spellcraft...),
+//				  or OBJECT_INVALID
+int GetSavingThrowVsType_EFF(object oCreature, int nSavingThrow, int nSaveType = SAVING_THROW_TYPE_NONE, object oVersus = OBJECT_INVALID);
 
 
 /********************************* Chat Functions *********************************/
@@ -127,7 +169,42 @@ void  XPEnhancedFeatures_ReloadReduceSpeedFile()
 
 void  XPEnhancedFeatures_ReloadHitPointFile()
 {
-	NWNXSetInt( "EnhancedFeatures", "ReloadHitPointFile", "", -1, 0);	
+	NWNXSetInt( "EnhancedFeatures", "ReloadHitPointFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadBonusAttackFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadBonusAttackFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadSavingThrowFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadSavingThrowFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadCriticalFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadCriticalFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadArmorClassFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadArmorClassFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadDamageFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadDamageFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadDamageReductionFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadDamageReductionFile", "", -1, 0);
+}
+
+void  XPEnhancedFeatures_ReloadCustomValueFile()
+{
+	NWNXSetInt( "EnhancedFeatures", "ReloadCustomValueFile", "", -1, 0);
 }
 
 
@@ -171,4 +248,14 @@ int GetCustomValue_EFF(object oCreature, int nIdx)
 void SetCustomValue_EFF(object oCreature, int nIdx, int iValue)
 {
 	NWNXSetInt("EnhancedFeatures", "CustomValue", IntToString(nIdx), ObjectToInt(oCreature), iValue);
+}
+
+void RefreshCombatInformation_EFF(object oCreature)
+{
+	NWNXSetInt("EnhancedFeatures", "RefreshCombatInformation", "", ObjectToInt(oCreature), 0);
+}
+
+int GetSavingThrowVsType_EFF(object oCreature, int nSavingThrow, int nSaveType, object oVersus)
+{
+	return NWNXGetInt("EnhancedFeatures", "SavingThrowVsType", IntToString(nSavingThrow) + "|" + IntToString(nSaveType) + "|" + IntToString(ObjectToInt(oVersus)), ObjectToInt(oCreature));
 }

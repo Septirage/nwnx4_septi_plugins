@@ -22,6 +22,9 @@ extern std::unique_ptr<LogNWNX> logger;
 
 int iRemoveBaseWeaponFinesse = 0;
 
+// Pseudo item type used in rules (ItemType = Unarmed) when no weapon is used
+const uint32_t WF_UNARMED = 0xFFFFFFFF;
+
 struct WeaponFinesseRuleSet {
 
 	RuleParser::Rule* featRule;
@@ -68,7 +71,8 @@ int WeaponSizeMinusCreatureSize(void* pCreature, void* pWeapon, int creatureSize
 
 uint32_t __fastcall CheckWeaponFinesseAll(char* pCreature, char* pWeapon, int creatureSize)
 {
-	uint32_t iWeaponType = *(uint32_t*)(pWeapon + AmItmType);
+	uint32_t iWeaponType = (pWeapon != nullptr) ? *(uint32_t*)(pWeapon + AmItmType) : WF_UNARMED;
+	//Engine function returns 0 when there is no weapon
 	int iSizeDiff = WeaponSizeMinusCreatureSize(pCreature, pWeapon, creatureSize);
 
 	int iValid = 0;
@@ -160,9 +164,7 @@ __declspec(naked) void TestWeaponFinesseAll()
 		MOV	EBX, dword ptr[ESP + 0x14]
 		MOV EDI, dword ptr[ESP + 0x10]
 
-		TEST EDI, EDI
-		JZ	GoToWeaponFinIsOK
-
+		//No weapon (unarmed) is handled by the rules too (ItemType = Unarmed)
 		PUSH EBX
 		MOV	EDX, EDI
 		CALL CheckWeaponFinesseAll
@@ -290,9 +292,10 @@ void initWeaponFinesse(std::string nxhome, std::string sFileName)
 
 	if (bOkRead && ini.has("General"))
 	{
-		if (ini.get("General").has("RemoveBaseWpnFinesseRules"))
+		//"RemoveBaseWpnFinesseRules" : old name, still accepted
+		for (const char* sKey : { "RemoveBaseWeaponFinesseRules", "RemoveBaseWpnFinesseRules" })
 		{
-			if (ini.get("General").get("RemoveBaseWpnFinesseRules") == "1")
+			if (ini.get("General").has(sKey) && ini.get("General").get(sKey) == "1")
 			{
 				iRemoveBaseWeaponFinesse = 1;
 			}
@@ -321,10 +324,21 @@ void initWeaponFinesse(std::string nxhome, std::string sFileName)
 
 			std::set<uint32_t> itemTypeList;
 			std::istringstream iss(sWpnItemType);
-			uint32_t number;
+			std::string sToken;
 
-			while (iss >> number) {
-				itemTypeList.insert(number);
+			while (iss >> sToken) {
+				if (sToken == "Unarmed")
+				{
+					itemTypeList.insert(WF_UNARMED);
+				}
+				else
+				{
+					try {
+						itemTypeList.insert((uint32_t)std::stoul(sToken));
+					} catch (const std::exception&) {
+						logger->Err("[WeaponFinesseIniFile]: Invalid ItemType \"%s\" in [%s].", sToken.c_str(), sWpnFinesseRuleX.c_str());
+					}
+				}
 			}
 
 			if (!itemTypeList.empty())

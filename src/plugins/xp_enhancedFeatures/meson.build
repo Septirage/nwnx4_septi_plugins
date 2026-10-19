@@ -1,4 +1,4 @@
-plugin_version = '"1.1.17"'
+plugin_version = '"1.2.0"'
 plugin_name = 'xp_enhancedFeatures'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -24,6 +24,12 @@ plugin_shared_lib = shared_library(plugin_name,
         'BonusParser.cpp',
         'StoreRetrievePatch.cpp',
         'CustomValues.cpp',
+        'BAFeatRule.cpp',
+        'SavingThrowRule.cpp',
+        'CriticalRule.cpp',
+        'ArmorClassRule.cpp',
+        'DamageRule.cpp',
+        'DamageReductionRule.cpp',
         '../../septutil/intern2daMgt.cpp',
         '../../septutil/NwN2Utilities.cpp',
         '../../septutil/nwn2gff.cpp',
@@ -73,3 +79,9 @@ install_data('HitPointFeatsEFF.ini', install_dir: 'config.example')
 install_data('SkillFeatsEFF.ini', install_dir: 'config.example')
 install_data('WeaponFinesseEFF.ini', install_dir: 'config.example')
 install_data('CustomValueEFF.ini', install_dir: 'config.example')
+install_data('BonusAttackFeatsEFF.ini', install_dir: 'config.example')
+install_data('SavingThrowEFF.ini', install_dir: 'config.example')
+install_data('CriticalEFF.ini', install_dir: 'config.example')
+install_data('ArmorClassEFF.ini', install_dir: 'config.example')
+install_data('DamageEFF.ini', install_dir: 'config.example')
+install_data('DamageReductionEFF.ini', install_dir: 'config.example')
