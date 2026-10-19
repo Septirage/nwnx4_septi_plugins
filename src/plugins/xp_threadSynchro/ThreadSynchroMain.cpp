@@ -54,7 +54,7 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 
 ThreadSynchro::ThreadSynchro()
 {
-	description = "This plugin provides possibility to call execute script on from thread.";
+	description = "This plugin lets other plugins and systems run scripts from their own threads.";
 
 	subClass = FunctionClass;
 	version  = PLUGIN_VERSION;
