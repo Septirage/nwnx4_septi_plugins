@@ -45,6 +45,7 @@ class EnhancedFeatures final : public Plugin
   public:	
 	SimpleIniConfig* config;
 	GameObjectManager m_ObjectManager;
+	bool bGetSvThrowVsTypeAdded;
 	std::string nwnxStringHome;
 	std::string m_sSpeedFeatFile;
 	std::string m_sHitPointFeatFile;
@@ -52,6 +53,12 @@ class EnhancedFeatures final : public Plugin
 	std::string m_sWeaponFinesseFile;
 	std::string m_sReduceSpeedFile;
 	std::string m_sCustomValueRuleFile;
+	std::string m_sBonusAttackFeatFile;
+	std::string m_sSavingThrowFile;
+	std::string m_sCriticalFile;
+	std::string m_sArmorClassFile;
+	std::string m_sDamageFile;
+	std::string m_sDamageReductionFile;
 
 
 };

@@ -367,17 +367,24 @@ Rule* parseExpression(std::vector<Token>& tokens, int& pos)
 }
 
 
-bool TestIfFeat(int uPcBlock, uint16_t uFeat)
+//Sorted feat list of the stats: pointer, then number of feats
+static bool IsInFeatList(int uPcBlock, int iListOffset, uint16_t uFeat)
 {
-	uint32_t currentNbOfFeats  = *(uint32_t*)(uPcBlock + 0x1C);
-	if (currentNbOfFeats != 0) 
+	uint32_t currentNbOfFeats  = *(uint32_t*)(uPcBlock + iListOffset + 4);
+	if (currentNbOfFeats != 0)
 	{
-		uint16_t* currentFeatsList = *(uint16_t**)(uPcBlock + 0x18);
+		uint16_t* currentFeatsList = *(uint16_t**)(uPcBlock + iListOffset);
 
 		return std::binary_search(currentFeatsList, currentFeatsList + currentNbOfFeats, uFeat);
 	}
 
 	return false;
+}
+
+//As the engine (TestCreaHasFeat 0x75a8e0 called with bonus feats): the feats of the creature, then its bonus feats (items...)
+bool TestIfFeat(int uPcBlock, uint16_t uFeat)
+{
+	return IsInFeatList(uPcBlock, 0x18, uFeat) || IsInFeatList(uPcBlock, 0x28, uFeat);
 }
 __declspec(naked) uint8_t __fastcall DetectModeState(__in int pCreature)
 {

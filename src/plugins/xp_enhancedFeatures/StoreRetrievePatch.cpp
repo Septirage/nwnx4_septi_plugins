@@ -680,6 +680,9 @@ namespace {
 			MOV		EAX, dword ptr [EAX + 0x14]
 			MOV		[ESP + 0x90], EAX
 
+			//Drop the 0.0 (default value for the skipped xposition gff read)
+			FSTP	ST(0)
+
 			JMP		dword ptr[LoadTriggerPosReturn]
 
 			LoadTriggerBasicStuff:
@@ -697,25 +700,26 @@ namespace {
 	{
 		__asm
 		{
+			MOV		EBP, EAX
+
 			MOV		EAX, dword ptr [ESP + 0xA4]
 			CMP		EAX, 0x02
 			JNE		DontSaveLocVar
 
 			MOV		dword ptr[ESP + 0xA4], 0x00
-			MOV		EBP, dword ptr [ESP + 0x9C]
-			MOV		EAX, dword ptr [ESP + 0x98]
-			PUSH	EBP
-			PUSH	EAX
+			PUSH	dword ptr [ESP + 0x9C]
+			PUSH	dword ptr [ESP + 0x9C]
 			MOV		ECX, EDI
 			CALL	dword ptr[SaveVarAndEffect]
 
 
-			DontSaveLocVar:
+		DontSaveLocVar:
 			//Il faudra faire, dans tous les cas :
+			MOV		EAX, EBP
 			MOV		EBP,dword ptr [ESP + 0x9c]
 
-				//GoBack
-				JMP	dword ptr[StoreCreatureGoBackAfterLocalVar]
+			//GoBack
+			JMP	dword ptr[StoreCreatureGoBackAfterLocalVar]
 		}
 	}
 

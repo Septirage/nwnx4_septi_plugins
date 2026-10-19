@@ -7,12 +7,32 @@
 #include <stack>
 #include <sstream>
 #include <stdexcept>
+#include <climits>
+#include <algorithm>
 
 #include "BonusParser.h"
 #include "RuleCreatureFct.h"
 
 namespace MathExpressionParser
 {
+
+// Integer division/modulus without CPU exception (division by 0 or INT_MIN / -1 crash the server).
+// Real time part : a division by 0 gives 0.
+static int SafeIntDivision(int iLeft, int iRight)
+{
+	if (iRight == 0)
+		return 0;
+	if (iRight == -1)
+		return (iLeft == INT_MIN) ? INT_MAX : -iLeft;
+	return iLeft / iRight;
+}
+
+static int SafeIntModulus(int iLeft, int iRight)
+{
+	if (iRight == 0 || iRight == -1)
+		return 0;
+	return iLeft % iRight;
+}
 
 //Number Struct Implementation
 Number::Number(double value) : value(value) {}
@@ -93,11 +113,11 @@ double BinaryOp::evaluate(int creaBlock) const
 		case OPERATION_MULTIPLICATION:
 			return leftVal * rightVal;
 		case OPERATION_DIVISION:
-			return leftVal / rightVal;
+			return (rightVal == 0.0) ? 0.0 : leftVal / rightVal;
 		case OPERATION_MODULUS:
-			return fmod(leftVal, rightVal);
+			return (rightVal == 0.0) ? 0.0 : fmod(leftVal, rightVal);
 		case OPERATION_INTDIVISION:
-			return static_cast<int>(leftVal) / static_cast<int>(rightVal);
+			return SafeIntDivision(static_cast<int>(leftVal), static_cast<int>(rightVal));
 		default:
 			return 0;
 			//throw std::runtime_error("Unknown operator");
@@ -118,9 +138,9 @@ int BinaryOp::evaluateInt(int creaBlock) const
 			return leftVal * rightVal;
 		case OPERATION_INTDIVISION:
 		case OPERATION_DIVISION:
-			return leftVal / rightVal;
+			return SafeIntDivision(leftVal, rightVal);
 		case OPERATION_MODULUS:
-			return leftVal % rightVal;
+			return SafeIntModulus(leftVal, rightVal);
 		default:
 			return 0;
 			//throw std::runtime_error("Unknown operator");
@@ -174,23 +194,28 @@ Expr* parseFunction(const std::string& expr, size_t& pos)
 {
 	FunctionType funcChoice;
 	std::string sFunction;
-	if (expr.substr(pos, 13) == "ClassLevelSum") {
+
+	//Function names are not case sensitive (as in the Extra field)
+	std::string sName = expr.substr(pos, 13);
+	std::transform(sName.begin(), sName.end(), sName.begin(), ::tolower);
+
+	if (sName.compare(0, 13, "classlevelsum") == 0) {
 		funcChoice = FunctionType::CLASSLVLSUM;
 		sFunction  = "ClassLevelSum";
 		pos += 13;
-	} else if (expr.substr(pos, 13) == "ClassLevelMax") {
+	} else if (sName.compare(0, 13, "classlevelmax") == 0) {
 		funcChoice = FunctionType::CLASSLVLMAX;
 		sFunction  = "ClassLevelMax";
 		pos += 13;
-	} else if (expr.substr(pos, 5) == "Skill") {
+	} else if (sName.compare(0, 5, "skill") == 0) {
 		funcChoice = FunctionType::SKILL;
 		sFunction = "Skill";
 		pos += 5;
-	} else if (expr.substr(pos, 7) == "Ability") {
+	} else if (sName.compare(0, 7, "ability") == 0) {
 		funcChoice = FunctionType::ABILITY;
 		sFunction = "Ability";
 		pos += 7;
-	} else if (expr.substr(pos, 11) == "CustomValue") {
+	} else if (sName.compare(0, 11, "customvalue") == 0) {
 		funcChoice = FunctionType::CUSTOMVALUE;
 		sFunction = "CustomValue";
 		pos += 11;
@@ -371,10 +396,16 @@ Expr* simplify(Expr* expr, Mode mode)
 						case OPERATION_DIVISION: // In INTEGER mode, both division and int division
 						                         // are the same
 						case OPERATION_INTDIVISION:
-							result = leftNumber->value / rightNumber->value;
-							break;
 						case OPERATION_MODULUS:
-							result = (leftNumber->value % rightNumber->value);
+							if (rightNumber->value == 0) {
+								delete left;
+								delete right;
+								throw std::runtime_error("Division by zero");
+							}
+							if (binaryOp->op == OPERATION_MODULUS)
+								result = SafeIntModulus(leftNumber->value, rightNumber->value);
+							else
+								result = SafeIntDivision(leftNumber->value, rightNumber->value);
 							break;
 						default:
 							delete left;
@@ -404,14 +435,21 @@ Expr* simplify(Expr* expr, Mode mode)
 							result = leftNumber->value * rightNumber->value;
 							break;
 						case OPERATION_DIVISION:
-							result = leftNumber->value / rightNumber->value;
-							break;
 						case OPERATION_MODULUS:
-							result = fmod(leftNumber->value, rightNumber->value);
-							break;
 						case OPERATION_INTDIVISION:
-							result = static_cast<int>(leftNumber->value)
-							    / static_cast<int>(rightNumber->value);
+							if (rightNumber->value == 0.0 || (binaryOp->op == OPERATION_INTDIVISION
+							    && static_cast<int>(rightNumber->value) == 0)) {
+								delete left;
+								delete right;
+								throw std::runtime_error("Division by zero");
+							}
+							if (binaryOp->op == OPERATION_DIVISION)
+								result = leftNumber->value / rightNumber->value;
+							else if (binaryOp->op == OPERATION_MODULUS)
+								result = fmod(leftNumber->value, rightNumber->value);
+							else
+								result = SafeIntDivision(static_cast<int>(leftNumber->value),
+								                         static_cast<int>(rightNumber->value));
 							break;
 						default:
 							delete left;

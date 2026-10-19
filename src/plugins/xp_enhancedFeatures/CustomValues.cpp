@@ -126,6 +126,11 @@ int EvaluateCustomValueRules(GameObject* pCreature, int iIdx, std::unordered_map
 		}
 	}
 
+	//Computed values are evaluated in the middle of another rule evaluation (BA, HP, Skill...) :
+	//keep the activated rules of the caller aside and give them back at the end
+	std::unordered_set<int> callerActivatedRuleSet;
+	callerActivatedRuleSet.swap(RuleParser::m_activatedRuleSet);
+
 	int iBonusTotal = 0;
 	for (CustomValueRuleSet* myRule : it->second)
 	{
@@ -146,7 +151,7 @@ int EvaluateCustomValueRules(GameObject* pCreature, int iIdx, std::unordered_map
 		}
 	}
 
-	RuleParser::m_activatedRuleSet.clear();
+	RuleParser::m_activatedRuleSet.swap(callerActivatedRuleSet);
 	return iBonusTotal;
 }
 
@@ -371,6 +376,7 @@ Patch _PatchHookEvolveCustomValues[] =
 	Patch()
 };
 Patch *PatchHookEvolveCustomValues = _PatchHookEvolveCustomValues;
+bool isEvolveCustomValuesAlreadyPatched = false;
 
 void prepareSaveLoadCustomValues()
 {
@@ -692,6 +698,25 @@ static bool ParseCustomValueRuleFeatOrAreaType(std::string sCustomValueRuleX, in
 	return true;
 }
 
+static void ClearCustomValueRuleSets(std::unordered_map<uint32_t, std::vector<CustomValueRuleSet*>>& ruleMap)
+{
+	for (auto& entry : ruleMap)
+	{
+		for (CustomValueRuleSet* myRule : entry.second)
+			delete myRule;
+	}
+	ruleMap.clear();
+}
+
+// The values stored on the creatures are kept: only the rules and the modes are removed.
+void desinitCustomValuesHooks()
+{
+	ClearCustomValueRuleSets(m_customValueRuleSets);
+	ClearCustomValueRuleSets(m_customValueEvolutionRuleSets);
+	g_customValueModes.assign(uCustomValuesNumbers, CustomValueMode::Raw);
+	g_evolutionEntries.clear();
+}
+
 void initCustomValuesHooks(std::string nxhome, std::string sFileName)
 {
 	g_customValueModes.assign(uCustomValuesNumbers, CustomValueMode::Raw);
@@ -720,7 +745,9 @@ void initCustomValuesHooks(std::string nxhome, std::string sFileName)
 	}
 
 	//improvement, make the hook only if valid evolutionvalues rules ?
+	if (!isEvolveCustomValuesAlreadyPatched)
 	{
+		isEvolveCustomValuesAlreadyPatched = true;
 		int i = 0;
 		while (PatchHookEvolveCustomValues[i].Apply()) {
 			i++;

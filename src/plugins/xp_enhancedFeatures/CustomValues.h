@@ -4,7 +4,7 @@
 #include <NWN2Lib/NWN2Common.h>
 
 void initCustomValuesHooks(std::string nxhome, std::string sFileName);
-//void desinitCustomValuesHooks();
+void desinitCustomValuesHooks();
 
 void initCustomValuesNumber(int uNumber);
 

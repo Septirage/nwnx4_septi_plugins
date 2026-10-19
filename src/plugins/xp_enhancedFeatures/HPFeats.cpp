@@ -161,7 +161,7 @@ int32_t __fastcall hitPointFeatApplication(int pcBlock)
 		if (bOk)
 		{
 			RuleParser::m_activatedRuleSet.insert(myRule->index);
-			iHPMod += myRule->bonusCalculation->evaluate(pcBlock);
+			iHPMod += myRule->bonusCalculation->evaluateInt(pcBlock);
 		}
 	}
 
