@@ -4,6 +4,22 @@
 #include <NWN2Lib/NWN2Common.h>
 #include <cstdint>
 
+#define OFF_FUNC_DestroyCExoString	0x00436100
+
+NWNDestroyCExoString_t const NWNDestroyCExoString = (NWNDestroyCExoString_t)OFF_FUNC_DestroyCExoString;
+
+std::string ExoStringToString(const NWN::CExoString* myExoString)
+{
+	if (myExoString == NULL || myExoString->m_sString == NULL)
+		return "";
+
+	std::string result(myExoString->m_sString, myExoString->m_nBufferLength);
+	//The buffer length counts the final '\0'
+	if (!result.empty() && result.back() == '\0')
+		result.resize(result.size() - 1);
+	return result;
+}
+
 
 NWN::OBJECTID GetModuleID()
 {

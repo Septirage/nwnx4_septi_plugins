@@ -5,6 +5,9 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+
+#include <NWN2Lib/NWN2Common.h>
 
 // ----------------------------------------------------------------------------
 // Value reading
@@ -17,6 +20,10 @@ typedef uint16_t (__thiscall* NWNGetGFFShort_t)(void* puVar, void* gffPtr, const
 typedef uint32_t (__thiscall* NWNGetGFFDWord_t)(void* puVar, void* gffPtr, const char* cField, void* aiStack110, uint32_t iDefault);
 typedef uint32_t (__thiscall* NWNGetGFFInt_t)  (void* puVar, void* gffPtr, const char* cField, void* aiStack110, uint32_t iDefault);
 typedef float    (__thiscall* NWNGetGFFFloat_t)(void* puVar, void* gffPtr, const char* cField, void* aiStack110, float    fDefault);
+
+// Read a CExoString field. pResult must be given to NWNDestroyCExoString (see NwN2Utilities.h) once used.
+// pDefault is used if the field doesn't exist. *pSuccess tells if the field was found.
+typedef NWN::CExoString* (__thiscall* NWNGetGFFCExoString_t)(void* puVar, NWN::CExoString* pResult, void* gffPtr, const char* cField, int* pSuccess, NWN::CExoString* pDefault);
 
 // ----------------------------------------------------------------------------
 // GFF Structures/Lists navigation
@@ -48,8 +55,15 @@ extern NWNGetGFFShort_t        const NWNGetGFFShort;
 extern NWNGetGFFDWord_t        const NWNGetGFFDWord;
 extern NWNGetGFFInt_t          const NWNGetGFFInt;
 extern NWNGetGFFFloat_t        const NWNGetGFFFloat;
+extern NWNGetGFFCExoString_t   const NWNGetGFFCExoString;
 extern NWNGetGFFStructByName_t const NWNGetGFFStructByName;
 extern NWNGetGFFStruct_t       const NWNGetGFFStruct;
 extern NWNGetGFFList_t         const NWNGetGFFList;
 extern NWNGetGFFListLength_t   const NWNGetGFFListLength;
 
+// ----------------------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------------------
+
+// Read a CExoString field as a std::string ("" if the field doesn't exist)
+std::string GetGFFString(void* puVar, void* gffPtr, const char* cField);
