@@ -148,7 +148,7 @@ void refreshObject(int nParam2, int nValue, int iOption)
 			return; 
 	}
 
-	uint8_t myMessage[0x500] = {};
+	uint8_t myMessage[0x800] = {};
 	uint32_t sizeToSend = addObjectToWorld(oToView, ObjectToRefr, myMessage);
 
 

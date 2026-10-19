@@ -276,47 +276,55 @@ void AppearanceListManagement::Initialisation()
 			{
 				logger->Info("############# Manage Models Initialisation #############");
 				logger->Info("######### Files previously saved but not found #########");
+				//The same file is listed once per VisualType
+				armorFileList.sort();
+				armorFileList.unique();
 				for (std::string file : armorFileList)
 				{
 					logger->Info(file.c_str());
 
 					std::vector<std::string> portion;
 					tokenize(file, "@", portion);
-					if (portion.size() == 3)
+					if (portion.size() == 3 && is_number(portion[1]) && categorizedOutfitsMap.count(portion[0]) > 0)
 					{
-						if (categorizedOutfitsMap.count(portion[0]) > 0)
+						int iPortion = std::stoi(portion[1]);
+						if (categorizedOutfitsMap[portion[0]].count(iPortion) > 0)
 						{
-							int iPortion = std::stoi(portion[1]);
-							if (categorizedOutfitsMap[portion[0]].count(iPortion) > 0)
+							auto& visualTypes = categorizedOutfitsMap[portion[0]][iPortion];
+
+							//Remove the model from every VisualType, and the VisualTypes it leaves empty
+							for (auto it = visualTypes.begin(); it != visualTypes.end(); )
 							{
-								std::string sRangement = "";
-								for (auto rangement : categorizedOutfitsMap[portion[0]][iPortion])
+								size_t uSize = it->second.size();
+								it->second.remove(portion[2]);
+								if (it->second.size() != uSize)
 								{
-									std::list<std::string> listCA = categorizedOutfitsMap[portion[0]][iPortion][rangement.first];
-									if (std::find(listCA.begin(), listCA.end(), portion[2]) != listCA.end())
+									std::string log = "In : " + it->first;
+									logger->Info(log.c_str());
+									if (it->second.empty())
 									{
-										sRangement = rangement.first;
-										listCA.remove(file);
-										std::string log = "In : " + rangement.first;
-										logger->Info(log.c_str());
-										break;
+										it = visualTypes.erase(it);
+										continue;
 									}
 								}
-								if (sRangement != "")
-								{
-									if (categorizedOutfitsMap[portion[0]][iPortion][sRangement].size() == 0)
-									{
-										categorizedOutfitsMap[portion[0]][iPortion].erase(sRangement);
-										if (categorizedOutfitsMap[portion[0]][iPortion].size() == 0)
-										{
-											categorizedOutfitsMap[portion[0]].erase(iPortion);
-											if (categorizedOutfitsMap[portion[0]].size() == 0)
-											{
-												categorizedOutfitsMap.erase(portion[0]);
-											}
-										}
-									}
-								}
+								++it;
+							}
+
+							//The model has no VisualType anymore
+							size_t idxSep = portion[2].find_last_of(SEPARATOR_MODEL);
+							if (idxSep != std::string::npos && is_number(portion[2].substr(idxSep + 1))
+								&& outfitMap.count(portion[0]) > 0 && outfitMap[portion[0]].count(iPortion) > 0)
+							{
+								std::string sPrefix = portion[2].substr(0, idxSep);
+								if (outfitMap[portion[0]][iPortion].count(sPrefix) > 0)
+									outfitMap[portion[0]][iPortion][sPrefix].erase(std::stoul(portion[2].substr(idxSep + 1)));
+							}
+
+							if (visualTypes.empty())
+							{
+								categorizedOutfitsMap[portion[0]].erase(iPortion);
+								if (categorizedOutfitsMap[portion[0]].empty())
+									categorizedOutfitsMap.erase(portion[0]);
 							}
 						}
 					}
@@ -785,7 +793,7 @@ AppearanceListManagement::parseFileName(std::string nom)
 					logger->Trace(log.c_str());
 				} else if (std::find(armorFileList.begin(), armorFileList.end(), sNom2) !=
 					armorFileList.end()) {
-					armorFileList.remove(sNom);
+					armorFileList.remove(sNom2);
 					std::string log = "Finded " + sNom;
 					logger->Trace(log.c_str());
 				} else {

@@ -469,6 +469,10 @@ void AppearanceListManagement::RemoveAppearanceFromCategory(char* cRRG_RCat, int
 	int iPart = iPart_Var / 1000;
 	int iVar = iPart_Var % 1000;
 
+	//Unknown category index (CreateCodeApp would add an empty prefix for it)
+	if (indexToPrefix.count(iRCat) == 0)
+		return;
+
 	std::string sCode = CreateCodeApp( iRCat, iVar+1);
 
 	removeFromCategory(sRRG, sCode, iPart, iRCat, iVar+1, sCategory);
@@ -518,6 +522,10 @@ void AppearanceListManagement::AddAppearanceToCategory(char* cRRG_RCat, int iPar
 	int iRCat = std::stoul(sRCat);
 	int iPart = iPart_Var / 1000;
 	int iVar = iPart_Var % 1000;
+
+	//Unknown category index (CreateCodeApp would add an empty prefix for it)
+	if (indexToPrefix.count(iRCat) == 0)
+		return;
 
 	std::string sCode = CreateCodeApp( iRCat, iVar+1);
 
@@ -630,6 +638,10 @@ void AppearanceListManagement::RenameVisualCategory(char* cRRG_VisualCat, int iP
 	if (!SplitRRGComposedText(cRRG_VisualCat, sRRG, sVCat))
 		return;
 
+	//Same name: nothing to do (and the loop below would never end)
+	if (sVCat == cNewName)
+		return;
+
 	if (categorizedOutfitsMap.count(sRRG) != 0)
 	{
 		if (categorizedOutfitsMap[sRRG].count(iPart) != 0)
@@ -637,10 +649,12 @@ void AppearanceListManagement::RenameVisualCategory(char* cRRG_VisualCat, int iP
 			if (categorizedOutfitsMap[sRRG][iPart].count(sVCat) != 0)
 			{
 				//Be sure the new VCategory exist
-				categorizedOutfitsMap[sRRG][iPart][cNewName];
+				auto& newList = categorizedOutfitsMap[sRRG][iPart][cNewName];
 				for(std::string sCode : categorizedOutfitsMap[sRRG][iPart][sVCat])
 				{
-					categorizedOutfitsMap[sRRG][iPart][cNewName].push_back(sCode);
+					//The new VCategory may already exist: don't add twice
+					if (std::find(newList.begin(), newList.end(), sCode) == newList.end())
+						newList.push_back(sCode);
 					//Already in the system, we can trust the string format
 					int iIndex = sCode.find_last_of(SEPARATOR_MODEL);
 					//Just be sure to have everything
@@ -660,6 +674,11 @@ void AppearanceListManagement::RenameVisualCategory(char* cRRG_VisualCat, int iP
 				categorizedOutfitsMap[sRRG][iPart].erase(sVCat);
 				//sort the content of the vcat
 				categorizedOutfitsMap[sRRG][iPart][cNewName].sort();
+
+				//A restricted VisualType stays restricted under its new name.
+				//The old name stays restricted too: it can still exist for another RRG or part.
+				if (GetRestrictedCategory(sVCat) != 0)
+					restrictedCat[cNewName] = true;
 			}
 		}
 	}
@@ -682,6 +701,10 @@ void AppearanceListManagement::ChangeVisualCategory(char* cRRG_VisualCat, int iP
 	std::string sNewVisualCat = sCode_NewVisualCat.substr(tPos+1);
 	std::string sCode = sCode_NewVisualCat.substr(0, tPos);
 
+	//Same VisualType: nothing to do
+	if (sNewVisualCat == sOldVisualCat)
+		return;
+
 	//Test the existance
 	if (categorizedOutfitsMap.count(sRRG) != 0)
 	{
@@ -694,18 +717,15 @@ void AppearanceListManagement::ChangeVisualCategory(char* cRRG_VisualCat, int iP
 				//Ok, it exist
 				if(bFound)
 				{
-					//Is the newCat exist too ?
-					if (categorizedOutfitsMap[sRRG][iPart].count(sNewVisualCat) != 0)
+					//The newCat is created if it doesn't exist yet
 					{
 						//Test if it's already in the newCat 
-						auto nlst = categorizedOutfitsMap[sRRG][iPart][sNewVisualCat];
+						auto& nlst = categorizedOutfitsMap[sRRG][iPart][sNewVisualCat];
 						bFound = (std::find(nlst.begin(), nlst.end(), sCode) != nlst.end());
-						
-						
 
 						//Add the sCode to newCat if not already here
 						if(!bFound)
-							categorizedOutfitsMap[sRRG][iPart][sNewVisualCat].push_back(sCode);
+							nlst.push_back(sCode);
 
 						//Remove from oldCat
 						categorizedOutfitsMap[sRRG][iPart][sOldVisualCat].remove(sCode);
@@ -721,8 +741,8 @@ void AppearanceListManagement::ChangeVisualCategory(char* cRRG_VisualCat, int iP
 
 						addToTenue(sRRG, iPart, sCode.substr(0, iIndex), std::stoul(sCode.substr(iIndex + 1)), sNewVisualCat);
 
-						//No need to sort if already exist before
-						if(bFound)
+						//Sort only when added (if it was already there, the list is already sorted)
+						if(!bFound)
 							categorizedOutfitsMap[sRRG][iPart][sNewVisualCat].sort();
 					}
 				}
