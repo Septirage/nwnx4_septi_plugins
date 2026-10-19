@@ -19,6 +19,7 @@
 #include <fstream>
 #include "../../septutil/srvadmin.h"
 #include "../../septutil/bytearray.h"
+#include "../../septutil/NwN2Utilities.h"
 
 #define MAX_PLAYERS               0x60
 
@@ -84,40 +85,6 @@ void
 SetPacketFilterCallouts     SetPacketFilterCallouts_;
 
 
-struct CPlayerCDKeyInfo
-{
-	NWN::CExoString m_Key;
-	NWN::CExoString m_ValidCode;
-	NWN::CExoString m_NotUsed;
-};
-
-struct BigPlayerInfo // sizeof = 0x78, CNetLayerPlayerInfo
-{
-	int            m_bPlayerInUse;              // 00
-	NWN::CExoString     m_sPlayerName;               // 04
-	char           skip0[0x04];                 // 0c
-	unsigned long  m_nSlidingWindowId;          // 10
-	int            m_bPlayerPrivileges;         // 14
-	int            m_bGameMasterPrivileges;     // 18
-	int            m_bServerAdminPrivileges;    // 1c
-	char           skip1[0x38];                 // 20
-	CPlayerCDKeyInfo* m_lstKeys;				// 58
-	int				m_nNumberKeys;				// 5C
-	char			skip2[0x18];			// 60
-};
-
-
-struct CShortNetLayerInternal
-{
-	void         *ServerApp;                 // 00000
-	char		 skip0[0x3768C];
-	//CExoNet      *Net;                       // 00004
-	//char          skip0[0x04];               // 00008
-	//SlidingWindow Windows[MAX_PLAYERS];      // 0000c
-	//char          skip1[0x04];               // 3768C
-	BigPlayerInfo    Players[MAX_PLAYERS];      // 37690
-											 // CExoNetExtendableBuffer FrameStorage; // 3A390
-};
 
 
 typedef
@@ -144,84 +111,42 @@ GetPlayerConnectionInfo GetPlayerConnectionInfo_;
 
 	MsgServ* g_msgServ;
 
-NWN::OBJECTID GetModuleID_()
-{
-	int ptr = *(int*)OFFS_g_pAppManager;
-	ptr = *(int*)(ptr + 4);
-	ptr = *(int*)(ptr + 4);
-	NWN::OBJECTID result = *(NWN::OBJECTID*)(ptr + 0x10088);
-	return result;
-}
-
-//OFFS_g_pAppManager
-//Must be redone to be based on struct instead ugly ptr management
-uint8_t* GetPlayerStruct(uint8_t idPlayer)
-{
-	int var = *(int*)OFFS_g_pAppManager;
-	var = var + 4;
-	var = *(int*)var;
-	int var2 = *(int*)var;
-	var2 += 0x1C;
-	var2 = *(int*)var2;
-	
-	//VAR
-	var += 4;
-	var = *(int*)var;
-	var += 0x10068;
-	var = *(int*)var;
-	var = *(int*)var;
-
-
-
-	var += 0x37690;
-
-	var += (idPlayer * 0x78);
-
-	return (uint8_t*)var;
-}
 
 //Must be redone to be based on struct instead ugly ptr management
 std::string GetCDKey(uint8_t idPlayer)
 {
-	uint8_t* pMyPlayerStruct = GetPlayerStruct(idPlayer);
-	if (pMyPlayerStruct == NULL)
-		return "";
-	uint8_t* pMyCDKey = (uint8_t*)(((int)pMyPlayerStruct) + 0x58);
+	CNetBigPlayerInfo* pMyPlayerInfo = GetCNetPlayerInfo(idPlayer);
 
-	if (pMyCDKey == NULL)
-		return "";
-	pMyCDKey = *(uint8_t**)(pMyCDKey);
-
-
-	if (pMyCDKey == NULL)
+	if (pMyPlayerInfo == NULL)
 		return "";
 
-	char* pCDKey1 = *(char**)(pMyCDKey);
-	std::string myCdKey = "";
-	for (int i = 0; i < 8; i++)
-	{
-		myCdKey += pCDKey1[i];
-	}
+	CPlayerCDKeyInfo* pKeyInfo  = pMyPlayerInfo->m_lstKeys;
+	if (pKeyInfo  == NULL)
+		return "";
 
-	return myCdKey;
+	char* pCDKey1 = pKeyInfo->m_Key.m_sString;
+	if (pCDKey1 == NULL)
+		return "";
+
+	return std::string(pCDKey1);
 }
 
 
 //Just create a privileges flag based uint8
 int GetPlayerPrivileges(int playerid)
 {
-	uint8_t* pMyPlayerStruct = GetPlayerStruct(playerid);
-	int m_bPlayerPrivileges = *(int*)(pMyPlayerStruct + 0x14);
-	int m_bGameMasterPrivileges = *(int*)(pMyPlayerStruct + 0x18);
-	int m_bServerAdminPrivileges = *(int*)(pMyPlayerStruct + 0x1C);
+	CNetBigPlayerInfo* pMyPlayerInfo = GetCNetPlayerInfo(playerid);
+	if (pMyPlayerInfo == NULL)
+		return 0;
 
 	int result = 0;
-	if (m_bPlayerPrivileges != 0)
+	if (pMyPlayerInfo->m_bPlayerPrivileges != 0)
 		result |= 1;
-	if (m_bGameMasterPrivileges != 0)
+	if (pMyPlayerInfo->m_bGameMasterPrivileges != 0)
 		result |= 2;
-	if (m_bServerAdminPrivileges != 0)
+	if (pMyPlayerInfo->m_bServerAdminPrivileges != 0)
 		result |= 4;
+
 	return result;
 }
 
@@ -342,7 +267,7 @@ void SendDisplayMessageInfo(unsigned long playerID, const std::string_view& scen
 	auto msgData = ByteWriter{msgDataSize + 1};
 
 
-	msgData.write({0x50, 0x24, 0x09});
+	msgData.write({0x50, 0x24, 0x05});	//Message box (server MsgPopUpGUIPanel_5, as DisplayMessageBox)
 	msgData.write((uint32_t)msgDataSize);
 	msgData.write((uint32_t)sText.size());
 	msgData.write(sText);
@@ -453,7 +378,7 @@ BOOL __stdcall MsgServOnReceive(
 						NWScript::AddScriptParameterString(currentIP_.c_str());
 						NWScript::AddScriptParameterString(currentCdKey_.c_str());
 						NWScript::AddScriptParameterInt(currentPlayerPriv_);
-						int scriptRes = NWScript::ExecuteScriptEnhanced(g_msgServ->m_connection.onConnectionScript.c_str(), GetModuleID_(), true, &isExecScriptOk, true);
+						int scriptRes = NWScript::ExecuteScriptEnhanced(g_msgServ->m_connection.onConnectionScript.c_str(), GetModuleID(), true, &isExecScriptOk, true);
 
 						if (!isExecScriptOk)
 						{
@@ -603,7 +528,7 @@ BOOL __stdcall MsgServOnReceive(
 								logger->SetLogLevel(logLevel);
 							}
 
-							int scriptRes = NWScript::ExecuteScriptEnhanced(scriptNameStr.c_str(), GetModuleID_(), true, &isExecScriptOk, true);
+							int scriptRes = NWScript::ExecuteScriptEnhanced(scriptNameStr.c_str(), GetModuleID(), true, &isExecScriptOk, true);
 
 							if (!isExecScriptOk)
 							{
@@ -669,7 +594,7 @@ BOOL __stdcall MsgServOnReceive(
 						{
 							bIllegal = true;
 						}
-						else if (data[1] == 0x2)
+						else if (data[1] == 0x2 && data.size() > 2)
 						{
 							uint8_t cSubType = data[2];
 							//Don't allow to create or load character
@@ -701,7 +626,7 @@ BOOL __stdcall MsgServOnReceive(
 		//Only if we want to active Anticheat module.
 		{
 			//EndOfLevelUp
-			if (Data[0] == 0x70 && Data[1] == 0x1D && Data[2] == 0x00 && g_msgServ->bAnticheatLvlUp)
+			if (Length >= 3 && Data[0] == 0x70 && Data[1] == 0x1D && Data[2] == 0x00 && g_msgServ->bAnticheatLvlUp)
 			{
 				int iResLvlUp = CheckForLevelUp(playerId, Data, Length, accountName, g_msgServ);
 				if (iResLvlUp <= 0)
@@ -824,7 +749,7 @@ MsgServ::Init(char* nwnxhome)
 	 config->Read("MCDKey", &i3CDKey, 0);
 	 b3CDKey = (i3CDKey != 0);
 
-	 if (bConnectionProcess) {
+	 if (m_connection.enabled) {
 		 logger->Debug("UseConnectionSystem set to true.");
 	 }
 	 else {
@@ -870,7 +795,7 @@ MsgServ::Init(char* nwnxhome)
 		 //bCallScriptOnLvlUpError = (iCallScriptOnLvlUpError != 0);
 		 //if (bCallScriptOnLvlUpError)
 		 {
-			 config->Read("ScriptLvlUpError", &ScriptLvlUpError, std::string(""));
+			 config->Read("ScriptOnLvlUpError", &ScriptLvlUpError, std::string(""));
 			 if (ScriptLvlUpError == "")
 				 bCallScriptOnLvlUpError = false;
 			 else
@@ -1023,9 +948,9 @@ void MsgServ::SetInt([[maybe_unused]] char* sFunction,
 	logger->Trace(logTxt.c_str());
 
 	if (function == "ConnectionSystem") {
-		bConnectionProcess  = (nValue != 0);
+		m_connection.enabled = (nValue != 0);
 		logTxt = "Set Connection Process to : ";
-		if (bConnectionProcess)
+		if (m_connection.enabled)
 			logTxt += "TRUE";
 		else
 			logTxt += "FALSE";
