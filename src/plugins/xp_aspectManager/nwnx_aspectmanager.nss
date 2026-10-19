@@ -276,11 +276,19 @@ void MusicBattleRunForPC_xpAM(object oPC, int bStart);
 
 /********************************** Name for Viewer ***********************************/
 
-//Change the visible name of oPC in the player list/MP list for oViewer
-void SetPCListNameForViewer_xpAM(object oPC, string sFirstName, string sLastName, object oViewer) ;
-
-//Change the visible name of oCreature for oViewer
+//Change the visible name of oCreature for oViewer (sFirstName can't contain '|')
+//If oCreature is a PC, its name in the player list/chat is also changed for oViewer
+//The name is kept (creature refresh, SetName/SetDescription, examine...) until
+//ClearCreatureNameForViewer_xpAM or ForgetCreatureNames_xpAM (KeepNameForViewer = 1 in the ini)
+//oViewer must be the character of the player
 void SetCreatureNameForViewer_xpAM(object oCreature, string sFirstName, string sLastName, object oViewer);
+
+//oViewer will see again the real name of oCreature
+void ClearCreatureNameForViewer_xpAM(object oCreature, object oViewer);
+
+//Forget every name kept for oCreature : the names it sees and the names under which it is seen.
+//Nothing is sent. To call on client leave (and optionally when a named creature is destroyed)
+void ForgetCreatureNames_xpAM(object oCreature);
 
 
 /**************************** Refresh & Collision ****************************/
@@ -790,14 +798,19 @@ void ShowObjectForPC_xpAM(object oObjectToShow, object oPC)
 
 /********************************** Name for Viewer ***********************************/
 
-void SetPCListNameForViewer_xpAM(object oPC, string sFirstName, string sLastName, object oViewer)
-{
-	NWNXSetInt("AspectManager", "updateName", "0|"+sFirstName+"|"+sLastName, ObjectToInt(oPC), ObjectToInt(oViewer));
-}
-
 void SetCreatureNameForViewer_xpAM(object oCreature, string sFirstName, string sLastName, object oViewer)
 {
-	NWNXSetInt("AspectManager", "updateName", "1|"+sFirstName+"|"+sLastName, ObjectToInt(oCreature), ObjectToInt(oViewer));
+	NWNXSetInt("AspectManager", "setNameForViewer", sFirstName+"|"+sLastName, ObjectToInt(oCreature), ObjectToInt(oViewer));
+}
+
+void ClearCreatureNameForViewer_xpAM(object oCreature, object oViewer)
+{
+	NWNXSetInt("AspectManager", "clearNameForViewer", "", ObjectToInt(oCreature), ObjectToInt(oViewer));
+}
+
+void ForgetCreatureNames_xpAM(object oCreature)
+{
+	NWNXSetInt("AspectManager", "forgetNames", "", ObjectToInt(oCreature), 0);
 }
 
 

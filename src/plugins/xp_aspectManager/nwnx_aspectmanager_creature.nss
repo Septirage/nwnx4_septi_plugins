@@ -106,7 +106,7 @@ int GetCreatureIsDeadSelectable_xpAM(object oCreature);
 //Equipment weight however can be setted and will be used for the totalWeight calculation. Every equip/unequip that will follow will add/substract on this number. 
 
 //TotalWeight
-void RecalculateCreatureTotalWeight_xpAM(object oCreature, int iValue);
+void RecalculateCreatureTotalWeight_xpAM(object oCreature);
 
 int GetCreatureTotalWeight_xpAM(object oCreature);
 
@@ -475,9 +475,9 @@ int GetCreatureIsDeadSelectable_xpAM(object oCreature)
 
 
 
-void RecalculateCreatureTotalWeight_xpAM(object oCreature, int iValue)
+void RecalculateCreatureTotalWeight_xpAM(object oCreature)
 {
-	NWNXSetInt("AspectManager", "creature", "WeightTotal", ObjectToInt(oCreature), iValue);
+	NWNXSetInt("AspectManager", "creature", "WeightRecalculate", ObjectToInt(oCreature), 0);
 }
 
 int GetCreatureTotalWeight_xpAM(object oCreature)

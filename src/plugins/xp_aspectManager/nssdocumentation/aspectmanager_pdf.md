@@ -6,7 +6,7 @@ functions Guide
 </div>
 
 <div class="cover-version">
-for plugin v1.5.6 -2026-09-07 by Septirage
+for plugin v1.5.7 -2026-10-16 by Septirage
 </div>
 
 </div>
@@ -18,11 +18,12 @@ for plugin v1.5.6 -2026-09-07 by Septirage
 
 
 
-- [xp_aspectManager.nss](#xp_aspectmanagernss)
-- [xp_aspectManager_creature.nss](#xp_aspectmanager_creaturenss)
-- [xp_aspectManager_area.nss](#xp_aspectmanager_areanss)
-- [xp_aspectManager_item.nss](#xp_aspectmanager_itemnss)
-- [xp_aspectManager_light.nss](#xp_aspectmanager_lightnss)
+- [nwnx_aspectmanager.nss](#nwnx_aspectmanagernss)
+- [nwnx_aspectmanager_creature.nss](#nwnx_aspectmanager_creaturenss)
+- [nwnx_aspectmanager_area.nss](#nwnx_aspectmanager_areanss)
+- [nwnx_aspectmanager_item.nss](#nwnx_aspectmanager_itemnss)
+- [nwnx_aspectmanager_light.nss](#nwnx_aspectmanager_lightnss)
+- [nwnx_aspectmanager_list.nss](#nwnx_aspectmanager_listnss)
 - [Constants List](#constants-list)
 
 
@@ -30,7 +31,7 @@ for plugin v1.5.6 -2026-09-07 by Septirage
 
 <div style="page-break-after: always;"></div>
 
-xp_aspectManager.nss
+nwnx_aspectmanager.nss
 =====================
 <table border="0" style="font-size: 9px">
  <tr>
@@ -137,13 +138,14 @@ Refresh, View & Collision
 [SetObjectDynamicCollision\_xpAM](#setobjectdynamiccollision_xpam)  
 [GetObjectDynamicCollision\_xpAM](#getobjectdynamiccollision_xpam)  
 [SetObjectDynamicCollision\_xpAM](#setobjectdynamiccollision_xpam)  
-[SetPCListNameForViewer\_xpAM](#setpclistnameforviewer_xpam)  
 [SetCreatureNameForViewer\_xpAM](#setcreaturenameforviewer_xpam)  
+[ClearCreatureNameForViewer\_xpAM](#clearcreaturenameforviewer_xpam)  
+[ForgetCreatureNames\_xpAM](#forgetcreaturenames_xpam)  
    </td>
  </tr>
 </table><div style="page-break-after: always;"></div>
 
-xp_aspectManager_creature.nss
+nwnx_aspectmanager_creature.nss
 =====================
 
 ## Global Note
@@ -257,7 +259,7 @@ Weight
 
 
 
-xp_aspectManager_area.nss
+nwnx_aspectmanager_area.nss
 ====
 
 <table border="0" style="font-size: 8px">
@@ -386,7 +388,7 @@ Day/Night Cycle: Fog
 
 
 
-xp_aspectManager_item.nss
+nwnx_aspectmanager_item.nss
 ====
 
 
@@ -473,7 +475,7 @@ DamageReduction
  </tr>
 </table><div style="page-break-after: always;"></div>
 
-xp_aspectManager_light.nss
+nwnx_aspectmanager_light.nss
 ===
 
 
@@ -517,6 +519,61 @@ Flicker
 [GetLightFlickerVariance_xpAM](#getlightflickervariance_xpam)  
 [SetLightFlickerRate_xpAM](#setlightflickerrate_xpam)  
 [GetLightFlickerRate_xpAM](#getlightflickerrate_xpam)  
+
+</td>
+ </tr>
+</table><div style="page-break-after: always;"></div>
+    
+nwnx_aspectmanager_list.nss
+===
+
+
+<table border="0" style="font-size: 8px">
+ <tr>
+<td style="vertical-align:top;">  
+  
+Hair / Head  
+[XPAspMan\_GetNumberOfHairVariation](#xpaspman_getnumberofhairvariation)  
+[XPAspMan\_GetHairVariation](#xpaspman_gethairvariation)  
+[XPAspMan\_GetNumberOfHeadVariation](#xpaspman_getnumberofheadvariation)  
+[XPAspMan\_GetHeadVariation](#xpaspman_getheadvariation)  
+  
+Visual types  
+[XPAspMan\_SetRestrictedVisualType](#xpaspman_setrestrictedvisualtype)  
+[XPAspMan\_GetRestrictedVisualType](#xpaspman_getrestrictedvisualtype)  
+[XPAspMan\_GetNumberOfVisualType](#xpaspman_getnumberofvisualtype)  
+[XPAspMan\_GetVisualType](#xpaspman_getvisualtype)  
+[XPAspMan\_GetNumberExtendedVisualType](#xpaspman_getnumberextendedvisualtype)  
+[XPAspMan\_GetExtendedVisualType](#xpaspman_getextendedvisualtype)  
+  
+Appearances  
+[XPAspMan\_GetNumberOfVariation](#xpaspman_getnumberofvariation)  
+[XPAspMan\_GetVariation](#xpaspman_getvariation)  
+[XPAspMan\_GetRealAppNumberOfVisualType](#xpaspman_getrealappnumberofvisualtype)  
+[XPAspMan\_GetVisualTypeFromRealApp](#xpaspman_getvisualtypefromrealapp)  
+</td>
+<td style="vertical-align:top">
+  
+Accessories  
+[XPAspMan\_GetNumberOfModelPieceVariation](#xpaspman_getnumberofmodelpiecevariation)  
+[XPAspMan\_GetModelPieceVariation](#xpaspman_getmodelpiecevariation)  
+  
+Weapons  
+[XPAspMan\_GetNumberOfWeaponPart](#xpaspman_getnumberofweaponpart)  
+[XPAspMan\_GetNumberOfWeaponPartVariation](#xpaspman_getnumberofweaponpartvariation)  
+[XPAspMan\_GetWeaponPartVariation](#xpaspman_getweaponpartvariation)  
+  
+List management  
+[XPAspMan\_RemoveFromVisualType](#xpaspman_removefromvisualtype)  
+[XPAspMan\_AddToVisualType](#xpaspman_addtovisualtype)  
+[XPAspMan\_CreateNewVisualType](#xpaspman_createnewvisualtype)  
+[XPAspMan\_DeleteVisualType](#xpaspman_deletevisualtype)  
+[XPAspMan\_DeleteExtendedVisualType](#xpaspman_deleteextendedvisualtype)  
+[XPAspMan\_CopyExtendedVisualType](#xpaspman_copyextendedvisualtype)  
+[XPAspMan\_SaveFile](#xpaspman_savefile)  
+[XPAspMan\_LoadFile](#xpaspman_loadfile)  
+[XPAspMan\_ChangeVisualType](#xpaspman_changevisualtype)  
+[XPAspMan\_RenameVisualType](#xpaspman_renamevisualtype)  
 
 </td>
  </tr>
@@ -1769,30 +1826,6 @@ The status of DynamicCollision for the object (TRUE if enabled, FALSE if disable
 
 <div class="fnblock">
 
-# SetPCListNameForViewer\_xpAM
-```cpp
-void SetPCListNameForViewer_xpAM(object oPC, string sFirstName, string sLastName, object oViewer);
-```
-Changes the name displayed for a PC in the player list and private message list for a specific viewer.
-
-The change is only visible to oViewer and does not modify the actual first name or last name of oPC.
-
-## Parameters
-
-* `oPC` - The PC whose displayed name will be changed.
-* `sFirstName` - The new first name to display.
-* `sLastName` - The new last name to display.
-* `oViewer` - The PC for whom the new name will be displayed.
-
-## Notes
-The name is viewer-specific. Different players can therefore see different names for the same PC.
-
-</div>
-
----
-
-<div class="fnblock">
-
 # SetCreatureNameForViewer\_xpAM
 ```cpp
 void SetCreatureNameForViewer_xpAM(object oCreature, string sFirstName, string sLastName, object oViewer);
@@ -1801,26 +1834,65 @@ Changes the name displayed for a creature for a specific viewer.
 
 The change is only visible to oViewer and does not modify the actual first name or last name of oCreature.
 
-This affects the name displayed by the client for the creature, including its overhead name, portrait, combat log, dialogues, and other contexts where the creature's name is displayed.
+This affects the name displayed by the client for the creature, including its overhead name, portrait, combat log, dialogues, examine window, and other contexts where the creature's name is displayed. If oCreature is a PC, its name in the player list and private message list is also changed for oViewer.
+
+With `KeepNameForViewer = 1` (ini), the name is kept by the plugin: each time the server sends the creature's name again to oViewer (creature appearing again, SetFirstName/SetLastName/SetDescription, appearance change, examine...), the kept name is sent instead of the real one. It stays until ClearCreatureNameForViewer\_xpAM or ForgetCreatureNames\_xpAM is called. Calling the function again simply replaces the kept name.
+
+With `KeepNameForViewer = 0`, the name is only sent once and the server may send the real name again later.
 
 ## Parameters
 
 * `oCreature` - The creature whose displayed name will be changed.
-* `sFirstName` - The new first name to display.
+* `sFirstName` - The new first name to display (cannot contain the character `|`).
 * `sLastName` - The new last name to display.
-* `oViewer` - The PC for whom the new name will be displayed.
+* `oViewer` - The PC for whom the new name will be displayed. It must be the character of the player (not a possessed creature).
 
 ## Notes
 
 The name is viewer-specific. Different players can therefore see different names for the same creature.
 
-## Limitations 
+Object IDs are never reused, so a forgotten ForgetCreatureNames\_xpAM call only keeps some unused memory until the server restarts.
 
-This function does not affect all occurrences of the creature's name.
+## Limitations 
 
 Some NWN2 communication messages, such as certain OOC messages, include the creature's name directly in the message text instead of providing the recipient when resolving the creature's name. In these cases, the viewer-specific name cannot be applied by this function.
 
-The UsePlayerNameForOOCMsg option can be enabled to use the player's PlayerName instead of the character's name in the affected messages.
+The UseAccountNameForOOCMsg option can be enabled to use the player's account name instead of the character's name in the affected messages (shout, party, tell, party invitation...).
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# ClearCreatureNameForViewer\_xpAM
+```cpp
+void ClearCreatureNameForViewer_xpAM(object oCreature, object oViewer);
+```
+Removes the name kept by SetCreatureNameForViewer\_xpAM for oCreature and oViewer, and sends the real name of oCreature to oViewer (creature name, and player list name if oCreature is a PC).
+
+## Parameters
+
+* `oCreature` - The creature whose real name will be displayed again.
+* `oViewer` - The PC who will see the real name again.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# ForgetCreatureNames\_xpAM
+```cpp
+void ForgetCreatureNames_xpAM(object oCreature);
+```
+Removes every name kept for oCreature: the names oCreature sees for other creatures and the names under which oCreature is seen by others. Nothing is sent to the clients.
+
+Should be called when a player leaves the server (OnClientLeave), and optionally when a named creature is destroyed.
+
+## Parameters
+
+* `oCreature` - The creature (or player character) to forget.
 
 </div>
 
@@ -7143,6 +7215,787 @@ Get the flicker rate for this light.
 The flicker rate for the light.
 
 </div>
+
+<div style="page-break-after: always;"></div>
+
+<div class="fnblock">
+
+# The appearance list system
+
+At the server start, the plugin scans your model files (option `ScanFiles` and file `listeHakZip.ini` of the ini) and lists the hairs, heads, armor models, accessories and weapons. The armor appearances are sorted into **visual types**: named groups (by default one per armor visual type of `armorvisualdata.2DA`, see `ArmorVisualData` in the ini) that you can create, rename, fill and delete. The lists are kept in a save file.
+
+The functions use:
+
+* the **race-gender code** (`sRRG`): what comes before the armor visual type in the model file names, eg `P_HHM` (human male) for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`;
+* the **model part** (`iModelPart`): ARMOR\_MODEL\_PART\_\* constant;
+* an **appearance**, given either by its armor visual type and variation as on the item (`iCategory`, `iVariation`), or by its code (`sApp`, eg `CL_003`).
+
+The list management functions only change the lists in memory: call XPAspMan\_SaveFile to keep the changes.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetNumberOfHairVariation
+
+```cpp
+int XPAspMan_GetNumberOfHairVariation(
+    string sRRG
+);
+```
+Get the number of hair models found for this race-gender code.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before `_Hair` in the model file names, eg `P_HHM` for `P_HHM_Hair03`. Not case sensitive
+
+## Return Value
+
+The number of hair models, 0 if none.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetHairVariation
+
+```cpp
+int XPAspMan_GetHairVariation(
+    string sRRG,
+    int iIdx
+);
+```
+Get a hair model of this race-gender code.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before `_Hair` in the model file names, eg `P_HHM` for `P_HHM_Hair03`. Not case sensitive
+* `iIdx` - Index in the list, from 0 to the number of elements - 1
+
+## Return Value
+
+The number of the hair model (3 for `P_HHM_Hair03`), -1 if iIdx is out of range.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetNumberOfHeadVariation
+
+```cpp
+int XPAspMan_GetNumberOfHeadVariation(
+    string sRRG
+);
+```
+Get the number of head models found for this race-gender code.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before `_Head` in the model file names, eg `P_HHM` for `P_HHM_Head03`. Not case sensitive
+
+## Return Value
+
+The number of head models, 0 if none.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetHeadVariation
+
+```cpp
+int XPAspMan_GetHeadVariation(
+    string sRRG,
+    int iIdx
+);
+```
+Get a head model of this race-gender code.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before `_Head` in the model file names, eg `P_HHM` for `P_HHM_Head03`. Not case sensitive
+* `iIdx` - Index in the list, from 0 to the number of elements - 1
+
+## Return Value
+
+The number of the head model (3 for `P_HHM_Head03`), -1 if iIdx is out of range.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_SetRestrictedVisualType
+
+```cpp
+void XPAspMan_SetRestrictedVisualType(
+    string sVisualType,
+    int bRestricted
+);
+```
+Restrict or unrestrict a visual type. The restriction is only a flag for your scripts (for example to hide the visual type from the players); the plugin itself doesn't filter anything. It applies to every visual type with this name, and is saved by XPAspMan\_SaveFile.
+
+## Parameters
+
+* `sVisualType` - The name of the visual type
+* `bRestricted` - TRUE to restrict, FALSE to unrestrict
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetRestrictedVisualType
+
+```cpp
+int XPAspMan_GetRestrictedVisualType(
+    string sVisualType
+);
+```
+Is this visual type restricted?
+
+## Parameters
+
+* `sVisualType` - The name of the visual type
+
+## Return Value
+
+TRUE if the visual type is restricted, FALSE otherwise.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetNumberOfVisualType
+
+```cpp
+int XPAspMan_GetNumberOfVisualType(
+    string sRRG,
+    int iModelPart
+);
+```
+Get the number of visual types for this race-gender code and model part.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+
+## Return Value
+
+The number of visual types, 0 if none.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetVisualType
+
+```cpp
+string XPAspMan_GetVisualType(
+    string sRRG,
+    int iModelPart,
+    int iIdx
+);
+```
+Get a visual type of this race-gender code and model part. The visual types are sorted by name.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `iIdx` - Index in the list, from 0 to the number of elements - 1
+
+## Return Value
+
+The name of the visual type, "" if iIdx is out of range.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetNumberExtendedVisualType
+
+```cpp
+int XPAspMan_GetNumberExtendedVisualType(
+    string sRR,
+    int iGender,
+    int iModelPart
+);
+```
+Get the number of visual types for several race-gender codes and model parts at once. A name used by several of them is counted once.
+
+## Parameters
+
+* `sRR` - The beginning of the race-gender code: eg `P_HH` for every human, `C_AKACHI`. `""` for all
+* `iGender` - GENDER\_MALE or GENDER\_FEMALE (tested on the last letter of the race-gender code). Any other value for all
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant, or -1 for all
+
+## Return Value
+
+The number of different visual types, 0 if none.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetExtendedVisualType
+
+```cpp
+string XPAspMan_GetExtendedVisualType(
+    string sRR,
+    int iGender,
+    int iModelPart,
+    int iIdx
+);
+```
+Get a visual type among several race-gender codes and model parts. The visual types are sorted by name, each name once.
+
+## Parameters
+
+* `sRR` - The beginning of the race-gender code: eg `P_HH` for every human, `C_AKACHI`. `""` for all
+* `iGender` - GENDER\_MALE or GENDER\_FEMALE (tested on the last letter of the race-gender code). Any other value for all
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant, or -1 for all
+* `iIdx` - Index in the list, from 0 to the number of elements - 1
+
+## Return Value
+
+The name of the visual type, "" if iIdx is out of range.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetNumberOfVariation
+
+```cpp
+int XPAspMan_GetNumberOfVariation(
+    string sRRG,
+    int iModelPart,
+    string sVisualType
+);
+```
+Get the number of appearances in this visual type.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `sVisualType` - The name of the visual type
+
+## Return Value
+
+The number of appearances, 0 if none.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetVariation
+
+```cpp
+string XPAspMan_GetVariation(
+    string sRRG,
+    int iModelPart,
+    string sVisualType,
+    int iIdx
+);
+```
+Get an appearance of this visual type.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `sVisualType` - The name of the visual type
+* `iIdx` - Index in the list, from 0 to the number of elements - 1
+
+## Return Value
+
+The code of the appearance: the armor visual type prefix and the number of the model file on 3 digits (eg `CL_003`). "" if iIdx is out of range.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetRealAppNumberOfVisualType
+
+```cpp
+int XPAspMan_GetRealAppNumberOfVisualType(
+    string sRRG,
+    int iModelPart,
+    int iCategory,
+    int iVariation
+);
+```
+Get the number of visual types that contain this appearance.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `iCategory` - The armor visual type: its row in armorvisualdata.2DA (as on the item)
+* `iVariation` - The variation, as on the item (the number of the model file minus 1)
+
+## Return Value
+
+The number of visual types, 0 if none.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetVisualTypeFromRealApp
+
+```cpp
+string XPAspMan_GetVisualTypeFromRealApp(
+    string sRRG,
+    int iModelPart,
+    int iCategory,
+    int iVariation,
+    int iIdx = 0
+);
+```
+Get a visual type that contains this appearance.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `iCategory` - The armor visual type: its row in armorvisualdata.2DA (as on the item)
+* `iVariation` - The variation, as on the item (the number of the model file minus 1)
+* `iIdx` - When the appearance is in several visual types, the index of the one you want (0 for the first)
+
+## Return Value
+
+The name of the visual type, "" if none.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetNumberOfModelPieceVariation
+
+```cpp
+int XPAspMan_GetNumberOfModelPieceVariation(
+    string sRRG,
+    int iModelPiece
+);
+```
+Get the number of accessory models for this race-gender code and model piece.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the accessory models: what comes between `A_` and the piece name in the model file names, eg `HHM` for `A_HHM_LShoulder01` (without `P_`, unlike the armor models). Not case sensitive
+* `iModelPiece` - ARMOR\_MODEL\_PIECE\_\* constant
+
+## Return Value
+
+The number of accessory models, 0 if none.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetModelPieceVariation
+
+```cpp
+int XPAspMan_GetModelPieceVariation(
+    string sRRG,
+    int iModelPiece,
+    int iIdx
+);
+```
+Get an accessory model of this race-gender code and model piece. The models are sorted by number.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the accessory models: what comes between `A_` and the piece name in the model file names, eg `HHM` for `A_HHM_LShoulder01` (without `P_`, unlike the armor models). Not case sensitive
+* `iModelPiece` - ARMOR\_MODEL\_PIECE\_\* constant
+* `iIdx` - Index in the list, from 0 to the number of elements - 1
+
+## Return Value
+
+The number of the accessory model, -1 if iIdx is out of range.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetNumberOfWeaponPart
+
+```cpp
+int XPAspMan_GetNumberOfWeaponPart(
+    string sWeaponType
+);
+```
+Get the number of parts of this weapon type (1 for a weapon in one part, 3 for a weapon in parts A, B and C).
+
+## Parameters
+
+* `sWeaponType` - The weapon type: `W_` and the name of the weapon in the model file names (eg `W_LSWORD` for `W_LSword01_a`), or `I_` and the name of the item. Not case sensitive
+
+## Return Value
+
+The number of parts, 0 if the weapon type is unknown.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetNumberOfWeaponPartVariation
+
+```cpp
+int XPAspMan_GetNumberOfWeaponPartVariation(
+    string sWeaponType,
+    int iPart
+);
+```
+Get the number of models for this part of the weapon type.
+
+## Parameters
+
+* `sWeaponType` - The weapon type: `W_` and the name of the weapon in the model file names (eg `W_LSWORD` for `W_LSword01_a`), or `I_` and the name of the item. Not case sensitive
+* `iPart` - The part of the weapon: 0 (the only part, or part A), 1 (part B) or 2 (part C)
+
+## Return Value
+
+The number of models, 0 if none.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_GetWeaponPartVariation
+
+```cpp
+int XPAspMan_GetWeaponPartVariation(
+    string sWeaponType,
+    int iPart,
+    int iIdx
+);
+```
+Get a model of this part of the weapon type. The models are sorted by number.
+
+## Parameters
+
+* `sWeaponType` - The weapon type: `W_` and the name of the weapon in the model file names (eg `W_LSWORD` for `W_LSword01_a`), or `I_` and the name of the item. Not case sensitive
+* `iPart` - The part of the weapon: 0 (the only part, or part A), 1 (part B) or 2 (part C)
+* `iIdx` - Index in the list, from 0 to the number of elements - 1
+
+## Return Value
+
+The number of the model, -1 if iPart or iIdx is out of range.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_RemoveFromVisualType
+
+```cpp
+void XPAspMan_RemoveFromVisualType(
+    string sRRG,
+    int iModelPart,
+    int iCategory,
+    int iVariation,
+    string sVisualType
+);
+```
+Remove an appearance from a visual type. Nothing is done if it is the only visual type of this appearance: an appearance always keeps at least one visual type.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `iCategory` - The armor visual type: its row in armorvisualdata.2DA (as on the item)
+* `iVariation` - The variation, as on the item (the number of the model file minus 1)
+* `sVisualType` - The name of the visual type
+
+## Note
+
+The change is only saved by XPAspMan\_SaveFile.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_AddToVisualType
+
+```cpp
+void XPAspMan_AddToVisualType(
+    string sRRG,
+    int iModelPart,
+    int iCategory,
+    int iVariation,
+    string sVisualType
+);
+```
+Add an appearance to a visual type. The visual type is created if it doesn't exist. The appearance stays in its other visual types.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `iCategory` - The armor visual type: its row in armorvisualdata.2DA (as on the item)
+* `iVariation` - The variation, as on the item (the number of the model file minus 1)
+* `sVisualType` - The name of the visual type
+
+## Note
+
+Nothing is done for an unknown iCategory. The plugin doesn't check that the model file exists. The change is only saved by XPAspMan\_SaveFile.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_CreateNewVisualType
+
+```cpp
+void XPAspMan_CreateNewVisualType(
+    string sRRG,
+    int iModelPart,
+    string sVisualType
+);
+```
+Create an empty visual type, to fill it later (with XPAspMan\_AddToVisualType or XPAspMan\_ChangeVisualType).
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `sVisualType` - The name of the visual type
+
+## Note
+
+Nothing is done if this race-gender code has no visual type yet for this model part (no model of this part). The change is only saved by XPAspMan\_SaveFile.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_DeleteVisualType
+
+```cpp
+void XPAspMan_DeleteVisualType(
+    string sRRG,
+    int iModelPart,
+    string sVisualType
+);
+```
+Delete a visual type. Nothing is done if one of its appearances has no other visual type.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `sVisualType` - The name of the visual type
+
+## Note
+
+The change is only saved by XPAspMan\_SaveFile.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_DeleteExtendedVisualType
+
+```cpp
+void XPAspMan_DeleteExtendedVisualType(
+    string sRR,
+    int iGender,
+    int iModelPart,
+    string sVisualTypeToDelete
+);
+```
+Delete a visual type for several race-gender codes and model parts at once. Nothing is done at all if, for one of them, an appearance of this visual type has no other visual type.
+
+## Parameters
+
+* `sRR` - The beginning of the race-gender code: eg `P_HH` for every human, `C_AKACHI`. `""` for all
+* `iGender` - GENDER\_MALE or GENDER\_FEMALE (tested on the last letter of the race-gender code). Any other value for all
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant, or -1 for all
+* `sVisualTypeToDelete` - The name of the visual type
+
+## Note
+
+The change is only saved by XPAspMan\_SaveFile.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_CopyExtendedVisualType
+
+```cpp
+void XPAspMan_CopyExtendedVisualType(
+    string sRR,
+    int iGender,
+    int iModelPart,
+    string sOriginVisualType,
+    string sDestinationVisualType
+);
+```
+For several race-gender codes and model parts at once, add every appearance of a visual type to another one. The destination visual type is created if needed; the appearances stay in the origin one.
+
+## Parameters
+
+* `sRR` - The beginning of the race-gender code: eg `P_HH` for every human, `C_AKACHI`. `""` for all
+* `iGender` - GENDER\_MALE or GENDER\_FEMALE (tested on the last letter of the race-gender code). Any other value for all
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant, or -1 for all
+* `sOriginVisualType` - The visual type to copy
+* `sDestinationVisualType` - The visual type that receives the appearances
+
+## Note
+
+The change is only saved by XPAspMan\_SaveFile.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_SaveFile
+
+```cpp
+int XPAspMan_SaveFile();
+```
+Save the lists (visual types, restrictions, hairs, heads, accessories, weapons) in the save file (option `PathToSaveFile` of the ini). The changes made by the list management functions are only kept in memory until this call.
+
+## Return Value
+
+TRUE if the file is saved, FALSE otherwise.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_LoadFile
+
+```cpp
+int XPAspMan_LoadFile();
+```
+Load the lists from the save file. Every change made since the last XPAspMan\_SaveFile is lost.
+
+## Return Value
+
+TRUE if the file is loaded, FALSE if there is no save file.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_ChangeVisualType
+
+```cpp
+void XPAspMan_ChangeVisualType(
+    string sRRG,
+    int iModelPart,
+    string sVisualType,
+    string sApp,
+    string sNewVisualType
+);
+```
+Move an appearance from a visual type to another one. The new visual type is created if it doesn't exist.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `sVisualType` - The current visual type of the appearance
+* `sApp` - The code of the appearance, as given by XPAspMan\_GetVariation (eg `CL_003`)
+* `sNewVisualType` - The visual type that receives the appearance
+
+## Note
+
+Nothing is done if the appearance is not in sVisualType, or if sNewVisualType is sVisualType. The change is only saved by XPAspMan\_SaveFile.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# XPAspMan_RenameVisualType
+
+```cpp
+void XPAspMan_RenameVisualType(
+    string sRRG,
+    int iModelPart,
+    string sOldName,
+    string sNewName
+);
+```
+Rename a visual type for this race-gender code and model part. If sNewName already exists, the two visual types are merged. A restricted visual type stays restricted under its new name.
+
+## Parameters
+
+* `sRRG` - The race-gender code of the models: what comes before the armor visual type in the model file names, eg `P_HHM` for `P_HHM_CL_Body01`, `C_AKACHI` for `C_Akachi_CL_Body01`. Not case sensitive
+* `iModelPart` - ARMOR\_MODEL\_PART\_\* constant
+* `sOldName` - The current name of the visual type
+* `sNewName` - The new name
+
+## Note
+
+The change is only saved by XPAspMan\_SaveFile.
+
+</div>
+
+---
 
 <div style="page-break-after: always;"></div>
 
