@@ -2,6 +2,7 @@
 #include <semaphore>
 #include <thread>
 #include <mutex>
+#include <chrono>
 
 //#include <synchapi.h>
 
@@ -40,6 +41,8 @@ static uint32_t* pPointerTable;
 
 //Contexts handling
 static uint32_t currentHandlerId = 0;
+static bool bCaptureArmed = false;	// PrepareSaveContext done, no AssignCommand seen yet
+static bool bLastCaptureOk = false;	// the last AssignCommand has been captured
 
 
 
@@ -87,6 +90,7 @@ static std::atomic<bool> mainThreadWaiting {false};
 static std::atomic<bool> g_is_shutting_down {false};
 static std::atomic<bool> g_UseThreadingSystem {false};
 static std::atomic<int> waitingThreadsCount{0};
+static std::atomic<int> threadsInSystemCount{0};	// threads from the start of BeginContextInsertion to their exit
 
 
 // Exports for External usages
@@ -102,11 +106,13 @@ extern "C" __declspec(dllexport) int __cdecl BeginContextInsertion()
 	if (g_is_shutting_down.load() || !g_UseThreadingSystem.load())
 		return 0;
 
+	threadsInSystemCount++;
 	actionSemaphore->acquire();
 
 	if (g_is_shutting_down.load())
 	{
 		actionSemaphore->release();
+		threadsInSystemCount--;
 		return 0;
 	}
 
@@ -118,9 +124,11 @@ extern "C" __declspec(dllexport) int __cdecl BeginContextInsertion()
 	{
 		g_sharedMutex.unlock();
 		actionSemaphore->release();
+		threadsInSystemCount--;
 		return 0;
 	}
 
+	//Still counted until EndContextInsertion
 	isThreadLocked = true;
 	return 1;
 }
@@ -143,7 +151,7 @@ extern "C" __declspec(dllexport) int __cdecl InsertContext(uint32_t iHandler)
 	if (contexts.count(iHandler) != 0)
 	{
 		ActionVMScript* pContext = contexts[iHandler].data;
-		//Grab the module objectID instead of presume it is 0 TODO
+		//The context is executed on the module
 		PutContextInQueue(pPointerTable, NULL, 0, 0, GetModuleID_(), GetModuleID_(), 1, pContext, 10, 1);
 
 		contexts.erase(iHandler);
@@ -174,6 +182,7 @@ extern "C" __declspec(dllexport) int __cdecl EndContextInsertion()
 
 	actionSemaphore->release();
 	isThreadLocked = false;
+	threadsInSystemCount--;
 	return g_is_shutting_down ? 0 : 1;
 }
 
@@ -191,14 +200,12 @@ void __fastcall PutMutexLock()
 void __fastcall PrepareCloseThreads()
 {
 	g_is_shutting_down = true;
-	try {
-		g_sharedMutex.unlock();		//Should always be ok
-	} catch (...) {
-		// Ignore if already unlock
-	}
+	g_sharedMutex.unlock();		// the main thread always holds it here
 
-	//Let time for the cascade stuff to happens
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	//Wait for the threads to leave, at most 1 second
+	auto tEnd = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+	while (threadsInSystemCount.load() > 0 && std::chrono::steady_clock::now() < tEnd)
+		std::this_thread::yield();
 }
 
 #define OFFS_MainLoopAction 0x0059a50d
@@ -278,6 +285,7 @@ int __fastcall SaveAssignCommandContext(uint32_t* pThis, void* Unused, uint32_t 
 	ctx.data = pActionObj;
 
 	contexts[currentHandlerId]       = ctx;
+	bLastCaptureOk = true;
 
 
 	RemoveAssignCommandHooks();
@@ -305,6 +313,7 @@ void __fastcall RemoveAssignCommandHooks()
 	while (CaptureCommandCtx[i].Remove()) {
 		i++;
 	}
+	bCaptureArmed = false;
 }
 
 extern "C" __declspec(dllexport) int __cdecl PrepareSaveContext() {
@@ -312,11 +321,17 @@ extern "C" __declspec(dllexport) int __cdecl PrepareSaveContext() {
 	if (!isMainThread)
 		return 0;
 
+	bLastCaptureOk = false;
+	//Already armed: don't patch twice
+	if (bCaptureArmed)
+		return 1;
+
 	//Patch everything
 	int i = 0;
 	while (CaptureCommandCtx[i].Apply()) {
 		i++;
 	}
+	bCaptureArmed = true;
 
 	return 1;
 }
@@ -327,6 +342,14 @@ extern "C" __declspec(dllexport) uint32_t __cdecl GetContextHandler()
 {
 	// Can be done only from main thread
 	if (!isMainThread)
+		return 0;
+
+	//No AssignCommand since PrepareSaveContext: disarm, or the next AssignCommand of any script would be captured
+	if (bCaptureArmed)
+		RemoveAssignCommandHooks();
+
+	//AssignCommand failed (invalid object) or was not called
+	if (!bLastCaptureOk)
 		return 0;
 
 	return currentHandlerId;
