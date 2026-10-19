@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
-// sept_onitemstack_eff - Base script for the onItemStack event from EnhancedFix&Feature plugin
+// sept_onsplit_eff - Base script for the onSplitStack event from EnhancedFix&Feature plugin
 // Original Scripter:  Septirage
 //------------------------------------------------------------------------------
 // Last Modified By:   	Septirage			2024/10/31
