@@ -710,6 +710,14 @@ AspectManager::Init(char* nwnxhome)
 		logger->Info("* ...Done.");
 	}
 
+	config->Read("KeepNameForViewer", &iQuickPatch, 1);
+	if (iQuickPatch != 0)
+	{
+		logger->Info("* Start to apply KeepNameForViewer patches");
+		PatchKeepNameForViewer();
+		logger->Info("* ...Done.");
+	}
+
 
 	int iUseListSyst = 1;
 	config->Read("UseListSystem", &iUseListSyst, 1);
@@ -954,20 +962,23 @@ AspectManager::SetInt([[maybe_unused]] char* sFunction,
 		std::istringstream(sCommand) >> iParameters;
 		sendMusicMessage(iParameters / 10, iParameters % 10, nValue, nParam2);
 	}
-	else if (stFunction == "updateName") {
+	else if (stFunction == "setNameForViewer") {
 
 		size_t p1 = sCommand.find('|');
-		size_t p2 = sCommand.find('|', p1 + 1);
 
-		if (p1 == 1 && p2 != std::string::npos &&
-			(sCommand[0] == '0' || sCommand[0] == '1'))
+		if (p1 != std::string::npos)
 		{
-			bool b = sCommand[0] == '1';
-			std::string s1 = sCommand.substr(p1 + 1, p2 - p1 - 1);
-			std::string s2 = sCommand.substr(p2 + 1);
+			std::string s1 = sCommand.substr(0, p1);
+			std::string s2 = sCommand.substr(p1 + 1);
 
-			SendUpdatePCName(nParam2, nValue, s1, s2, b);
+			SetCreatureNameForViewer(nParam2, nValue, s1, s2);
 		}
+	}
+	else if (stFunction == "clearNameForViewer") {
+		ClearCreatureNameForViewer(nParam2, nValue);
+	}
+	else if (stFunction == "forgetNames") {
+		ForgetCreatureNames(nParam2);
 	}
 	else if(stFunction.rfind(S_LIST_SYSTEM, 0) == 0) {
 		if (!bUseListSyst) {

@@ -10,18 +10,6 @@
 
 //NWNExoString Utilities
 
-std::string ExoStringToString(NWN::CExoString* myExoString) {
-	if(myExoString != NULL) {
-		if(myExoString->m_sString != NULL) {
-			if(myExoString->m_sString) {
-				std::string result(myExoString->m_sString, myExoString->m_nBufferLength);
-				return result;
-			}
-		}
-	}
-	return "";
-}
-
 void PutNWNExoString(char* pointedExoStr, char* sValue)
 {
 	if (pointedExoStr != NULL)

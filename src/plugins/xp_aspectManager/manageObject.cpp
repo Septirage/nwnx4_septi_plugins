@@ -5,6 +5,7 @@
 #include <NWN2Lib/NWN2.h>
 #include <NWN2Lib/NWN2Common.h>
 #include "aspectManagerUtils.h"
+#include "../../septutil/NwN2Utilities.h"
 
 //HP Stuff
 int GetHP(GameObject* Object) {

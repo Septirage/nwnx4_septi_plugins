@@ -321,9 +321,20 @@ int GetCreatureWeightTotal(GameObject* Object) {
 	return *(int32_t*)(ptrWork + AmCrtWeightTotal);
 }
 
-void SetCreatureWeightTotal(GameObject* Object, int32_t iValue) {
-	char* ptrWork = (char*)Object;
-	*(int32_t*)(ptrWork + AmCrtWeightTotal) = iValue;
+#define FCT_UPDATEENCUMBRANCESTATE	0x005c8420
+
+//Engine: total weight = inventory weight + equipment weight, then encumbrance state (and movement rate if it changes)
+__declspec(naked) void __fastcall UpdateEncumbranceState(__in void* ptrCreature)
+{
+	__asm
+	{
+		mov		edx, FCT_UPDATEENCUMBRANCESTATE;
+		jmp		edx;
+	}
+}
+
+void RecalculateCreatureWeightTotal(GameObject* Object) {
+	UpdateEncumbranceState((void*)Object);
 }
 
 int GetCreatureWeightEquipment(GameObject* Object) {
@@ -812,8 +823,8 @@ void CreatureSetInt(char* cCommand, int iObjectID, int iValue) {
 	else if (sCommand == "NeverDrawHelmet")
 		return SetCreatureNeverDrawHelmet(Object, iValue);
 
-	else if (sCommand == "WeightTotal")
-		return SetCreatureWeightTotal(Object, iValue);
+	else if (sCommand == "WeightRecalculate")
+		return RecalculateCreatureWeightTotal(Object);
 	else if (sCommand == "WeightEquipment")
 		return SetCreatureWeightEquipment(Object, iValue);
 
