@@ -1,4 +1,4 @@
-plugin_version = '"1.3.4"'
+plugin_version = '"1.3.5"'
 plugin_name = 'xp_msgServer'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -16,6 +16,7 @@ plugin_shared_lib = shared_library(plugin_name,
         '../../septutil/srvadmin.cpp',
         '../../septutil/intern2daMgt.cpp',
         '../../septutil/NwN2Utilities.cpp',
+        '../../septutil/nwn2gff.cpp',
     ],
     cpp_args: ['-DPLUGIN_VERSION='+plugin_version],
     link_args: ['/dynamicbase', '/nxcompat'],
