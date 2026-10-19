@@ -89,7 +89,6 @@ enum DAYNIGHT_CYCLE
 
 	char* creatureApparenceBlock(char* pCrea);
 
-	std::string ExoStringToString(NWN::CExoString* myExoString);
 	void PutNWNExoString(char* pointedExoStr, char* sValue);
 
 	std::string ColorToString(NWN::D3DXCOLOR* myColor);
