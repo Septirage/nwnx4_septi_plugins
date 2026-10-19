@@ -103,6 +103,9 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 #define OFFS_FixItmPrpDmgBonusVsSAlign	0x0067e6ac
 
 #define OFFS_UPDATEIMMUNITY				0x00579a10
+#define OFFS_FIXDAMAGEREDUCTIONSORT		0x005846b5
+#define OFFS_UPDATEIMMUNITY_REMINCREASE	0x0065a1bc
+#define OFFS_UPDATEIMMUNITY_REMDECREASE	0x0065a46c
 
 #define OFFS_DAMAGEBONUSCAP				0x005f674d
 #define OFFS_DAMAGEMALUSCAP				0x005f675b
@@ -112,6 +115,8 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 
 #define OFFS_CALCULATESPELLPEN			0x006b024a
 #define OFFS_CALCULATESPAOE				0x006ccfd2
+
+#define OFFS_PARRYWITHFLURRY			0x0063f3f9
 
 unsigned long EndFixSRItemProperty = 0x006d9386;
 unsigned long SetEffectVariable_ = 0x006558f0;
@@ -373,7 +378,7 @@ __declspec(naked) void FixUpdateImmunity()
 	__asm
 	{
 		MOV  EDX, dword ptr[ESP + 0x8]
-		CMP  EDX, 0xFFFFFFC0
+		CMP  EDX, 0xFFFFFF9C
 		
 		PUSH EBX
 		PUSH ESI
@@ -381,7 +386,7 @@ __declspec(naked) void FixUpdateImmunity()
 		MOV  EDI,ECX
 		
 		JGE  NotTooLow
-		MOV  EDX, 0xFFFFFFC0
+		MOV  EDX, 0xFFFFFF9C
 		JMP  EndUpdateImmunity
 
 		NotTooLow:
@@ -620,7 +625,7 @@ __declspec(naked) void FixCalcSafeLocationArea()
 		MOV		EAX, dword ptr [ESI + 0x144]
 
 		//bWalkStraighLineRequired ?
-		CMP		dword ptr [ESP + 0x18], 0x1
+		CMP		dword ptr [ESP + 0x14], 0x1
 		JNE		ContinueCalcSafe
 
 		//Yes, we need to be on same area
@@ -826,7 +831,7 @@ GoToTestRetry:
 
 
 
-unsigned long ReturnToSaveThrowFailed = 0x00639a9f;
+unsigned long ReturnToSaveThrowFailed = 0x00639b8f;
 unsigned long ReturnToGoBackSaveThrow = 0x00639aa5;
 
 
@@ -1545,6 +1550,9 @@ Patch _PatchFixImmunityOverflow[] =
 	Patch(OFFS_UPDATEIMMUNITY, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
 	Patch(OFFS_UPDATEIMMUNITY +1, (relativefunc)FixUpdateImmunity),
 
+	Patch(OFFS_UPDATEIMMUNITY_REMINCREASE, (char*)"\x2b", (int)1),		// sub bl, ... => sub ebx, ...
+	Patch(OFFS_UPDATEIMMUNITY_REMDECREASE, (char*)"\x03", (int)1),		// add al, ... => add eax, ...
+
 	Patch()
 };
 Patch* PatchFixImmunityOverflow = _PatchFixImmunityOverflow;
@@ -1566,6 +1574,16 @@ Patch _PatchFixBleedingWound[] =
 	Patch()
 };
 Patch* PatchFixBleedingWound = _PatchFixBleedingWound;
+
+// DR list must stay sorted (biggest first): the engine inserts a new DR one slot too early
+// (InsertAt(i-1) instead of InsertAt(i)) when it falls between two existing ones.
+Patch _PatchFixDamageReductionSort[] =
+{
+	Patch(OFFS_FIXDAMAGEREDUCTIONSORT, (char*)"\x90\x90\x90", (int)3), // add eax,-1 => nop
+
+	Patch()
+};
+Patch* PatchFixDamageReductionSort = _PatchFixDamageReductionSort;
 
 Patch _PatchFixLowerSRFromFeat[] =
 {
@@ -1596,6 +1614,13 @@ Patch _PatchSpellPenetrationAOE[] =
 	Patch()
 };
 Patch* PatchSpellPenetrationAOE = _PatchSpellPenetrationAOE;
+
+Patch _PatchParryWithFlurry[] =
+{
+	Patch(OFFS_PARRYWITHFLURRY, (char*)"\xeb\x11\x90\x90\x90\x90", (int)6),
+	Patch()
+};
+Patch* PatchParryWithFlurry = _PatchParryWithFlurry;
 
 
 bool SmallPatchFunctions(SimpleIniConfig* config)
@@ -1635,7 +1660,7 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		}
 	}
 
-	config->Read("DisablespellcraftSave", &iTest, 0);
+	config->Read("DisableSpellCraftSave", &iTest, 0);
 	if (iTest == 1)
 	{
 		i = 0;
@@ -1714,7 +1739,7 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		}
 	}
 
-	config->Read("FixNumberOfFeatUsages", &iTest, 1);
+	config->Read("FixNumberOfFeatUsages", &iTest, 0);
 	if(iTest == 1)
 	{
 		logger->Info("* Login FeatUsages number bugfix Enabled");
@@ -1832,6 +1857,17 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		}
 	}
 
+	config->Read("FixDamageReductionSort", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixDamageReductionSort");
+		i = 0;
+		while (PatchFixDamageReductionSort[i].Apply())
+		{
+			i++;
+		}
+	}
+
 	config->Read("FixLowerSRFromFeat", &iTest, 0);
 	if (iTest == 1)
 	{
@@ -1860,6 +1896,17 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		logger->Info("* FixSpellPenetrationAOE");
 		i = 0;
 		while (PatchSpellPenetrationAOE[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixParryWithFlurry", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixParryWithFlurry");
+		i = 0;
+		while (PatchParryWithFlurry[i].Apply())
 		{
 			i++;
 		}

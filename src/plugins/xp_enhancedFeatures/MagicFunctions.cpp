@@ -165,7 +165,7 @@ void SetMemorizableSpellNumber(int oCreature, int nClassType, int nSpellLevel, i
 	if (myClass == nullptr)
 		return;
 
-	if (nSpellLevel >= 10 || nSpellLevel < 0)
+	if (nSpellLevel >= 10 || nSpellLevel < 0 || iNumber < 0)
 		return;
 
 	//Need to remove memorized spells
@@ -195,6 +195,9 @@ void SetMemorizableSpellNumber(int oCreature, int nClassType, int nSpellLevel, i
 		{
 			int iSize = myClass->MemorizedSpells[nSpellLevel].size;
 			int iNewSize = iSize;
+			//Empty list: doubling 0 never ends
+			if (iNewSize <= 0)
+				iNewSize = iNumber;
 			while (iNewSize < iNumber)
 			{
 				iNewSize += iSize;
@@ -228,7 +231,7 @@ void SetMemorizableSpellNumber(int oCreature, int nClassType, int nSpellLevel, i
 		else
 		{
 			//Just be sure to have new spell slot well initialized
-			for (int i = myClass->MemorizedSpells[nSpellLevel].NbSpellsSlot; i <= iNumber; i++)
+			for (int i = myClass->MemorizedSpells[nSpellLevel].NbSpellsSlot; i < iNumber; i++)
 			{
 				myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[i] = 0;
 			}

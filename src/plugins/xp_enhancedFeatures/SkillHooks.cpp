@@ -194,7 +194,7 @@ __declspec(naked) void CallSkillFeats()
 
 		//Go back to normal behavior
 		CMP	EAX, 0x1C
-		JGE	LeaveSkillFeats
+		JA	LeaveSkillFeats
 
 		JMP dword ptr[ReturnSkillFeats]
 		//JMP	dword ptr[EAX*0x4 + 0x00758670]
@@ -226,6 +226,8 @@ __declspec(naked) void CallSkillAbility()
 
 		PUSH EDI
 		MOV ESI, EAX
+		//EAX is the result of the engine function: 0 when no ability is used (NOP), as the engine does
+		XOR EAX, EAX
 		JMP dword ptr[EndOfSkillAbility]
 
 	AbilitySkillNotFound:
