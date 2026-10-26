@@ -41,6 +41,11 @@ typedef NWN::CExoString* (__thiscall *NWN2ReturnFullName_t)(NWN::CNWSCreatureSta
 
 NWN2ReturnFullName_t const NWN2ReturnFullName = (NWN2ReturnFullName_t)0x0059d770;
 
+//Message 0x36/0x01 sent by PlayCustomAnimation to every player (object, animation name, looping, speed)
+typedef void (__thiscall *SendCustomAnimationMsg_t)(void* pMsg, uint32_t receiverPCID, NWN::OBJECTID oObject, NWN::CExoString* pAnimation, uint32_t nLooping, float fSpeed);
+
+SendCustomAnimationMsg_t const SendCustomAnimationMsg = (SendCustomAnimationMsg_t)0x00568b90;
+
 
 static uint32_t* fakeLocalizedString;
 static uint32_t* fakeCELocString;
@@ -373,8 +378,8 @@ struct NameForViewer
 	std::string sLastName;
 };
 
-//Owned creature of the viewer -> (Creature -> Name)
-static std::unordered_map<NWN::OBJECTID, std::unordered_map<NWN::OBJECTID, NameForViewer>> namesForViewer;
+//PlayerId of the viewer -> (Creature -> Name). Forgotten when the player leaves (ForgetNamesForPlayer)
+static std::unordered_map<NWN::PLAYERID, std::unordered_map<NWN::OBJECTID, NameForViewer>> namesForViewer;
 static bool bKeepNameForViewer = false;
 
 
@@ -402,7 +407,7 @@ int __fastcall PrepareNameForViewer(NWN::CNWSCreature* ptrCrea, CNWSPlayerStruct
 	if (namesForViewer.empty() || pViewer == NULL)
 		return 0;
 
-	auto itViewer = namesForViewer.find(pViewer->ownedCreature);
+	auto itViewer = namesForViewer.find(pViewer->playerID);
 	if (itViewer == namesForViewer.end())
 		return 0;
 
@@ -587,6 +592,9 @@ static bool SendNameToViewer(uint32_t oChanged, uint32_t oReceiver, bool bRealNa
 
 	if (bSetName)
 	{
+		if (!IsKnowByPlayer(receiverPCID, oIdChanged))
+			return true;
+
 		void* pFirstName = fakeLocalizedString;
 		void* pLastName = fakeLocalizedString2;
 		if (bRealName)
@@ -663,10 +671,11 @@ bool SendUpdatePCName(uint32_t oChanged, uint32_t oReceiver, std::string sFirstN
 //For a PC, the player list name (used by the chat) is also sent.
 bool SetCreatureNameForViewer(uint32_t oCreature, uint32_t oViewer, std::string sFirstName, std::string sLastName)
 {
-	//Only kept for the owned character of a player (key used by the patches)
-	if (bKeepNameForViewer && GetPCBlockFromCreature(oViewer) != NULL)
+	//Only kept for a player (key used by the patches)
+	NWN::PLAYERID uViewer = GetPCIDFromCreature(oViewer);
+	if (bKeepNameForViewer && uViewer != NWN::PLAYERID_INVALIDID)
 	{
-		NameForViewer& name = namesForViewer[oViewer][oCreature];
+		NameForViewer& name = namesForViewer[uViewer][oCreature];
 		name.sFirstName = sFirstName;
 		name.sLastName = sLastName;
 	}
@@ -683,7 +692,7 @@ bool SetCreatureNameForViewer(uint32_t oCreature, uint32_t oViewer, std::string 
 //Forget the kept name of oCreature for oViewer and send back the real name.
 bool ClearCreatureNameForViewer(uint32_t oCreature, uint32_t oViewer)
 {
-	auto itViewer = namesForViewer.find(oViewer);
+	auto itViewer = namesForViewer.find(GetPCIDFromCreature(oViewer));
 	if (itViewer != namesForViewer.end())
 	{
 		itViewer->second.erase(oCreature);
@@ -700,19 +709,35 @@ bool ClearCreatureNameForViewer(uint32_t oCreature, uint32_t oViewer)
 }
 
 
-//Forget everything about oCreature : as a viewer and as a viewed creature. Nothing is sent.
-void ForgetCreatureNames(uint32_t oCreature)
+//Same message as PlayCustomAnimation, but only sent to oViewer. Nothing is kept on the server.
+bool PlayCustomAnimationForViewer(uint32_t oObject, uint32_t oViewer, std::string sAnimation, uint32_t nLooping, float fSpeed)
 {
-	namesForViewer.erase(oCreature);
+	uint32_t receiverPCID = GetPCIDFromCreature(oViewer);
+	if (receiverPCID == NWN::PLAYERID_INVALIDID)
+		return false;
 
-	for (auto itViewer = namesForViewer.begin(); itViewer != namesForViewer.end();)
-	{
-		itViewer->second.erase(oCreature);
-		if (itViewer->second.empty())
-			itViewer = namesForViewer.erase(itViewer);
-		else
-			++itViewer;
-	}
+	GameObjectManager m_ObjectManager;
+	if (m_ObjectManager.GetGameObject((NWN::OBJECTID)oObject) == NULL)
+		return false;
+
+	int* ptrMsg = GetCNWSMessage();
+	if (ptrMsg == NULL)
+		return false;
+
+	//The engine only reads the string up to its '\0'
+	NWN::CExoString esAnimation;
+	esAnimation.m_sString = sAnimation.data();
+	esAnimation.m_nBufferLength = (ULONG)(sAnimation.size() + 1);
+
+	SendCustomAnimationMsg(ptrMsg, receiverPCID, (NWN::OBJECTID)oObject, &esAnimation, nLooping, fSpeed);
+	return true;
+}
+
+
+//Forget every name kept for this player (as a viewer). Nothing is sent: called when the player leaves
+void ForgetNamesForPlayer(uint32_t uPlayerId)
+{
+	namesForViewer.erase(uPlayerId);
 }
 
 

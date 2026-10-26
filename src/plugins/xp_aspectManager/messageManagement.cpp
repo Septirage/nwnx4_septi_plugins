@@ -8,6 +8,7 @@
 #include <misc/log.h>
 #include <nwn2heap.h>
 #include <misc/Patch.h>
+#include <detours/detours.h>
 #include "../../septutil/NwN2DataPos.h"
 #include "../../septutil/NwN2Utilities.h"
 #include "../../septutil/NwN2Message.h"
@@ -30,6 +31,9 @@
 #define FUNC_BUILDPARTIENOM	  0x00550EF0
 
 #define FUNC_GETBASEITMFROMID 0x00750b20
+
+#define FUNC_POLYMORPHCREA		0x005f7820
+#define FUNC_UNPOLYMORPHCREA	0x005f8570
 
 #define FUNC_BUILDALLVISUAL 0x551090
 #define FUNC_UPDATEMSGHASH  0x74e530
@@ -441,7 +445,8 @@ unsigned long GetObjectToPlayerId(int iParam)
 	return Creature->GetControllingPlayerId();
 }
 
-bool __fastcall IsKnowByPlayer(__in NWN::PLAYERID PlayerId, __in NWN::OBJECTID ObjectId)
+//Last update object (what the engine last sent to this player about this object), NULL if unknown by the player
+NWN::CLastUpdateObject* GetLUOForPlayer(NWN::PLAYERID PlayerId, NWN::OBJECTID ObjectId)
 {
 	NWN::CNWSPlayer * Player = GetClientObjectByPlayerId(NWN::g_pAppManager->m_pServerExoApp, NULL, PlayerId, 0 );
 	NWN::NWN2_DynamicArrayBlittable<NWN::BugFix_LUOMap> * LUOMap;
@@ -452,7 +457,7 @@ bool __fastcall IsKnowByPlayer(__in NWN::PLAYERID PlayerId, __in NWN::OBJECTID O
 	LONG Middle;
 
 	if (Player == NULL)
-		return false;
+		return NULL;
 
 	//
 	// Check for NULL first because otherwise the LUO map is not guaranteed to
@@ -462,7 +467,7 @@ bool __fastcall IsKnowByPlayer(__in NWN::PLAYERID PlayerId, __in NWN::OBJECTID O
 	if ((Player->m_pActiveObjectsLastUpdate == NULL) ||
 		(Player->m_pActiveObjectsLastUpdate->m_nCount == 0))
 	{
-		return false;
+		return NULL;
 	}
 
 	//
@@ -485,7 +490,7 @@ bool __fastcall IsKnowByPlayer(__in NWN::PLAYERID PlayerId, __in NWN::OBJECTID O
 		{
 			if (Middle == 0)
 			{
-				return false;
+				return NULL;
 			}
 
 			High = Middle - 1;
@@ -502,12 +507,17 @@ bool __fastcall IsKnowByPlayer(__in NWN::PLAYERID PlayerId, __in NWN::OBJECTID O
 
 	if (High < Low)
 	{
-		return false;
+		return NULL;
 	}
 
 	PreFetchCacheLine( PF_TEMPORAL_LEVEL_1, LUOEntry->LUO );
 
-	return (LUOEntry->LUO != NULL);
+	return LUOEntry->LUO;
+}
+
+bool __fastcall IsKnowByPlayer(__in NWN::PLAYERID PlayerId, __in NWN::OBJECTID ObjectId)
+{
+	return (GetLUOForPlayer(PlayerId, ObjectId) != NULL);
 }
 
 
@@ -1033,8 +1043,81 @@ bool showObject(int iInventorySlot, int iAffected, int iItem, int mustView)
 	return result;
 }
 
+/***************************** Polymorph transition *****************************/
+
+//Creature currently in a polymorph/unpolymorph engine call.
+//Polymorph loads the new appearance (type, gender, armor visual) THEN unequips every slot.
+//Unpolymorph re-equips every slot THEN restores the old appearance.
+//A refresh sent in between gives the client the new gender/visual with the old appearance type.
+NWN::OBJECTID g_idCreaInAppTransition = NWN::INVALIDOBJID;
+
+int(__fastcall* OriginalPolymorphCrea)(void* pCreature, void* _, uint32_t p1, uint32_t p2, uint32_t p3, uint32_t p4);
+int(__fastcall* OriginalUnPolymorphCrea)(void* pCreature, void* _, uint32_t p1);
+
+int __fastcall PolymorphCreaHook(void* pCreature, void* _, uint32_t p1, uint32_t p2, uint32_t p3, uint32_t p4)
+{
+	NWN::OBJECTID idPrevious = g_idCreaInAppTransition;
+	g_idCreaInAppTransition = *(NWN::OBJECTID*)((char*)pCreature + 0xA0);
+	int iRet = OriginalPolymorphCrea(pCreature, _, p1, p2, p3, p4);
+	g_idCreaInAppTransition = idPrevious;
+	return iRet;
+}
+
+int __fastcall UnPolymorphCreaHook(void* pCreature, void* _, uint32_t p1)
+{
+	NWN::OBJECTID idPrevious = g_idCreaInAppTransition;
+	g_idCreaInAppTransition = *(NWN::OBJECTID*)((char*)pCreature + 0xA0);
+	int iRet = OriginalUnPolymorphCrea(pCreature, _, p1);
+	g_idCreaInAppTransition = idPrevious;
+	return iRet;
+}
+
+bool initPolymorphTransitionHooks()
+{
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	*(DWORD*)&OriginalPolymorphCrea = FUNC_POLYMORPHCREA;
+	*(DWORD*)&OriginalUnPolymorphCrea = FUNC_UNPOLYMORPHCREA;
+	bool bPolyOk = DetourAttach(&(PVOID&)OriginalPolymorphCrea, PolymorphCreaHook) == 0;
+	bool bUnPolyOk = DetourAttach(&(PVOID&)OriginalUnPolymorphCrea, UnPolymorphCreaHook) == 0;
+	bool bCommitOk = DetourTransactionCommit() == 0;
+	return bPolyOk && bUnPolyOk && bCommitOk;
+}
+
+//Our refresh messages never send the appearance type. They must only be sent when the client
+//already has the current one, else it mixes the new gender/visual with its old appearance type.
+//When we skip, the engine sends the whole appearance itself (all flags on appearance type change).
+bool canRefreshAppearance(int iAffected, int mustView)
+{
+	NWN::OBJECTID ObjectId = (NWN::OBJECTID)iAffected;
+
+	if ((ObjectId & NWN::INVALIDOBJID) != 0)
+		ObjectId &= ~(NWN::LISTTYPE_MASK);
+
+	if (g_idCreaInAppTransition != NWN::INVALIDOBJID && ObjectId == g_idCreaInAppTransition)
+		return false;
+
+	GameObjectManager m_ObjectManager;
+	GameObject* Object = m_ObjectManager.GetGameObject(ObjectId);
+	if (Object == NULL || Object->GetObjectType() != NWN::OBJECT_TYPE::OBJECT_TYPE_CREATURE)
+		return false;
+
+	//Not known by the client yet: it would ignore the update and misread the rest of the message
+	uint8_t* pLUO = (uint8_t*)GetLUOForPlayer(GetObjectToPlayerId(mustView), (NWN::OBJECTID)iAffected);
+	if (pLUO == NULL)
+		return false;
+
+	//Appearance type last sent to this player vs current one
+	return (*(uint16_t*)(pLUO + 0x1E) == *(uint16_t*)((uint8_t*)Object + 0x182A));
+}
+
+/********************************************************************************/
+
 bool refreshSelfBelt(int iAffected, int mustView)
 {
+	if (!canRefreshAppearance(iAffected, mustView))
+		return true;
+
 	bool result = false;
 	static unsigned char DataToSend[0x1000];
 	memset(DataToSend, 0, sizeof(DataToSend));
@@ -1320,6 +1403,9 @@ bool refreshNude(int iAffected, int mustView)
 {
 	static unsigned char Data[0x300];
 
+	if (!canRefreshAppearance(iAffected, mustView))
+		return true;
+
 	if (!SendRefreshCreatureApp(iAffected, mustView))
 		return false;
 
@@ -1399,6 +1485,9 @@ bool refreshBelt(int iAffected, int mustView)
 
 bool refreshItemApp(int iInventorySlot, int iAffected, int iItem, int mustView)
 {
+	if (!canRefreshAppearance(iAffected, mustView))
+		return true;
+
 	if (IsKnowByPlayer(GetObjectToPlayerId(mustView),iAffected))
 	{
 		// 0x7A2CD679

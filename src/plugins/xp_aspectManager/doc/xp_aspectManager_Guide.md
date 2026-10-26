@@ -10,7 +10,7 @@ pdf_options:
 
 <div class="cover-title">
 <div class="cover-heading">xp_aspectManager</div>
-<div class="cover-version">V1.5.7 – 2026-10-16 by Septirage</div>
+<div class="cover-version">V1.5.8 – 2026-11-12 by Septirage</div>
 </div>
 
 <div class="toc">
@@ -66,7 +66,8 @@ xp_aspectManager uses two ini files:
 | `PatchSetIcon` | 1 | Set to 1 to refresh the icon of an item for the players when `SetIcon` is used. |
 | `PatchItemPropertyFct` | 1 | Set to 1 to enable the new ItemProperty functions (`GetSpecificItemProperty_xpAM`, `AddItemProperty_xpAM`, ...). |
 | `UseAccountNameForOOCMsg` | 0 | Set to 1 to use the player account name instead of the character name for all OOC messages. |
-| `KeepNameForViewer` | 1 | Set to 1 to keep the names given by `SetCreatureNameForViewer_xpAM` until `ClearCreatureNameForViewer_xpAM` or `ForgetCreatureNames_xpAM` is called. If 0, the name is only sent once. |
+| `KeepNameForViewer` | 1 | Set to 1 to keep the names given by `SetCreatureNameForViewer_xpAM` until `ClearCreatureNameForViewer_xpAM` is called or the player leaves the server. If 0, the name is only sent once. |
+| `SEFForViewer` | 1 | Set to 1 to enable `SetSEFForViewer_xpAM` (a special effect seen by one player only). Needs xp_bugfix. |
 | `UseListSystem` | 1 | Set to 1 to use the whole appearance list system (scan and management), 0 otherwise. The options below are only used if `UseListSystem = 1`. |
 | `ScanFiles` | 1 | Choose the scan behaviour:<br>**0**: no scan. If you already have a save file, it is loaded.<br>**1**: always scan.<br>**2**: "intelligent scan". Scans only if a file named `AspectManagerScan` is present in the plugin directory, then deletes it. Basic usage: set it to 2 and create an `AspectManagerScan` file each time you update your haks, so you avoid the scan time at each server launch. |
 | `PathToListFile` | `listeHakZip.ini` | Name/path of the list file. |

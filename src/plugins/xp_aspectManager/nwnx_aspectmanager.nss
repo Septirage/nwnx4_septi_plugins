@@ -279,16 +279,44 @@ void MusicBattleRunForPC_xpAM(object oPC, int bStart);
 //Change the visible name of oCreature for oViewer (sFirstName can't contain '|')
 //If oCreature is a PC, its name in the player list/chat is also changed for oViewer
 //The name is kept (creature refresh, SetName/SetDescription, examine...) until
-//ClearCreatureNameForViewer_xpAM or ForgetCreatureNames_xpAM (KeepNameForViewer = 1 in the ini)
+//ClearCreatureNameForViewer_xpAM or until oViewer leaves the server (KeepNameForViewer = 1 in the ini)
 //oViewer must be the character of the player
 void SetCreatureNameForViewer_xpAM(object oCreature, string sFirstName, string sLastName, object oViewer);
 
 //oViewer will see again the real name of oCreature
 void ClearCreatureNameForViewer_xpAM(object oCreature, object oViewer);
 
-//Forget every name kept for oCreature : the names it sees and the names under which it is seen.
-//Nothing is sent. To call on client leave (and optionally when a named creature is destroyed)
-void ForgetCreatureNames_xpAM(object oCreature);
+
+//Like PlayCustomAnimation, but only oViewer sees oObject play sAnimationName
+//oViewer must be the character of the player. Standard animations can be used by name too ("bow", "laugh", ...)
+//Purely visual on oViewer's client: nothing is kept on the server and the other players see nothing.
+//As with PlayCustomAnimation, any real animation of oObject (walk, combat, ...) stops it.
+//sAnimationName: the .gr2 file name without the skeleton prefix nor extension (P_HHM_kneelidle.gr2 -> "kneelidle")
+//  "%"        : stops the custom animations
+//  "#smile"   : facial expression. #off #amused #angry #frown #annoyed #smile #smilebig
+//               #nervous #depressed #scared #surprized #thoughtful
+//  "*attack01": inserts the current weapon stance (P_HHM_1hss_attack01.gr2 with a one handed sword, ...)
+void PlayCustomAnimationForPC_xpAM(object oObject, string sAnimationName, int nLooping, object oViewer, float fSpeed = 1.0f);
+
+
+/*********************************** SEF for Viewer ***********************************/
+
+//Apply the special effect sSEF (.sef name without extension, 32 characters max) on oObject, seen only by oViewer.
+//Like a permanent EffectNWN2SpecialEffectFile, but visible by a single player:
+//  oTarget / vTargetPos : "target" end of the SEF (beam, lightning...), like EffectNWN2SpecialEffectFile
+//The SEF is kept and sent again each time oViewer's client recreates oObject (out of view, area change...).
+//It plays until ClearSEFForViewer_xpAM / ClearSEFForViewerById_xpAM (or until its own MaxDuration if the .sef has one).
+//For a temporary one: DelayCommand(fDuration, ClearSEFForViewerById_xpAM(nId)) on a stable object (the module)
+//oObject : creature, item, placeable or door. oViewer must be the character of the player.
+//Each call adds a new SEF. Return its id (to use with ClearSEFForViewerById_xpAM), 0 on failure.
+//Everything is forgotten when oViewer leaves the server (SEFForViewer = 1 in the ini)
+int SetSEFForViewer_xpAM(object oObject, object oViewer, string sSEF, object oTarget = OBJECT_INVALID, vector vTargetPos = [0.0,0.0,0.0]);
+
+//Remove every SEF named sSEF applied on oObject for oViewer with SetSEFForViewer_xpAM
+void ClearSEFForViewer_xpAM(object oObject, object oViewer, string sSEF);
+
+//Remove the SEF nId returned by SetSEFForViewer_xpAM
+void ClearSEFForViewerById_xpAM(int nId);
 
 
 /**************************** Refresh & Collision ****************************/
@@ -808,9 +836,27 @@ void ClearCreatureNameForViewer_xpAM(object oCreature, object oViewer)
 	NWNXSetInt("AspectManager", "clearNameForViewer", "", ObjectToInt(oCreature), ObjectToInt(oViewer));
 }
 
-void ForgetCreatureNames_xpAM(object oCreature)
+void PlayCustomAnimationForPC_xpAM(object oObject, string sAnimationName, int nLooping, object oViewer, float fSpeed = 1.0f)
 {
-	NWNXSetInt("AspectManager", "forgetNames", "", ObjectToInt(oCreature), 0);
+	NWNXSetFloat("AspectManager", "customAnimForViewer", IntToString(ObjectToInt(oViewer))+"|"+IntToString(nLooping)+"|"+sAnimationName, ObjectToInt(oObject), fSpeed);
+}
+
+int SetSEFForViewer_xpAM(object oObject, object oViewer, string sSEF, object oTarget = OBJECT_INVALID, vector vTargetPos = [0.0,0.0,0.0])
+{
+	string sParams = IntToString(ObjectToInt(oViewer)) + "|" + IntToString(ObjectToInt(oTarget))
+		+ "|" + FloatToString(vTargetPos.x, 0, 4) + "|" + FloatToString(vTargetPos.y, 0, 4) + "|" + FloatToString(vTargetPos.z, 0, 4)
+		+ "|" + sSEF;
+	return NWNXGetInt("AspectManager", "setSEFForViewer", sParams, ObjectToInt(oObject));
+}
+
+void ClearSEFForViewer_xpAM(object oObject, object oViewer, string sSEF)
+{
+	NWNXSetInt("AspectManager", "clearSEFForViewer", sSEF, ObjectToInt(oObject), ObjectToInt(oViewer));
+}
+
+void ClearSEFForViewerById_xpAM(int nId)
+{
+	NWNXSetInt("AspectManager", "clearSEFForViewerById", "", nId, 0);
 }
 
 
