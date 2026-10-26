@@ -164,6 +164,18 @@ CNWSPlayerStruct* GetPCBlockFromCreature(uint32_t oCreature)
 	return NULL;
 }
 
+CNWSPlayerStruct* GetPCBlockFromPlayerId(uint32_t uPlayerId)
+{
+	CNWSPlayerStruct* pFound = NULL;
+	forEachPCBlock([&](CNWSPlayerStruct* pPlayer) {
+		if (pPlayer->playerID != uPlayerId)
+			return true;
+		pFound = pPlayer;
+		return false;
+	});
+	return pFound;
+}
+
 uint32_t GetPCIDFromCreature(uint32_t oCreature)
 {
 	uint32_t playerID = NWN::PLAYERID_INVALIDID;

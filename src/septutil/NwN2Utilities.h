@@ -113,6 +113,7 @@ void forEachPCBlock(Func callback) {
 
 uint32_t GetPCIDFromCreature(uint32_t oCreature);
 CNWSPlayerStruct* GetPCBlockFromCreature(uint32_t oCreature);
+CNWSPlayerStruct* GetPCBlockFromPlayerId(uint32_t uPlayerId);
 CNetBigPlayerInfo* GetCNetPlayerInfo(uint8_t idPlayer);
 int* GetCNWSMessage();
 NWN::OBJECTID GetModuleID();

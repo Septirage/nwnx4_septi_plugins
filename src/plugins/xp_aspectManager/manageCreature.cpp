@@ -324,7 +324,7 @@ int GetCreatureWeightTotal(GameObject* Object) {
 #define FCT_UPDATEENCUMBRANCESTATE	0x005c8420
 
 //Engine: total weight = inventory weight + equipment weight, then encumbrance state (and movement rate if it changes)
-__declspec(naked) void __fastcall UpdateEncumbranceState(__in void* ptrCreature)
+__declspec(naked) void __fastcall UpdateEncumbranceState(__in void* ptrCreature, __in void* unused, __in int bSendFeedBackMsg)
 {
 	__asm
 	{
@@ -334,7 +334,7 @@ __declspec(naked) void __fastcall UpdateEncumbranceState(__in void* ptrCreature)
 }
 
 void RecalculateCreatureWeightTotal(GameObject* Object) {
-	UpdateEncumbranceState((void*)Object);
+	UpdateEncumbranceState((void*)Object, NULL, 1);
 }
 
 int GetCreatureWeightEquipment(GameObject* Object) {

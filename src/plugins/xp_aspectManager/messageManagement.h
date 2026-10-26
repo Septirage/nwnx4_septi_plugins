@@ -90,6 +90,8 @@ static unsigned char refreshNudeP2[] = {
 
 	void setLoggerMsg(LogNWNX* myLogger);
 
+	bool initPolymorphTransitionHooks();
+
 	void __fastcall SendIconUpdateMessage(uint8_t* pItem, uint32_t uNewIcon);
 
 #endif

@@ -6,7 +6,7 @@ functions Guide
 </div>
 
 <div class="cover-version">
-for plugin v1.5.7 -2026-10-16 by Septirage
+for plugin v1.5.8 -2026-11-12 by Septirage
 </div>
 
 </div>
@@ -140,7 +140,12 @@ Refresh, View & Collision
 [SetObjectDynamicCollision\_xpAM](#setobjectdynamiccollision_xpam)  
 [SetCreatureNameForViewer\_xpAM](#setcreaturenameforviewer_xpam)  
 [ClearCreatureNameForViewer\_xpAM](#clearcreaturenameforviewer_xpam)  
-[ForgetCreatureNames\_xpAM](#forgetcreaturenames_xpam)  
+[PlayCustomAnimationForPC\_xpAM](#playcustomanimationforpc_xpam)  
+  
+SEF for Viewer    
+[SetSEFForViewer\_xpAM](#setsefforviewer_xpam)  
+[ClearSEFForViewer\_xpAM](#clearsefforviewer_xpam)  
+[ClearSEFForViewerById\_xpAM](#clearsefforviewerbyid_xpam)  
    </td>
  </tr>
 </table><div style="page-break-after: always;"></div>
@@ -1836,7 +1841,7 @@ The change is only visible to oViewer and does not modify the actual first name 
 
 This affects the name displayed by the client for the creature, including its overhead name, portrait, combat log, dialogues, examine window, and other contexts where the creature's name is displayed. If oCreature is a PC, its name in the player list and private message list is also changed for oViewer.
 
-With `KeepNameForViewer = 1` (ini), the name is kept by the plugin: each time the server sends the creature's name again to oViewer (creature appearing again, SetFirstName/SetLastName/SetDescription, appearance change, examine...), the kept name is sent instead of the real one. It stays until ClearCreatureNameForViewer\_xpAM or ForgetCreatureNames\_xpAM is called. Calling the function again simply replaces the kept name.
+With `KeepNameForViewer = 1` (ini), the name is kept by the plugin: each time the server sends the creature's name again to oViewer (creature appearing again, SetFirstName/SetLastName/SetDescription, appearance change, examine...), the kept name is sent instead of the real one. It stays until ClearCreatureNameForViewer\_xpAM is called or oViewer leaves the server. Calling the function again simply replaces the kept name.
 
 With `KeepNameForViewer = 0`, the name is only sent once and the server may send the real name again later.
 
@@ -1851,7 +1856,7 @@ With `KeepNameForViewer = 0`, the name is only sent once and the server may send
 
 The name is viewer-specific. Different players can therefore see different names for the same creature.
 
-Object IDs are never reused, so a forgotten ForgetCreatureNames\_xpAM call only keeps some unused memory until the server restarts.
+The names kept for a player are forgotten by the plugin when it leaves the server (this needs xp_bugfix).
 
 ## Limitations 
 
@@ -1882,17 +1887,111 @@ Removes the name kept by SetCreatureNameForViewer\_xpAM for oCreature and oViewe
 
 <div class="fnblock">
 
-# ForgetCreatureNames\_xpAM
+# PlayCustomAnimationForPC\_xpAM
 ```cpp
-void ForgetCreatureNames_xpAM(object oCreature);
+void PlayCustomAnimationForPC_xpAM(object oObject, string sAnimationName, int nLooping, object oViewer, float fSpeed = 1.0f);
 ```
-Removes every name kept for oCreature: the names oCreature sees for other creatures and the names under which oCreature is seen by others. Nothing is sent to the clients.
+Same as PlayCustomAnimation, but only oViewer sees oObject play the animation.
 
-Should be called when a player leaves the server (OnClientLeave), and optionally when a named creature is destroyed.
+The server sends exactly the same message as PlayCustomAnimation, only to oViewer. It is purely visual on oViewer's client: nothing is kept on the server and the other players see nothing.
 
 ## Parameters
 
-* `oCreature` - The creature (or player character) to forget.
+* `oObject` - The object that plays the animation.
+* `sAnimationName` - The animation to play (see below).
+* `nLooping` - TRUE to loop the animation, FALSE to play it once.
+* `oViewer` - The PC who will see the animation. It must be the character of the player (not a possessed creature).
+* `fSpeed` - Speed of the animation (1.0 = normal speed).
+
+## Animation name
+
+The client builds the animation file name from the skeleton of the creature: `P_HHM_skel` gives the prefix `P_HHM_`, so `"kneelidle"` plays `P_HHM_kneelidle.gr2`. sAnimationName is therefore the .gr2 file name without the skeleton prefix and without the extension. A custom animation needs one file for each skeleton that must play it (`P_HHM_myanim.gr2`, `P_HHF_myanim.gr2`, ...).
+
+Standard animations are played the same way, by name (`"bow"`, `"laugh"`, `"taunt"`, `"worship"`, `"meditate"`...).
+
+The full file name (prefix + name + `.gr2`) is limited to 63 characters.
+
+Special names, handled by the client:
+
+| Name | Effect |
+|---|---|
+| `"%"` | Stops the custom animations. |
+| `"#xxx"` | Facial expression instead of a body animation: `#off`, `#amused`, `#angry`, `#frown`, `#annoyed`, `#smile`, `#smilebig`, `#nervous`, `#depressed`, `#scared`, `#surprized`, `#thoughtful`. |
+| `"*xxx"` | Inserts the current weapon stance before the name: `"*attack01"` plays `P_HHM_1hss_attack01.gr2` with a one handed sword. Stances: `una_`, `1hss_`, `1hs_`, `d2h_`, `bow_`, `c2h_`, `o2ht_`, `o2hs_`, `cbow_`, `thrw_`, `m1hss_`, `m1hls_`, `mbow_`, `muna_`. |
+
+## Notes
+
+As with PlayCustomAnimation, any real animation of oObject (walking, combat...) stops the custom animation.
+
+To stop a looping animation later, play `"%"` for the same viewer (for example with DelayCommand).
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# SetSEFForViewer\_xpAM
+```cpp
+int SetSEFForViewer_xpAM(object oObject, object oViewer, string sSEF, object oTarget = OBJECT_INVALID, vector vTargetPos = [0.0,0.0,0.0]);
+```
+Applies the special effect sSEF on oObject, seen only by oViewer.
+
+It works like a permanent EffectNWN2SpecialEffectFile, but the other players see nothing. Each call adds a new SEF: calling the function twice with the same sSEF applies it twice.
+
+The SEF plays until ClearSEFForViewer\_xpAM or ClearSEFForViewerById\_xpAM is called (or until its own MaxDuration, if the .sef has one). The plugin keeps it and sends it again each time the client of oViewer recreates oObject (object out of view, area change...). If the client does not know oObject yet, the SEF is sent as soon as it does. Everything is forgotten when oViewer leaves the server.
+
+The function needs `SEFForViewer = 1` in the ini and xp_bugfix.
+
+## Parameters
+
+* `oObject` - The object that carries the effect: a creature, an item, a placeable or a door.
+* `oViewer` - The PC who will see the effect. It must be the character of the player (not a possessed creature).
+* `sSEF` - The name of the .sef file, without extension (32 characters max).
+* `oTarget` - The "target" end of the effect (beam, lightning...), like in EffectNWN2SpecialEffectFile. Optional.
+* `vTargetPos` - The position of the "target" end, like in EffectNWN2SpecialEffectFile. Optional.
+
+## Return Value
+
+The id of this SEF (to use with ClearSEFForViewerById\_xpAM), or 0 on failure: option disabled, invalid object or viewer, empty sSEF or longer than 32 characters.
+
+## Notes
+
+For a temporary SEF, use DelayCommand(fDuration, ClearSEFForViewerById\_xpAM(nId)) on an object that stays (for example the module).
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# ClearSEFForViewer\_xpAM
+```cpp
+void ClearSEFForViewer_xpAM(object oObject, object oViewer, string sSEF);
+```
+Removes every SEF named sSEF applied on oObject for oViewer with SetSEFForViewer\_xpAM. The name is compared without taking the case into account.
+
+## Parameters
+
+* `oObject` - The object that carries the SEF.
+* `oViewer` - The PC who sees the SEF.
+* `sSEF` - The name of the .sef file, without extension.
+
+</div>
+
+---
+
+<div class="fnblock">
+
+# ClearSEFForViewerById\_xpAM
+```cpp
+void ClearSEFForViewerById_xpAM(int nId);
+```
+Removes the SEF returned by SetSEFForViewer\_xpAM. Does nothing if the id is unknown (SEF already removed, or its viewer left the server).
+
+## Parameters
+
+* `nId` - The id returned by SetSEFForViewer\_xpAM.
 
 </div>
 

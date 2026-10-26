@@ -1,4 +1,4 @@
-plugin_version = '"1.5.7"'
+plugin_version = '"1.5.8"'
 plugin_name = 'xp_aspectManager'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -28,6 +28,7 @@ plugin_shared_lib = shared_library(plugin_name,
 
         'messageManagement.cpp',
         'refreshObject.cpp',
+        'sefForViewer.cpp',
         'scanAndAnalyseFile.cpp',
     ],
     cpp_args: ['/D_WIN32_WINNT=0x0400', '-DPLUGIN_VERSION='+plugin_version],
@@ -68,4 +69,9 @@ custom_target('compileVersion',
 
 install_data('xp_aspectManager.ini', install_dir: 'config.example')
 install_data('listeHakZip.ini', install_dir: 'config.example')
-install_data('nwnx_aspectManager.nss', install_dir: 'nwscript')
+install_data('nwnx_aspectmanager.nss', install_dir: 'nwscript')
+install_data('nwnx_aspectmanager_area.nss', install_dir: 'nwscript')
+install_data('nwnx_aspectmanager_creature.nss', install_dir: 'nwscript')
+install_data('nwnx_aspectmanager_item.nss', install_dir: 'nwscript')
+install_data('nwnx_aspectmanager_light.nss', install_dir: 'nwscript')
+install_data('nwnx_aspectmanager_list.nss', install_dir: 'nwscript')

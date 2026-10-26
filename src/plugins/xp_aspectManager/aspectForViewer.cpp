@@ -18,6 +18,7 @@
 
 #include <unordered_set>
 #include <unordered_map>
+#include <vector>
 
 
 
@@ -40,6 +41,11 @@ __declspec(naked) bool __fastcall SendServerToPlayerList_Add(__in void* MsgCreat
 typedef NWN::CExoString* (__thiscall *NWN2ReturnFullName_t)(NWN::CNWSCreatureStatsCore* pCreaStat, NWN::CExoString* pExoStr);
 
 NWN2ReturnFullName_t const NWN2ReturnFullName = (NWN2ReturnFullName_t)0x0059d770;
+
+//Message 0x36/0x01 sent by PlayCustomAnimation to every player (object, animation name, looping, speed)
+typedef void (__thiscall *SendCustomAnimationMsg_t)(void* pMsg, uint32_t receiverPCID, NWN::OBJECTID oObject, NWN::CExoString* pAnimation, uint32_t nLooping, float fSpeed);
+
+SendCustomAnimationMsg_t const SendCustomAnimationMsg = (SendCustomAnimationMsg_t)0x00568b90;
 
 
 static uint32_t* fakeLocalizedString;
@@ -373,8 +379,8 @@ struct NameForViewer
 	std::string sLastName;
 };
 
-//Owned creature of the viewer -> (Creature -> Name)
-static std::unordered_map<NWN::OBJECTID, std::unordered_map<NWN::OBJECTID, NameForViewer>> namesForViewer;
+//PlayerId of the viewer -> (Creature -> Name). Forgotten when the player leaves (ForgetNamesForPlayer)
+static std::unordered_map<NWN::PLAYERID, std::unordered_map<NWN::OBJECTID, NameForViewer>> namesForViewer;
 static bool bKeepNameForViewer = false;
 
 
@@ -402,7 +408,7 @@ int __fastcall PrepareNameForViewer(NWN::CNWSCreature* ptrCrea, CNWSPlayerStruct
 	if (namesForViewer.empty() || pViewer == NULL)
 		return 0;
 
-	auto itViewer = namesForViewer.find(pViewer->ownedCreature);
+	auto itViewer = namesForViewer.find(pViewer->playerID);
 	if (itViewer == namesForViewer.end())
 		return 0;
 
@@ -587,6 +593,9 @@ static bool SendNameToViewer(uint32_t oChanged, uint32_t oReceiver, bool bRealNa
 
 	if (bSetName)
 	{
+		if (!IsKnowByPlayer(receiverPCID, oIdChanged))
+			return true;
+
 		void* pFirstName = fakeLocalizedString;
 		void* pLastName = fakeLocalizedString2;
 		if (bRealName)
@@ -663,10 +672,11 @@ bool SendUpdatePCName(uint32_t oChanged, uint32_t oReceiver, std::string sFirstN
 //For a PC, the player list name (used by the chat) is also sent.
 bool SetCreatureNameForViewer(uint32_t oCreature, uint32_t oViewer, std::string sFirstName, std::string sLastName)
 {
-	//Only kept for the owned character of a player (key used by the patches)
-	if (bKeepNameForViewer && GetPCBlockFromCreature(oViewer) != NULL)
+	//Only kept for a player (key used by the patches)
+	NWN::PLAYERID uViewer = GetPCIDFromCreature(oViewer);
+	if (bKeepNameForViewer && uViewer != NWN::PLAYERID_INVALIDID)
 	{
-		NameForViewer& name = namesForViewer[oViewer][oCreature];
+		NameForViewer& name = namesForViewer[uViewer][oCreature];
 		name.sFirstName = sFirstName;
 		name.sLastName = sLastName;
 	}
@@ -683,7 +693,7 @@ bool SetCreatureNameForViewer(uint32_t oCreature, uint32_t oViewer, std::string 
 //Forget the kept name of oCreature for oViewer and send back the real name.
 bool ClearCreatureNameForViewer(uint32_t oCreature, uint32_t oViewer)
 {
-	auto itViewer = namesForViewer.find(oViewer);
+	auto itViewer = namesForViewer.find(GetPCIDFromCreature(oViewer));
 	if (itViewer != namesForViewer.end())
 	{
 		itViewer->second.erase(oCreature);
@@ -700,19 +710,93 @@ bool ClearCreatureNameForViewer(uint32_t oCreature, uint32_t oViewer)
 }
 
 
-//Forget everything about oCreature : as a viewer and as a viewed creature. Nothing is sent.
-void ForgetCreatureNames(uint32_t oCreature)
+//Same message as PlayCustomAnimation, but only sent to oViewer. Nothing is kept on the server.
+bool PlayCustomAnimationForViewer(uint32_t oObject, uint32_t oViewer, std::string sAnimation, uint32_t nLooping, float fSpeed)
 {
-	namesForViewer.erase(oCreature);
+	uint32_t receiverPCID = GetPCIDFromCreature(oViewer);
+	if (receiverPCID == NWN::PLAYERID_INVALIDID)
+		return false;
 
-	for (auto itViewer = namesForViewer.begin(); itViewer != namesForViewer.end();)
+	GameObjectManager m_ObjectManager;
+	if (m_ObjectManager.GetGameObject((NWN::OBJECTID)oObject) == NULL)
+		return false;
+
+	int* ptrMsg = GetCNWSMessage();
+	if (ptrMsg == NULL)
+		return false;
+
+	//The engine only reads the string up to its '\0'
+	NWN::CExoString esAnimation;
+	esAnimation.m_sString = sAnimation.data();
+	esAnimation.m_nBufferLength = (ULONG)(sAnimation.size() + 1);
+
+	SendCustomAnimationMsg(ptrMsg, receiverPCID, (NWN::OBJECTID)oObject, &esAnimation, nLooping, fSpeed);
+	return true;
+}
+
+
+//Forget every name kept for this player (as a viewer). Nothing is sent: called when the player leaves
+void ForgetNamesForPlayer(uint32_t uPlayerId)
+{
+	namesForViewer.erase(uPlayerId);
+}
+
+
+/******************************* Disconnection *******************************/
+
+typedef void (__stdcall *OnPlayerConnectionCloseProc)(unsigned long PlayerId, void* Context);
+typedef BOOL (__stdcall *OnPlayerConnectionReceiveProc)(unsigned long PlayerId, const unsigned char* Data, size_t Length, void* Context);
+typedef BOOL (__stdcall *OnPlayerConnectionSendProc)(unsigned long PlayerId, unsigned char* Data, unsigned long Size, unsigned long Flags, void* Context);
+typedef void (__stdcall *SetPacketFilterCallouts_t)(void* Context, OnPlayerConnectionCloseProc OnClose,
+	OnPlayerConnectionReceiveProc OnReceive, OnPlayerConnectionSendProc OnSend);
+
+//What must be forgotten when a player leaves: the names (here), then what the specializations registered (SEF...)
+static std::vector<ViewerForgetCallback> viewerForgetCallbacks = { ForgetNamesForPlayer };
+static bool bViewerCleanupRegistered = false;
+static bool bViewerCleanupWarned = false;
+
+void RegisterViewerForgetCallback(ViewerForgetCallback fCallback)
+{
+	viewerForgetCallbacks.push_back(fCallback);
+}
+
+static void __stdcall OnViewerConnectionClose(unsigned long PlayerId, void* /*Context*/)
+{
+	for (ViewerForgetCallback fCallback : viewerForgetCallbacks)
+		fCallback(PlayerId);
+}
+
+//xp_bugfix not loaded yet.  So wait first use of a function that use it to do the load
+bool EnsureViewerCleanup(LogNWNX* pLogger)
+{
+	if (bViewerCleanupRegistered)
+		return true;
+
+	const char* sError = nullptr;
+	HMODULE XPBugfix = LoadLibraryA("xp_bugfix.dll");
+	if (!XPBugfix)
+		sError = "failed to load xp_bugfix.dll";
+	else
 	{
-		itViewer->second.erase(oCreature);
-		if (itViewer->second.empty())
-			itViewer = namesForViewer.erase(itViewer);
+		SetPacketFilterCallouts_t SetPacketFilterCallouts_ = (SetPacketFilterCallouts_t)GetProcAddress(XPBugfix, "SetPacketFilterCallouts");
+		if (!SetPacketFilterCallouts_)
+			sError = "unable to resolve xp_bugfix!SetPacketFilterCallouts";
 		else
-			++itViewer;
+		{
+			SetPacketFilterCallouts_(nullptr, OnViewerConnectionClose, nullptr, nullptr);
+			bViewerCleanupRegistered = true;
+			return true;
+		}
 	}
+
+	//The functions keep working, but nothing forgets what was kept for a player who leaves
+	if (!bViewerCleanupWarned && pLogger)
+	{
+		bViewerCleanupWarned = true;
+		pLogger->Info("* WARNING: ViewerCleanup: %s. The SEFs and names kept for a viewer are not forgotten when the player leaves: "
+			"call ClearSEFForViewer* / ClearCreatureNameForViewer_xpAM in the OnClientLeave script.", sError);
+	}
+	return false;
 }
 
 

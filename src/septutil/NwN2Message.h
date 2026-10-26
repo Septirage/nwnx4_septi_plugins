@@ -10,6 +10,8 @@
 void AddX8ToMsg(uint8_t uData, unsigned char* msgBlock);
 void AddX32ToMsg(uint32_t uData, unsigned char* msgBlock);
 void AddCExoString(NWN::CExoString* Value, void* MessageObject);
+// CNWSMessage::WriteBOOL : 1 bit in the bit stream of the message
+void AddBoolToMsg(bool bValue, void* MessageObject);
 
 typedef void (__thiscall *InitMessageBlock_t)(void* MsgCreator, uint32_t uSize, uint32_t param1, uint32_t param2);
 extern InitMessageBlock_t const InitMessageBlock;

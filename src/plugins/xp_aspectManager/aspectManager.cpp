@@ -11,6 +11,7 @@
 #include "objectSpatial.h"
 #include "functionFixes.h"
 #include "aspectForViewer.h"
+#include "sefForViewer.h"
 
 #include <NWN2Lib/NWN2.h>
 #include <NWN2Lib/NWN2Common.h>
@@ -261,6 +262,7 @@ namespace {
 			push edi
 			call dword ptr[CallRemoveFromEquipedList]
 			pop esi
+			add esp, 4		//Original "push edi" (0x006ca399) is still done before our jump
 			jmp dword ptr[ReturnCallUnEquip]
 		}
 	}
@@ -656,6 +658,12 @@ AspectManager::Init(char* nwnxhome)
 
 	setLoggerMsg(logger);
 
+	//No creature refresh while the engine is changing a creature appearance (polymorph/unpolymorph)
+	if (initPolymorphTransitionHooks())
+		logger->Info("* Polymorph transition hooks applied.");
+	else
+		logger->Info("* WARNING: Failed to apply polymorph transition hooks.");
+
 	bool bFixBelt = false;
 	int iFixBelt = 0;
 	config->Read("FixBelt", &iFixBelt, 0);
@@ -715,6 +723,16 @@ AspectManager::Init(char* nwnxhome)
 	{
 		logger->Info("* Start to apply KeepNameForViewer patches");
 		PatchKeepNameForViewer();
+		logger->Info("* ...Done.");
+	}
+
+	//Names and SEFs kept for a viewer are forgotten when the player leaves: the registration with xp_bugfix is
+	//done at the first use, in GetInt / SetInt (xp_bugfix is not necessarily loaded yet here)
+	config->Read("SEFForViewer", &iQuickPatch, 1);
+	if (iQuickPatch != 0)
+	{
+		logger->Info("* Start to apply SEFForViewer patches");
+		InitSEFForViewer();
 		logger->Info("* ...Done.");
 	}
 
@@ -879,6 +897,30 @@ int AspectManager::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int n
 		}
 		return 0;
 	}
+	else if (stFunction == "setSEFForViewer") {
+		//sParam1 = "oViewer|oTarget|fX|fY|fZ|sSEF", nParam2 = oObject
+		std::string sCommand(sParam1);
+		std::vector<std::string> parts;
+		size_t uStart = 0;
+		for (int i = 0; i < 5; i++)
+		{
+			size_t uPipe = sCommand.find('|', uStart);
+			if (uPipe == std::string::npos)
+				break;
+			parts.push_back(sCommand.substr(uStart, uPipe - uStart));
+			uStart = uPipe + 1;
+		}
+
+		if (parts.size() == 5)
+		{
+			EnsureViewerCleanup(logger);
+			iRet = (int)SetSEFForViewer(nParam2,
+				(uint32_t)strtoul(parts[0].c_str(), NULL, 10),
+				sCommand.substr(uStart),
+				(uint32_t)strtoul(parts[1].c_str(), NULL, 10),
+				strtof(parts[2].c_str(), NULL), strtof(parts[3].c_str(), NULL), strtof(parts[4].c_str(), NULL));
+		}
+	}
 	else if (stFunction == "placeable")
 	{
 		std::string sCommand(sParam1);
@@ -971,14 +1013,18 @@ AspectManager::SetInt([[maybe_unused]] char* sFunction,
 			std::string s1 = sCommand.substr(0, p1);
 			std::string s2 = sCommand.substr(p1 + 1);
 
+			EnsureViewerCleanup(logger);
 			SetCreatureNameForViewer(nParam2, nValue, s1, s2);
 		}
 	}
 	else if (stFunction == "clearNameForViewer") {
 		ClearCreatureNameForViewer(nParam2, nValue);
 	}
-	else if (stFunction == "forgetNames") {
-		ForgetCreatureNames(nParam2);
+	else if (stFunction == "clearSEFForViewer") {
+		ClearSEFForViewer(nParam2, nValue, sCommand);
+	}
+	else if (stFunction == "clearSEFForViewerById") {
+		ClearSEFForViewerById(nParam2);
 	}
 	else if(stFunction.rfind(S_LIST_SYSTEM, 0) == 0) {
 		if (!bUseListSyst) {
@@ -1028,6 +1074,21 @@ AspectManager::SetFloat([[maybe_unused]] char* sFunction,
 
 	if (stFunction == "SetFacing")
 		ObjectSetOrientation(nParam2, fValue);
+	else if (stFunction == "customAnimForViewer") {
+		//sParam1 = "oViewer|nLooping|sAnimationName"
+		std::string sCommand(sParam1);
+		size_t p1 = sCommand.find('|');
+		size_t p2 = (p1 == std::string::npos) ? std::string::npos : sCommand.find('|', p1 + 1);
+
+		if (p2 != std::string::npos)
+		{
+			uint32_t oViewer = (uint32_t)strtoul(sCommand.substr(0, p1).c_str(), NULL, 10);
+			uint32_t nLooping = (uint32_t)strtoul(sCommand.substr(p1 + 1, p2 - p1 - 1).c_str(), NULL, 10);
+			std::string sAnimation = sCommand.substr(p2 + 1);
+
+			PlayCustomAnimationForViewer(nParam2, oViewer, sAnimation, nLooping, fValue);
+		}
+	}
 	else if (stFunction == "area")
 		AreaSetFloat(sParam1, nParam2, fValue);
 	else if (stFunction == "creature")

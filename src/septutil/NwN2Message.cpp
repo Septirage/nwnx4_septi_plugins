@@ -3,6 +3,7 @@
 #define FUNC_ADDLOCALIZEDNAMETOMSG	0x5b7010
 #define FUNC_INITMSGBLOCK			0x74ed00
 #define FUNC_PREPAREENDOFMSG		0x0074e080
+#define FUNC_WRITEBOOL				0x0074ed60
 
 void AddX8ToMsg(uint8_t uData, unsigned char* msgBlock)
 {
@@ -29,6 +30,15 @@ static WriteCExoString_t const WriteCExoString_ = (WriteCExoString_t)OFFS_CNWSMe
 void AddCExoString(NWN::CExoString* Value, void* MessageObject)
 {
 	WriteCExoString_(MessageObject, Value, 0x20);
+}
+
+// CNWSMessage::WriteBOOL(int bValue), __thiscall.
+typedef void (__thiscall *WriteBOOL_t)(void* pThis, int bValue);
+static WriteBOOL_t const WriteBOOL_ = (WriteBOOL_t)FUNC_WRITEBOOL;
+
+void AddBoolToMsg(bool bValue, void* MessageObject)
+{
+	WriteBOOL_(MessageObject, bValue ? 1 : 0);
 }
 
 InitMessageBlock_t const InitMessageBlock = (InitMessageBlock_t)FUNC_INITMSGBLOCK;

@@ -1,5 +1,11 @@
 # Changelog
 
+**v1.5.8 (2026/11/12, DLL, NSS and ini)**
+
+- Added `SetSEFForViewer_xpAM`, `ClearSEFForViewer_xpAM` and `ClearSEFForViewerById_xpAM`: a special effect (.sef) on a creature, an item, a placeable or a door, seen by one player only. The new ini option `SEFForViewer` (default 1) enables it.
+- Added `PlayCustomAnimationForPC_xpAM`: like `PlayCustomAnimation`, but only one player sees the animation.
+- Removed `ForgetCreatureNames_xpAM` (added in v1.5.7). The names kept by `SetCreatureNameForViewer_xpAM` are now forgotten by the plugin when the player leaves the server. Remove the calls to `ForgetCreatureNames_xpAM` from your scripts.
+
 **v1.5.7 (2026/10/16, DLL, NSS and ini)**
 
 - `SetCreatureNameForViewer_xpAM` now handles PCs too: their name in the player list/chat is also changed for the viewer.
