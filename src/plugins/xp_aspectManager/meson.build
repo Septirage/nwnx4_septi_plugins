@@ -1,4 +1,4 @@
-plugin_version = '"1.5.7"'
+plugin_version = '"1.5.8"'
 plugin_name = 'xp_aspectManager'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -28,6 +28,7 @@ plugin_shared_lib = shared_library(plugin_name,
 
         'messageManagement.cpp',
         'refreshObject.cpp',
+        'sefForViewer.cpp',
         'scanAndAnalyseFile.cpp',
     ],
     cpp_args: ['/D_WIN32_WINNT=0x0400', '-DPLUGIN_VERSION='+plugin_version],
