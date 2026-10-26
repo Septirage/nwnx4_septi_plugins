@@ -1,5 +1,16 @@
 # Changelog
 
+**v1.2.1 (2026/11/12, DLL, NSS and ini)**
+
+- Add script `GlobalOnDestroyScript`, called just before the real destruction of an object (`GlobalOnDestroyObjectTypes` gives the types of objects). The new function `GetDestroyedLocation_EFF` gives the location of the destroyed object.
+- Add function `GetSneakAttackConditions_EFF`, which tells whether the game allows a sneak attack or a death attack of a creature on another one (option `AddGetSneakAttackConditionsFct`).
+- Criticals: new rules `[CriticalTouchThreatRuleX]` (threat range of the touch attacks) and `[CriticalEventRuleX]` (a script called on each confirmed critical hit).
+- Added `FixPowerCriticalUnarmed` : option to fix the PowerCriticalUnarmed feat
+- Added `FixTouchAttackHitFlag` : option to fix the improper usage of DeflectArrow on missed RangedTouchAttack
+- Added `FixUncontrolledCreatureUpdate` : option to properly "release" a creature after dm unpossession
+- Added : `FixUnpossessLimbo` : option to fix the non-removal of DM creature from limbo after unpossess
+- Added `FixExposeWeaknessMiss` : option to fix the damage dealt by a missed Expose Weakness attack
+
 **v1.2.0 (2026/10/17, DLL, NSS and ini)**
 
 To check when updating from an older version:

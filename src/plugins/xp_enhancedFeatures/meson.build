@@ -1,4 +1,4 @@
-plugin_version = '"1.2.0"'
+plugin_version = '"1.2.1"'
 plugin_name = 'xp_enhancedFeatures'+global_name_project_add
 dllName = plugin_name+'.dll'
 
@@ -30,11 +30,12 @@ plugin_shared_lib = shared_library(plugin_name,
         'ArmorClassRule.cpp',
         'DamageRule.cpp',
         'DamageReductionRule.cpp',
+        'SneakAttackConditions.cpp',
         '../../septutil/intern2daMgt.cpp',
         '../../septutil/NwN2Utilities.cpp',
-        '../../septutil/nwn2gff.cpp',
         '../../septutil/crypto.cpp',
         '../../septutil/srvadmin.cpp',
+        '../../septutil/nwn2gff.cpp',
     ],
     cpp_args: ['-DPLUGIN_VERSION='+plugin_version],
     include_directories: include_dirs,

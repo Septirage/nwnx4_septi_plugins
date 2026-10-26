@@ -16,7 +16,7 @@ pdf_options:
 
 <div class="cover-title">
 <div class="cover-heading">xp_enhancedFeatures</div>
-<div class="cover-version">V1.2.0 – 2026-10-17 by Septirage</div>
+<div class="cover-version">V1.2.1 – 2026-11-12 by Septirage</div>
 </div>
 
 <div class="toc">
@@ -156,6 +156,12 @@ Default: 0. Set to 1 to enable.
 
 Enables the `GetSavingThrowVsType_EFF` function, which returns the saving throw of a creature against a type of save (fear, poison…) and an opponent.
 
+#### AddGetSneakAttackConditionsFct
+
+Default: 0. Set to 1 to enable.
+
+Enables the `GetSneakAttackConditions_EFF` function, which tells whether the game allows a sneak attack (or a death attack) of a creature on another one.
+
 ### Functionality fixes
 
 These options fix bugs of the game engine. Set them to 1 to enable them.
@@ -278,6 +284,36 @@ Default: 0.
 
 Without the fix, the engine groups the attacks of a round into three animated attacks. When an attacker makes several attacks in the same one, a parry check is made only against the first. With the fix, a parry check is made against every attack.
 
+#### FixPowerCriticalUnarmed
+
+Default: 0.
+
+Without the fix, the feat Power Critical Unarmed (1355) is never applied to the critical confirmation roll: the game only tests it with a weapon in hand. With the fix, it is applied when the attacking hand is empty.
+
+#### FixTouchAttackHitFlag
+
+Default: 0.
+
+Without the fix, `TouchAttackRanged` uses up the Deflect Arrows (projectile parry) of its target even when the touch attack misses. With the fix, it is only used up when the touch attack would hit.
+
+#### FixExposeWeaknessMiss
+
+Default: 0.
+
+Without the fix, when an Expose Weakness attack misses, the attack is displayed as missed but the target still loses hit points: the game counts the result of a missed Expose Weakness among those that create damage. The other special attacks don't do this. With the fix, a missed Expose Weakness deals no damage.
+
+#### FixUncontrolledCreatureUpdate
+
+Default: 0.
+
+Without the fix, when a creature is not controlled anymore (for example when a DM unpossesses it), the clients are not told: the creature stays "controlled" for them (right click menu…) until they leave the area. With the fix, the clients are told.
+
+#### FixUnpossessLimbo
+
+Default: 0.
+
+Without the fix, when a DM unpossesses a creature, the DM avatar comes back in the area but is still counted and returned by the limbo functions. With the fix, the avatar is removed from the limbo list.
+
 ### Customizations
 
 These options change base game rules.
@@ -381,6 +417,7 @@ Each of these options gives the name of a script (without extension) called on a
 |---|---|---|
 | `OnGoldChangeScript` | `sept_ongoldchange_eff` | The gold of a creature changes. Can change the amount. |
 | `GlobalOnClientEnterScript` | `sept_globaloncliententer_eff` | A PC enters any area, just after the OnClientEnter script of the area. |
+| `GlobalOnDestroyScript` | `sept_globalondestroy_eff` | An object is about to be destroyed. The types of objects are set by `GlobalOnDestroyObjectTypes`. |
 | `StartTransitionScript` | `sept_onstarttransition_eff` | A creature uses a door or a transition trigger. Can cancel the transition. |
 | `OnItemStackScript` | `sept_onitemstack_eff` | Two items are about to stack. Can forbid it. |
 | `OnSplitStackScript` | `sept_onsplit_eff` | A stack of items is split. |
@@ -591,15 +628,39 @@ Rules, `[SaveRuleX]`:
 
 ### CriticalEFF
 
-Critical hits. Three kinds of rules, each with its own numbering:
+Critical hits. Four kinds of rules, each with its own numbering:
 
 | Section | Effect of the Bonus field (required) |
 |---|---|
 | `[CriticalThreatRuleX]` | The threat range grows by Bonus: 19-20 with Bonus = 2 gives 17-20. Added after the doubling of Improved Critical. The range never starts below 2. |
 | `[CriticalConfirmRuleX]` | Bonus is added to the confirmation roll. |
 | `[CriticalMultiplierRuleX]` | Bonus is added to the critical multiplier. Never below 1. |
+| `[CriticalTouchThreatRuleX]` | The threat range of the touch attacks (`TouchAttackMelee` and `TouchAttackRanged`) grows by Bonus: 20 with Bonus = 1 gives 19-20. The range of the game is 20, or 19-20 with the feat 2109 (melee) or 2110 (ranged). The range never starts below 2. |
 
 The rules apply to every weapon and both hands (attack, damage and character sheet). `RuleX` in the Extra field only sees the rules of the same kind.
+
+The confirmation rules also apply to the touch attacks; the threat rules don't, use `CriticalTouchThreatRule` for them. A `CriticalTouchThreatRule` is checked for the creature making the touch attack, and only when the attacker is a creature. It has one more optional field, **TouchType**: `MELEE` (`TouchAttackMelee`), `RANGED` (`TouchAttackRanged`) or `ALL` (both, the default). With another value the rule is not applied, and the error is written to the log. The touch attacks are only patched when at least one of these rules exists.
+
+**Critical event.** The rules `[CriticalEventRuleX]` (own numbering) call a script each time a critical hit is confirmed. They have no Bonus: the required field is **Script**, the name of the script to run. Feat, Area and Extra are optional, and only checked for the attacker.
+
+The script is called on a critical hit that is confirmed and not cancelled (critical immunity, Epic Dodge): melee, ranged and special attacks, and the critical result forced by `SetCombatOverrides`. It is not called for the touch attacks (`TouchAttackMelee` and `TouchAttackRanged` return their result to the script that called them). With Manyshot, it is only called once, for the main arrow: the bonus arrow is never a critical.
+
+Every rule that is true for the attacker runs its script, in the order of the rules. All the rules are checked before the first script runs, and a critical hit happening during one of these scripts does not run them again. Base script: `sept_oncriticalhit_eff`.
+
+```c
+int StartingConditional(object oAttacker, object oTarget, int bOffHand, int nMultiplier)
+```
+
+- `oAttacker`: the creature making the critical hit (`OBJECT_SELF`).
+- `oTarget`: the object hit (usually a creature).
+- `bOffHand`: TRUE if the attack is made with the off hand.
+- `nMultiplier`: the critical multiplier of the attack.
+
+Return value: not used.
+
+The script runs before the damage of the attack is done, and can't change or cancel the critical hit. The weapon (if any) is `GetItemInSlot(INVENTORY_SLOT_RIGHTHAND, oAttacker)`, or `INVENTORY_SLOT_LEFTHAND` with `bOffHand` (a double weapon is in the right hand for both hands).
+
+Don't destroy the attacker or the target, and don't move them to another area, in this script. If one of them is no longer valid after a script, the next scripts are not run and the damage of this attack is skipped. The damage resolution is only patched when at least one of these rules exists.
 
 ### ArmorClassEFF
 
@@ -729,6 +790,33 @@ It is a basic `void main()` script, with exactly the same behavior as a normal O
 - `FiredFromPartyTransition()`;
 - `OBJECT_SELF`: the destination area. `GetArea(oPC)` gives it too, as the PCs are already in the new area.
 
+#### GlobalOnDestroy
+
+By enabling the `GlobalOnDestroyScript` option, the script is called just before the real destruction of an object. Base script: `sept_globalondestroy_eff`.
+
+The option `GlobalOnDestroyObjectTypes` gives the types of objects that call it: the sum of their `OBJECT_TYPE_*` values (CREATURE 1, ITEM 2, TRIGGER 4, DOOR 8, AREA_OF_EFFECT 16, WAYPOINT 32, PLACEABLE 64, STORE 128, ENCOUNTER 256, LIGHT 512, PLACED_EFFECT 1024). Default: 65 (creatures and placeables).
+
+It is a basic `void main()` script. `OBJECT_SELF` is the destroyed object. The destruction is certain and can't be cancelled.
+
+Still available: the tag, the resref, the local variables, the effects, the hit points, `GetIsDead`… `GetIsDead(OBJECT_SELF)` is TRUE when the creature died before (its OnDeath script is already done, and the corpse is fading). The inventory of a living creature is still there; a dead creature or a placeable has already moved it to a loot bag.
+
+The object is already out of its area, so `GetLocation` and `GetArea` are invalid: use `GetDestroyedLocation_EFF()` instead.
+
+The script is called for:
+
+- `DestroyObject`, and the DM "Destroy" (even with `SetIsDestroyable(FALSE)`);
+- the corpse fading (also after a DM "Kill");
+- an item used up (potion, charges, ammunition);
+- an unsummon, `DespawnRosterMember`;
+- a timed area of effect or placed effect;
+- a DM "Kill" on a trigger or an encounter.
+
+It is not called for:
+
+- a PC leaving the server (and its items), the module unload or the server stop;
+- the items destroyed with their owner;
+- what the engine does not destroy: `SetIsDestroyable(FALSE)` (placeables and stores ignore it), a creature controlled by a player, a transition door, an encounter.
+
 #### StartTransition
 
 By enabling the `StartTransitionScript` option, the script is called when a creature tries a transition, with a door or a transition trigger. It is not called in other cases (a jump by script, for example). Base script: `sept_onstarttransition_eff`.
@@ -818,7 +906,12 @@ In `nwnx_enhancedfeatures.nss`:
 
 - `RefreshCombatInformation_EFF`: asks the game to compute the combat information of a creature again (attack bonus, damage… on the character sheet). Use it when something used by your rules changes (custom value, area…).
 - `GetSavingThrowVsType_EFF`: saving throw of a creature against a type of save (fear, poison…) and an opponent. Needs `AddGetSavingThrowVsTypeFct`.
+- `GetSneakAttackConditions_EFF`: tells whether the game allows a sneak attack (or a death attack) of an attacker on a target, as it would for an attack now. The result is a mask: 1 = possible, 2 = refused only by an immunity of the target, 4 = the target is immune but the game bypassed it (always with 1). It does not say which condition succeeded (not seen, flat-footed or flanked). Needs `AddGetSneakAttackConditionsFct`. The comments of the function describe the mask and the parameters.
 - The `EFFECT_TYPE_*` constants returned by `GetEffectType` with `FixGetEffectType`.
+
+#### OnDestroy
+
+In `nwnx_enhancedfeatures.nss`: `GetDestroyedLocation_EFF` returns the location of `OBJECT_SELF` just before its destruction. It only works in the `GlobalOnDestroyScript` (see [GlobalOnDestroy](#globalondestroy)). The area of the location is `OBJECT_INVALID` for an object destroyed without the destroy event of the engine: `DespawnRosterMember`, a timed placed effect, a DM "Kill" of a trigger or an encounter.
 
 #### Chat
 
