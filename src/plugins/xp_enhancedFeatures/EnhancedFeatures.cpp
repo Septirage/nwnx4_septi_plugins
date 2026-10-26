@@ -29,6 +29,7 @@
 #include "ArmorClassRule.h"
 #include "DamageRule.h"
 #include "DamageReductionRule.h"
+#include "SneakAttackConditions.h"
 
 #include "MagicFunctions.h"
 #include "TalkFunctions.h"
@@ -871,6 +872,14 @@ EnhancedFeatures::Init(char* nwnxhome)
 		logger->Info("* GetSavingThrowVsType function added");
 	}
 
+	iTest = 0;
+	config->Read("AddGetSneakAttackConditionsFct", &iTest, 0);
+	if (iTest != 0)
+	{
+		initSneakAttackConditionsPatch();
+		logger->Info("* GetSneakAttackConditions function added");
+	}
+
 
 	//Call Small Functions. (will be improved latter)
 	SmallPatchFunctions(config);
@@ -1047,6 +1056,10 @@ EnhancedFeatures::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nP
 	{
 		return GetIntTimeFunction(sParam1, nParam2);
 	}
+	else if (function == "DestroyedLocation")
+	{
+		return GetDestroyedArea();
+	}
 	else if (function == "SavingThrowVsType")
 	{
 		if(bGetSvThrowVsTypeAdded)
@@ -1073,6 +1086,11 @@ EnhancedFeatures::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nP
 			logger->Err("EnhancedFeatures_GetInt: SavingThrowVsType not added, please enable it in the ini File with option AddGetSavingThrowVsTypeFct");
 			return 0;
 		}
+	}
+	else if (function == "SneakAttackConditions")
+	{
+		//nParam2 = attacker, sParam1 = "target|bRanged|nFeatTest"
+		return GetIntSneakAttackConditions(nParam2, sParam1);
 	}
 
 	
@@ -1218,6 +1236,10 @@ EnhancedFeatures::GetFloat([[maybe_unused]] char* sFunction,
 	if (function == "TalkFunction")
 	{
 		return GetFloatTalkFunction(sParam1, nParam2);
+	}
+	else if (function == "DestroyedLocation")
+	{
+		return GetDestroyedLocationFloat(sParam1);
 	}
 
 	return 1.0f;

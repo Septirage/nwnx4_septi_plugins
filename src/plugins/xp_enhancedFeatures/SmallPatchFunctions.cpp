@@ -118,6 +118,74 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 
 #define OFFS_PARRYWITHFLURRY			0x0063f3f9
 
+#define OFFS_FIXUNCONTROLLEDCREAUPDATE	0x0055fd5d
+
+#define OFFS_FIXEXPOSEWEAKNESSMISS		0x006411A9
+
+// 0x0059ec7e, FUN_0059ec10 (critical confirmation bonus): je 0x59ec8f (74 0f)
+// Power Critical Unarmed (feat 1355, tested only in FUN_007540b0 with a NULL weapon or gloves / bracers) was never applied:
+// the function returned 0 before calling FUN_007540b0 when no weapon is in the hand (test esi,esi / je).
+// FUN_007540b0 handles the NULL weapon itself (same as the sister functions, like TestIfFeatImprCrit used by the threat roll)
+#define OFFS_FIXPOWERCRITICALUNARMED	0x0059ec7e
+
+// 0x00690be7, TouchAttackMelee/Ranged (0x006909c0), ResolveDefensiveEffects (0x0063ddd0) called at 0x00690bfc
+// The engine pushes "hit = 1" before the to-hit test (done after, at 0x00690c21): a ranged touch attack
+// that would miss could still consume the target's Deflect Arrows (round+0x2374).
+// Push the real to-hit result. At 0x00690be7: EDX = d20 (0x00690bde), EBP = BAB + nBonus, [ESP+0x1C] = AC (signed).
+// Replaced: mov edx,[eax+0x3c] (8b 50 3c) + push 1 (6a 01) = 5 bytes
+#define OFFS_FIXTOUCHATTACKHITFLAG		0x00690be7
+unsigned long ReturnTouchAttackHitFlag = 0x00690bec;
+
+__declspec(naked) void FixTouchAttackHitFlag()
+{
+	__asm
+	{
+		XOR		ECX, ECX							// hit = 0
+		CMP		EDX, 1								// natural 1: miss
+		JE		TAHFPushHit
+		CMP		EDX, 0x14							// natural 20: hit
+		JE		TAHFHit
+		ADD		EDX, EBP							// d20 + BAB + nBonus
+		CMP		EDX, dword ptr[ESP + 0x1C]			// AC (signed, as the engine at 0x00690c2d)
+		JL		TAHFPushHit
+	TAHFHit:
+		MOV		ECX, 1
+	TAHFPushHit:
+		PUSH	ECX									// Replaces PUSH 1
+		MOV		EDX, dword ptr[EAX + 0x3C]			// Original code
+		JMP		dword ptr[ReturnTouchAttackHitFlag]
+	}
+}
+
+
+// 0x0055fd5d, creature update diff (FUN_0055f600), flag 0x40000 (IsPC / controlled by a player...)
+// The engine only compares these fields when a player controls the creature (or for the player's own one).
+// Once a creature is not controlled anymore (DM unpossess...), "controlled = 0" was never sent:
+// clients kept it as controlled until they left the area.
+// Also compare when the last update object (EDI) still says "controlled" to the client.
+unsigned long CompareControlledCreaFlags = 0x0055fd65;
+unsigned long SkipControlledCreaFlags = 0x0055fe4e;
+
+__declspec(naked) void FixUncontrolledCreatureUpdate()
+{
+	__asm
+	{
+		TEST	EBP, EBP							// Original code: player's own creature
+		JNE		DoControlledCreaCompare
+
+		CMP		dword ptr[EDI + 0x964], 0			// LUO: (creature+0x404 != -2) last sent
+		JNE		DoControlledCreaCompare
+		CMP		dword ptr[EDI + 0x960], 0			// LUO: (IsPC || controlled) last sent
+		JNE		DoControlledCreaCompare
+
+		JMP		dword ptr[SkipControlledCreaFlags]
+
+	DoControlledCreaCompare:
+		JMP		dword ptr[CompareControlledCreaFlags]
+	}
+}
+
+
 unsigned long EndFixSRItemProperty = 0x006d9386;
 unsigned long SetEffectVariable_ = 0x006558f0;
 //e8 6a c5 f7 ff
@@ -1622,6 +1690,40 @@ Patch _PatchParryWithFlurry[] =
 };
 Patch* PatchParryWithFlurry = _PatchParryWithFlurry;
 
+Patch _PatchFixUncontrolledCreatureUpdate[] =
+{
+	Patch(OFFS_FIXUNCONTROLLEDCREAUPDATE, (char*)"\xe9\x00\x00\x00\x00\x90\x90\x90", (int)8), //JMP NOP*3 (test ebp,ebp + je rel32)
+	Patch(OFFS_FIXUNCONTROLLEDCREAUPDATE + 1, (relativefunc)FixUncontrolledCreatureUpdate),
+
+	Patch()
+};
+Patch* PatchFixUncontrolledCreatureUpdate = _PatchFixUncontrolledCreatureUpdate;
+
+Patch _PatchFixExposeWeaknessMiss[] =
+{
+	Patch(OFFS_FIXEXPOSEWEAKNESSMISS, (char*)"\xc3", (int)1),
+
+	Patch()
+};
+Patch* PatchFixExposeWeaknessMiss = _PatchFixExposeWeaknessMiss;
+
+Patch _PatchFixPowerCriticalUnarmed[] =
+{
+	Patch(OFFS_FIXPOWERCRITICALUNARMED, (char*)"\x90\x90", (int)2), //NOP NOP (je 0x59ec8f)
+
+	Patch()
+};
+Patch* PatchFixPowerCriticalUnarmed = _PatchFixPowerCriticalUnarmed;
+
+Patch _PatchFixTouchAttackHitFlag[] =
+{
+	Patch(OFFS_FIXTOUCHATTACKHITFLAG, (char*)"\xe9\x00\x00\x00\x00", (int)5), //JMP (mov edx,[eax+0x3c] + push 1)
+	Patch(OFFS_FIXTOUCHATTACKHITFLAG + 1, (relativefunc)FixTouchAttackHitFlag),
+
+	Patch()
+};
+Patch* PatchFixTouchAttackHitFlag = _PatchFixTouchAttackHitFlag;
+
 
 bool SmallPatchFunctions(SimpleIniConfig* config)
 {
@@ -1907,6 +2009,50 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		logger->Info("* FixParryWithFlurry");
 		i = 0;
 		while (PatchParryWithFlurry[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixUncontrolledCreatureUpdate", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixUncontrolledCreatureUpdate");
+		i = 0;
+		while (PatchFixUncontrolledCreatureUpdate[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixPowerCriticalUnarmed", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixPowerCriticalUnarmed");
+		i = 0;
+		while (PatchFixPowerCriticalUnarmed[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixTouchAttackHitFlag", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixTouchAttackHitFlag");
+		i = 0;
+		while (PatchFixTouchAttackHitFlag[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixExposeWeaknessMiss", &iTest, 0);
+	if(iTest == 1)
+	{
+		logger->Info("* FixExposeWeaknessMiss");
+		i = 0;
+		while (PatchFixExposeWeaknessMiss[i].Apply())
 		{
 			i++;
 		}

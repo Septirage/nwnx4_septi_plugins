@@ -633,6 +633,240 @@ Patch *OnSplitStackPatch = _OnSplitStackPatch;
 
 
 
+/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////// Global OnDestroy
+/////////////////////////////////////////////////////////////////////////////////
+// Every object class (creature: 0x5f1720 -> 0x5850e0) uses this Destroy (vtable +8). The destruction is certain:
+// the event 0xB handlers already checked their conditions (destroyable...) and removed the object from its area.
+#define OFFS_DestroyObject				0x005850e0
+// AI master: call of the object event handler (vtable +0x128). ESI = event, EDI = object
+#define OFFS_ObjectEventHandlerCall		0x0066f1cd
+// Return address of the temporary trigger the DM cheat 0x0B creates (never in an area) and destroys
+#define RETADDR_DMCheatTempTrigger		0x00629755
+
+unsigned long CalledByDestroyObject		= 0x00413eb0;
+unsigned long ReturnDestroyObject		= 0x005850e8;
+unsigned long ReturnObjectEventHandler	= 0x0066f28e;
+
+std::string g_sOnDestroyScript = "";
+uint32_t g_uOnDestroyObjectTypes = 0x41;	//OBJECT_TYPE_CREATURE | OBJECT_TYPE_PLACEABLE
+
+struct DestroyedLocation
+{
+	NWN::OBJECTID oObject;
+	NWN::OBJECTID oArea;
+	float fPosition[3];
+	float fOrientation[2];
+};
+
+//Location of the object handled by the current event 0xB, kept before its handler removes it from its area
+static DestroyedLocation g_destroyEventLocation = { NWN::INVALIDOBJID, NWN::INVALIDOBJID, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f} };
+//Location given to the GlobalOnDestroy script running
+static DestroyedLocation g_destroyedLocation = { NWN::INVALIDOBJID, NWN::INVALIDOBJID, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f} };
+
+//Object type byte (+0xA4) -> OBJECT_TYPE_* (as the NWScript GetObjectType 0x68ef20)
+static uint32_t GetNWScriptObjectType(uint8_t uType)
+{
+	switch (uType)
+	{
+		case 5:		return 0x1;		//Creature
+		case 6:		return 0x2;		//Item
+		case 7:		return 0x4;		//Trigger
+		case 9:		return 0x40;	//Placeable
+		case 10:	return 0x8;		//Door
+		case 11:	return 0x10;	//Area of effect
+		case 12:	return 0x20;	//Waypoint
+		case 13:	return 0x100;	//Encounter
+		case 14:	return 0x80;	//Store
+		case 0x15:	return 0x200;	//Light
+		case 0x16:	return 0x400;	//Placed effect
+		default:	return 0;
+	}
+}
+
+void __fastcall KeepDestroyEventLocation(char* pObject)
+{
+	g_destroyEventLocation.oObject = *(NWN::OBJECTID*)(pObject + 0xa0);
+	g_destroyEventLocation.oArea = *(NWN::OBJECTID*)(pObject + 0x144);
+	for (int i = 0; i < 3; i++)
+		g_destroyEventLocation.fPosition[i] = *(float*)(pObject + 0x70 + i * 4);
+	g_destroyEventLocation.fOrientation[0] = *(float*)(pObject + 0x1c);
+	g_destroyEventLocation.fOrientation[1] = *(float*)(pObject + 0x20);
+}
+
+void __fastcall CallGlobalOnDestroy(char* pObject, uint32_t uReturnAddress)
+{
+	if (uReturnAddress == RETADDR_DMCheatTempTrigger)
+		return;
+
+	if ((GetNWScriptObjectType(*(uint8_t*)(pObject + 0xa4)) & g_uOnDestroyObjectTypes) == 0)
+		return;
+
+	NWN::OBJECTID oObject = *(NWN::OBJECTID*)(pObject + 0xa0);
+
+	//Kept for a destruction done inside a GlobalOnDestroy script (DespawnRosterMember...)
+	DestroyedLocation previousLocation = g_destroyedLocation;
+
+	//Roster despawn, timed placed effect, DM kill: destroyed without event 0xB, no location
+	if (g_destroyEventLocation.oObject == oObject)
+		g_destroyedLocation = g_destroyEventLocation;
+	else
+		g_destroyedLocation = { oObject, NWN::INVALIDOBJID, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f} };
+
+	const NWN::CExoString script = {.m_sString       = g_sOnDestroyScript.data(),
+		.m_nBufferLength = std::size(g_sOnDestroyScript) + 1};
+	CVirtualMachine_ExecuteScript(GetNwn2VirtualMachine(), script, oObject, 1, 0);
+
+	g_destroyedLocation = previousLocation;
+}
+
+//Area of OBJECT_SELF before its destruction, only during the GlobalOnDestroy script
+int GetDestroyedArea()
+{
+	return (int)g_destroyedLocation.oArea;
+}
+
+//"X", "Y", "Z" (position), "OrientX", "OrientY" (facing vector) of OBJECT_SELF before its destruction
+float GetDestroyedLocationFloat(std::string_view sValue)
+{
+	if (g_destroyedLocation.oArea == NWN::INVALIDOBJID)
+		return 0.0f;
+
+	if (sValue == "X")
+		return g_destroyedLocation.fPosition[0];
+	else if (sValue == "Y")
+		return g_destroyedLocation.fPosition[1];
+	else if (sValue == "Z")
+		return g_destroyedLocation.fPosition[2];
+	else if (sValue == "OrientX")
+		return g_destroyedLocation.fOrientation[0];
+	else if (sValue == "OrientY")
+		return g_destroyedLocation.fOrientation[1];
+
+	return 0.0f;
+}
+
+__declspec(naked) void DestroyObjectHook()
+{
+	__asm
+	{
+		PUSH	ECX
+		MOV		EDX, dword ptr [ESP + 0x4]	//Return address of Destroy
+		CALL	CallGlobalOnDestroy
+		POP		ECX
+
+		//Redo the old code
+		PUSH	ESI
+		MOV		ESI, ECX
+		CALL	dword ptr [CalledByDestroyObject]
+		JMP		dword ptr [ReturnDestroyObject]
+	}
+}
+
+__declspec(naked) void ObjectEventHandlerCallHook()
+{
+	__asm
+	{
+		CMP		dword ptr [ESI + 0x10], 0xB	//Event destroy
+		JNE		CallEventHandler
+
+		MOV		ECX, EDI
+		CALL	KeepDestroyEventLocation
+
+CallEventHandler:
+		//Redo the old code (call of the event handler)
+		MOV		EAX, dword ptr [ESI + 0x4]
+		MOV		ECX, dword ptr [ESI]
+		MOV		EDX, dword ptr [EBP]
+		MOV		EDX, dword ptr [EDX + 0x128]
+		PUSH	EAX
+		MOV		EAX, dword ptr [ESI + 0x14]
+		PUSH	ECX
+		MOV		ECX, dword ptr [ESI + 0x8]
+		PUSH	EAX
+		MOV		EAX, dword ptr [ESI + 0x10]
+		PUSH	ECX
+		PUSH	EAX
+		MOV		ECX, EBP
+		CALL	EDX
+
+		//The event is done: the location must not be used for another destruction
+		MOV		dword ptr [g_destroyEventLocation], 0x7F000000
+
+		JMP		dword ptr [ReturnObjectEventHandler]
+	}
+}
+
+Patch _GlobalOnDestroyPatch[] =
+{
+	Patch(OFFS_DestroyObject, (char*)"\xe9\x00\x00\x00\x00\x90\x90\x90", (int)8),
+	Patch(OFFS_DestroyObject + 1, (relativefunc)DestroyObjectHook),
+
+	Patch(OFFS_ObjectEventHandlerCall, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(OFFS_ObjectEventHandlerCall + 1, (relativefunc)ObjectEventHandlerCallHook),
+
+	Patch()
+};
+
+Patch *GlobalOnDestroyPatch = _GlobalOnDestroyPatch;
+
+
+
+/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////// DM Possess/Unpossess
+/////////////////////////////////////////////////////////////////////////////////
+#define OFFS_DMPossessCreature	0x0067a450	// DM message possess/unpossess (this = player)
+#define OFFS_GetModuleLimbo		0x00549e90	// __fastcall (ServerExoApp) -> module
+#define OFFS_RemoveFromLimbo	0x00613bc0	// __thiscall (module, object id)
+
+typedef void* (__fastcall *GetModuleLimbo_t)(void* pServerExoApp);
+typedef void (__thiscall *RemoveFromLimbo_t)(void* pModule, NWN::OBJECTID oObject);
+
+static GetModuleLimbo_t const GetModuleLimbo = (GetModuleLimbo_t)OFFS_GetModuleLimbo;
+static RemoveFromLimbo_t const RemoveFromLimbo = (RemoveFromLimbo_t)OFFS_RemoveFromLimbo;
+
+void(__fastcall* OriginalDMPossessCreature)(void* pPlayer, void* _, NWN::OBJECTID oTarget, uint32_t uMode);
+
+// On possess, the DM avatar is sent to the module limbo list. On unpossess, the engine puts it back
+// in the area but never removes it from that list (RecallCreatureFromLimboToLocation does it).
+// GetLimboCreatureCount/GetCreatureInLimbo then still see the avatar, and a recall would teleport the DM.
+void __fastcall DMPossessCreatureHook(void* pPlayer, void* _, NWN::OBJECTID oTarget, uint32_t uMode)
+{
+	NWN::OBJECTID oAvatar = *(NWN::OBJECTID*)((char*)pPlayer + 0x118);	// Avatar while possessing
+
+	OriginalDMPossessCreature(pPlayer, _, oTarget, uMode);
+
+	//Not an unpossess
+	if (oAvatar == NWN::INVALIDOBJID || *(NWN::OBJECTID*)((char*)pPlayer + 0x118) != NWN::INVALIDOBJID)
+		return;
+
+	GameObjectManager m_ObjectManager;
+	GameObject* pAvatar = m_ObjectManager.GetGameObject(oAvatar);
+	if (pAvatar == NULL)
+		return;
+
+	//Only once back in an area (else the jump action removes it itself)
+	if (*(NWN::OBJECTID*)((char*)pAvatar + 0x144) == NWN::INVALIDOBJID)
+		return;
+
+	void* pServerExoApp = *(void**)(*(char**)0x0086442c + 0x4);
+	void* pModule = GetModuleLimbo(pServerExoApp);
+	if (pModule != NULL)
+		RemoveFromLimbo(pModule, oAvatar);
+}
+
+int HookDMPossessCreature()
+{
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	*(DWORD*)&OriginalDMPossessCreature = OFFS_DMPossessCreature;
+	bool bAttachOk = DetourAttach(&(PVOID&)OriginalDMPossessCreature, DMPossessCreatureHook) == 0;
+	bool bCommitOk = DetourTransactionCommit() == 0;
+	return bAttachOk && bCommitOk;
+}
+
+
+
 void SmallHookFunctions(SimpleIniConfig* config)
 {
 	int iTest = 0;
@@ -730,5 +964,31 @@ void SmallHookFunctions(SimpleIniConfig* config)
 		while (OnSplitStackPatch[i].Apply()) {
 			i++;
 		}
+	}
+
+
+	//Global OnDestroy
+	config->Read("GlobalOnDestroyScript", &sScript, std::string(""));
+	if (sScript != "")
+	{
+		g_sOnDestroyScript = sScript;
+		config->Read("GlobalOnDestroyObjectTypes", &iTest, 0x41);
+		g_uOnDestroyObjectTypes = (uint32_t)iTest;
+		logger->Info("* HookScript for GlobalOnDestroy: %s (object types %d)", sScript.c_str(), iTest);
+		i = 0;
+		while (GlobalOnDestroyPatch[i].Apply()) {
+			i++;
+		}
+	}
+
+
+	//DM avatar kept in the limbo list after unpossess
+	config->Read("FixUnpossessLimbo", &iTest, 0);
+	if (iTest == 1)
+	{
+		if (HookDMPossessCreature())
+			logger->Info("* FixUnpossessLimbo");
+		else
+			logger->Info("! FixUnpossessLimbo: hook failed");
 	}
 }
