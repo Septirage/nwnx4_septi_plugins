@@ -246,7 +246,7 @@ Patch *tempPatch2DAmsgServ = _tempPatch2DAmsgServ;
 
 uint32_t Preparation2DA(NWN::CExoString* cTable)
 {
-	char lowerTableName[32];
+	char lowerTableName[33] = { 0 };
 
 	for (int i = 0; i < 32 && i < cTable->m_nBufferLength; i++)
 	{
@@ -436,9 +436,9 @@ void PrintMessage(const unsigned char* Data, int size, std::string sCharName)
 	if (static_cast<int>(logger->Level()) >= 4)
 	{
 		std::string sResult = "";
-		char buffer[3];
+		char buffer[4];
 		for (int i = 0; i < size; ++i) {
-			sprintf(buffer, "%02X ", Data[i]);
+			snprintf(buffer, sizeof(buffer), "%02X ", Data[i]);
 			sResult += buffer;
 		}
 		logger->Debug("LevelUpMessage for %s: ", sCharName.c_str());
@@ -765,6 +765,10 @@ int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::s
 	PrintMessage(Data, size, sCharacterName);
 
 	uint8_t* uPcBlock = *(uint8_t**)((uint8_t*)Object + AmCrtPtrAppBlock);
+	if (uPcBlock == NULL) {
+		logger->Err("LevelUpMessage: PlayerObject without character block.");
+		return -1;
+	}
 
 	//Nb Of Class this character already have
 	uint8_t nb_OwnedClass = uPcBlock[AmCrtABNbClass];
@@ -1465,7 +1469,9 @@ int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::s
 
 			for (uint8_t j = 0; j < iNumSpell; j++)
 			{
-				mySpellTaken[i].push_back(*(uint32_t*)(Data + uPos));
+				//Spell ids are 32 bits in the message but 16 bits everywhere else : anything above 0xFFFF is never a valid spell
+				uint32_t uSpellId = *(uint32_t*)(Data + uPos);
+				mySpellTaken[i].push_back(uSpellId > 0xFFFF ? 0xFFFF : uSpellId);
 				uPos += 4;
 			}
 
@@ -1484,7 +1490,9 @@ int CheckForLevelUp(int playerId, const unsigned char* Data, size_t size, std::s
 
 			for (uint8_t j = 0; j < iNumSpell; j++)
 			{
-				mySpellRemoved[i].push_back(*(uint32_t*)(Data + uPos));
+				//Spell ids are 32 bits in the message but 16 bits everywhere else : anything above 0xFFFF is never a valid spell
+				uint32_t uSpellId = *(uint32_t*)(Data + uPos);
+				mySpellRemoved[i].push_back(uSpellId > 0xFFFF ? 0xFFFF : uSpellId);
 				uPos += 4;
 			}
 		}
@@ -2598,7 +2606,7 @@ bool CharacterCreationError(std::string sAccountName, std::string sErrorList)
 	bool bError = true;
 	std::string sBaseForError = "CharacterCreationError(" + sAccountName + "):";
 	std::string sErrMessage = sBaseForError + sErrorList;
-	logger->Err(sErrMessage.c_str());
+	logger->Err("%s", sErrMessage.c_str());
 
 	if (g_ScriptCreationError != "")
 	{
@@ -3218,11 +3226,13 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 
 		//Now, parse the GFF
 		{
-			void* newPtr[5];
-			void* newPtr2[5];
+			void* newPtr[5] = {};
+			void* newPtr2[5] = {};
 
-			NWNGetGFFList(puVar, newPtr, gffPtr, "SkillList");
-			int nbSkillTakens = NWNGetGFFListLength(puVar, newPtr);
+			//A missing SkillList is read as an empty list (SkillListSize error below)
+			int nbSkillTakens = 0;
+			if (NWNGetGFFList(puVar, newPtr, gffPtr, "SkillList") != 0)
+				nbSkillTakens = NWNGetGFFListLength(puVar, newPtr);
 
 			//The client writes exactly one entry per skill (index = skill id)
 			if (nbSkillTakens != (int)skillsTaken.size())
@@ -3356,11 +3366,13 @@ int __fastcall AdvancedCharacterCreationCheck(void* puVar, void* gffPtr, void* p
 		std::unordered_set<uint16_t> myTakenFeats;
 
 		{
-			void* newPtr[5];
-			void* newPtr2[5];
+			void* newPtr[5] = {};
+			void* newPtr2[5] = {};
 
-			NWNGetGFFList(puVar, newPtr, gffPtr, "FeatList");
-			int nbFeatTaken = NWNGetGFFListLength(puVar, newPtr);
+			//A missing FeatList is read as an empty list (the missing feats are reported by the checks below)
+			int nbFeatTaken = 0;
+			if (NWNGetGFFList(puVar, newPtr, gffPtr, "FeatList") != 0)
+				nbFeatTaken = NWNGetGFFListLength(puVar, newPtr);
 
 			for (int i = 0; i < nbFeatTaken; i++)
 			{

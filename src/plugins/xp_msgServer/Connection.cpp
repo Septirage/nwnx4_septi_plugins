@@ -153,9 +153,9 @@ int GetPlayerPrivileges(int playerid)
 static std::string formatMessage(const std::span<const uint8_t>& message)
 {
 	std::string sResult = "";
-	char buffer[3];
+	char buffer[4];
 	for (size_t i = 0; i < message.size(); ++i) {
-		sprintf(buffer, "%02X ", message[i]);
+		snprintf(buffer, sizeof(buffer), "%02X ", message[i]);
 		sResult += buffer;
 	}
 	return sResult;
@@ -294,9 +294,9 @@ void PrintFullMessage(const unsigned char* Data, size_t size, std::string sCharN
 	if(logger->Level() >= LogLevel::info)
 	{
 		std::string sResult = "";
-		char buffer[3];
+		char buffer[4];
 		for (size_t i = 0; i < size; ++i) {
-			sprintf(buffer, "%02X ", Data[i]);
+			snprintf(buffer, sizeof(buffer), "%02X ", Data[i]);
 			sResult += buffer;
 		}
 		logger->Info("Message from %s: \n\t %s", sCharName.c_str(), sResult.c_str());
@@ -334,6 +334,8 @@ BOOL __stdcall MsgServOnReceive(
 	try
 	{
 		const char* accountName = GetPlayerAccountName_(playerId);
+		if (accountName == NULL)
+			accountName = "";
 
 		//Only if we want to trace everything
 		if (g_msgServ->bTraceEveryMsg)
@@ -361,7 +363,7 @@ BOOL __stdcall MsgServOnReceive(
 						g_msgServ->m_connection.kickedPlayerIDs.erase(playerId);
 
 						std::string currentIP_ = [&](){
-							sockaddr_in sin;
+							sockaddr_in sin{};
 							GetPlayerConnectionInfo_(playerId, &sin);
 							const auto ip = sin.sin_addr.s_addr;
 							return std::format("{}.{}.{}.{}", ip & 0xFF, (ip>>8) & 0xFF, (ip>>16) & 0xFF, (ip>>24) & 0xFF);
@@ -437,7 +439,7 @@ BOOL __stdcall MsgServOnReceive(
 					if (g_msgServ->m_connection.kickedPlayerIDs.contains(playerId))
 					{
 						const std::string currentIP_ = [&](){
-							sockaddr_in sin;
+							sockaddr_in sin{};
 							GetPlayerConnectionInfo_(playerId, &sin);
 							const auto ip = sin.sin_addr.s_addr;
 							return std::format("{}.{}.{}.{}", ip & 0xFF, (ip>>8) & 0xFF, (ip>>16) & 0xFF, (ip>>24) & 0xFF);
@@ -468,7 +470,7 @@ BOOL __stdcall MsgServOnReceive(
 							if (!uniquePlayerID) {
 								//Should not be here without uniquePlayerID
 								const std::string currentIP_ = [&](){
-									sockaddr_in sin;
+									sockaddr_in sin{};
 									GetPlayerConnectionInfo_(playerId, &sin);
 									const auto ip = sin.sin_addr.s_addr;
 									return std::format("{}.{}.{}.{}", ip & 0xFF, (ip>>8) & 0xFF, (ip>>16) & 0xFF, (ip>>24) & 0xFF);
@@ -496,7 +498,7 @@ BOOL __stdcall MsgServOnReceive(
 							}
 
 							const std::string currentIP_ = [&](){
-								sockaddr_in sin;
+								sockaddr_in sin{};
 								GetPlayerConnectionInfo_(playerId, &sin);
 								const auto ip = sin.sin_addr.s_addr;
 								return std::format("{}.{}.{}.{}", ip & 0xFF, (ip>>8) & 0xFF, (ip>>16) & 0xFF, (ip>>24) & 0xFF);
@@ -571,9 +573,9 @@ BOOL __stdcall MsgServOnReceive(
 							default:
 								//Error on script, log and continue as not connected.
 								logger->Err("Heimdall GUI Script (%s) returned unknown value %d. params : %u, %s, %s, %s, %d, [redacted]",
-									g_msgServ->m_connection.onConnectionScript.c_str(),
-									*uniquePlayerID,
+									scriptNameStr.c_str(),
 									scriptRes,
+									*uniquePlayerID,
 									accountName,
 									currentIP_.c_str(),
 									currentCdKey_.c_str(),
@@ -609,7 +611,7 @@ BOOL __stdcall MsgServOnReceive(
 						if (bIllegal)
 						{
 							const std::string currentIP_ = [&]() {
-								sockaddr_in sin;
+								sockaddr_in sin{};
 								GetPlayerConnectionInfo_(playerId, &sin);
 								const auto ip = sin.sin_addr.s_addr;
 								return std::format("{}.{}.{}.{}", ip & 0xFF, (ip>>8) & 0xFF, (ip>>16) & 0xFF, (ip>>24) & 0xFF);
@@ -931,7 +933,7 @@ MsgServ::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nParam2)
 	std::string logTxt =
 		"MsgServ_GetInt(" + function + "," + sParam1 + "," + std::to_string(nParam2) + ")";
 
-	logger->Trace(logTxt.c_str());
+	logger->Trace("%s", logTxt.c_str());
 
 	return 0;
 }
@@ -945,7 +947,7 @@ void MsgServ::SetInt([[maybe_unused]] char* sFunction,
 	std::string logTxt =
 		"MsgServ_SetInt(" + function + "," + sParam1 + "," + std::to_string(nParam2) + "," + std::to_string(nValue) + ")";
 
-	logger->Trace(logTxt.c_str());
+	logger->Trace("%s", logTxt.c_str());
 
 	if (function == "ConnectionSystem") {
 		m_connection.enabled = (nValue != 0);
@@ -1017,7 +1019,9 @@ MsgServ::GetString([[maybe_unused]] char* sFunction,
 	std::string function{sFunction};
 	std::string ret("");
 
-	return (ret.data());
+	static std::string sRetStatic;
+	sRetStatic = ret;
+	return sRetStatic.data();
 }
 
 void

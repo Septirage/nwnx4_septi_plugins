@@ -314,6 +314,10 @@ int XPMsgServer_AC_GetListSize(string sValue, string sSeparator = " ")
 	if (sValue == "")
 		return 0;
 
+	//An empty separator would never end the loop below : the whole string is one element
+	if (sSeparator == "")
+		return 1;
+
 	int nSepLen = GetStringLength(sSeparator);
 	int nCount = 1;
 	int nPos = FindSubString(sValue, sSeparator);

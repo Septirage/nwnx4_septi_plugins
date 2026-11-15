@@ -1,5 +1,12 @@
 # Changelog
 
+**v1.3.6 (2026/11/15, DLL and NSS)**
+
+- Anticheat: a spell id above 0xFFFF in a level up message is treated as invalid; a missing `SkillList` or `FeatList` is read as an empty list (reported by the usual errors); a level up message without character block is refused.
+- `XPMsgServer_AC_GetListSize` with an empty separator no longer loops forever (the value is then one item).
+- A connection without account name no longer crashes the plugin.
+- Many robustness fixes (buffers, log formats, strings returned to the scripts).
+
 **v1.3.5 (2026/10/17, DLL, NSS and ini)**
 
 - **Anticheat error format reworked.** Every error now has the form `#ErrorName:{key=value,...}`, with a unique name for each situation and named parameters. See the list of the errors in this guide. Scripts that compared the old error names must be updated.
