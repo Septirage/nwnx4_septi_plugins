@@ -65,6 +65,7 @@ xp_aspectManager uses two ini files:
 | `PatchDoorScale` | 1 | Set to 1 to fix the object scale functions on doors. |
 | `PatchSetIcon` | 1 | Set to 1 to refresh the icon of an item for the players when `SetIcon` is used. |
 | `PatchItemPropertyFct` | 1 | Set to 1 to enable the new ItemProperty functions (`GetSpecificItemProperty_xpAM`, `AddItemProperty_xpAM`, ...). |
+| `RefuseObjectsOutsideArea` | 1 | Set to 1 to refuse `SetPosition_xpAM` and `SetPositionAndFacing_xpAM` when the new position is outside the rectangle of the area (or not finite), and to make `CreateObject` return `OBJECT_INVALID` for such a position (creatures are not concerned). The engine and the client misbehave and can crash with such objects. Set to 0 at your own risk. |
 | `UseAccountNameForOOCMsg` | 0 | Set to 1 to use the player account name instead of the character name for all OOC messages. |
 | `KeepNameForViewer` | 1 | Set to 1 to keep the names given by `SetCreatureNameForViewer_xpAM` until `ClearCreatureNameForViewer_xpAM` is called or the player leaves the server. If 0, the name is only sent once. |
 | `SEFForViewer` | 1 | Set to 1 to enable `SetSEFForViewer_xpAM` (a special effect seen by one player only). Needs xp_bugfix: the player-leaves cleanup is registered at the first use. If xp_bugfix cannot be reached, the log gives a warning and the functions still work, but your OnClientLeave script must call `ClearSEFForViewer*` and `ClearCreatureNameForViewer_xpAM` itself. |

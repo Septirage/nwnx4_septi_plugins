@@ -177,6 +177,8 @@ bool AppearanceListManagement::SplitRRGComposedText(char* cRRGComposed, std::str
 		return false;
 
 	sRRG = sRRGComposed.substr(0, pos);
+	if (sRRG.empty())
+		return false;
 	std::transform(sRRG.begin(), sRRG.end(), sRRG.begin(), ::toupper);
 	sSecondPart = sRRGComposed.substr(pos + 1);
 

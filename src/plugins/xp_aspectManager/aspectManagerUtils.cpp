@@ -10,7 +10,7 @@
 
 //NWNExoString Utilities
 
-void PutNWNExoString(char* pointedExoStr, char* sValue)
+void PutNWNExoString(char* pointedExoStr, char* sValueB)
 {
 	if (pointedExoStr != NULL)
 	{
@@ -19,11 +19,14 @@ void PutNWNExoString(char* pointedExoStr, char* sValue)
 		CpyStr.m_nBufferLength = OutStr->m_nBufferLength;
 		CpyStr.m_sString = OutStr->m_sString;
 
+		const char* sValue = sValueB ? sValueB : "";
 		unsigned long length = strlen(sValue)+1;
 		NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
 		NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
-		char* strWanted = (char*)pHeap->Allocate(length+1);
-		sprintf_s(strWanted, length, sValue);
+		char* strWanted = (char*)pHeap->Allocate(length);
+		if(strWanted == NULL)
+			return;
+		memcpy(strWanted, sValue, length);
 		OutStr->m_sString = strWanted;
 		OutStr->m_nBufferLength = length;
 
@@ -138,7 +141,7 @@ std::string getDescription(char *ptr)
 		return "";
 	char *retValue = *(char**)ptr;
 	std::string strRetValue = "";
-	if(retValue != NULL && *(ptr+8) != 0)
+	if(retValue != NULL && *(uint32_t*)(ptr + 8) != 0 && *(char**)retValue != NULL)
 	{
 		retValue = *(char**)retValue;
 		retValue = (retValue + 0x4);
@@ -148,16 +151,14 @@ std::string getDescription(char *ptr)
 		{
 			if (OutStr->m_sString)
 			{
-				strRetValue = OutStr->m_sString;
-				strRetValue = "s" + strRetValue;
+				strRetValue = "s" + std::string(OutStr->m_sString);
 			}
 		}
 	}
 	else
 	{
 		uint32_t indexVal = *(uint32_t*)(ptr - 4);
-		strRetValue = std::to_string(indexVal);
-		strRetValue = "i" + strRetValue;
+		strRetValue = "i" + std::to_string(indexVal);
 	}
 
 	return strRetValue;
@@ -167,22 +168,42 @@ void setDescription(char* ptr, char* sValue)
 {
 	if (ptr == NULL || sValue == NULL)
 		return;
+
 	char *retValue = *(char**)ptr;
-	if (retValue == NULL)
+	uint32_t nbEntries = *(uint32_t*)(ptr + 8);
+
+	//
+	if (retValue == NULL || nbEntries == 0 || *(char**)retValue == NULL)
 	{
 		NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
 		NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
+
 		char* strExoWanted = (char*)pHeap->Allocate(0xC);
+		if(strExoWanted == NULL)
+			return;
+
 		*(uint32_t*)strExoWanted = 0xFFFFFFFE;
 		*(uint32_t*)(strExoWanted + 4) = 0;
 		*(uint32_t*)(strExoWanted + 8) = 0;
-		char* myPtr = (char*)pHeap->Allocate(0x32);
-		*(char**)myPtr = (strExoWanted);
-		*(char**)ptr = myPtr;
-		*(uint32_t*)(ptr + 4) = 0x10;
+
+		if (retValue == NULL)
+		{
+			char* myPtr = (char*)pHeap->Allocate(0x40);
+			if(myPtr == NULL)
+			{
+				if (NWN2Heap_Deallocate)
+					NWN2Heap_Deallocate(strExoWanted);
+				return;
+			}
+			memset(myPtr, 0, 0x40);
+			*(char**)ptr = myPtr;
+			*(uint32_t*)(ptr + 4) = 0x10;
+			retValue = myPtr;
+		}
+
+		*(char**)retValue = (strExoWanted);
 		*(uint32_t*)(ptr + 8) = 0x1;
 		*(uint32_t*)(ptr - 4) = 0xFFFFFFFF;
-		retValue = myPtr;
 	}
 
 	{

@@ -76,6 +76,7 @@ static unsigned char refreshNudeP2[] = {
 	bool refreshNude_Verif(int iAffected, int mustView);
 	bool refreshBelt(int iAffected, int mustView);
 	//unsigned char monTrucMsg[0x700];
+	uint8_t* GetBaseItemFromId(int item_id);
 	bool sendMusicMessage(int iType, int iOption, int iValue, int mustView);
 	bool SendUpdatePCName(uint32_t oChanged, uint32_t oReceiver, std::string sFirstName, std::string sLastName, bool bSetName);
 	bool PrepaSendMessageToPlayer(unsigned long PlayerId, unsigned char* Data, unsigned long Size, unsigned long Flags);

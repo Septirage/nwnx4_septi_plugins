@@ -1,5 +1,14 @@
 # Changelog
 
+**v1.5.9 (2026/11/15, DLL and ini)**
+
+- Added the option `RefuseObjectsOutsideArea` (default 1): `SetPosition_xpAM` and `SetPositionAndFacing_xpAM` refuse a position outside the rectangle of the area (or not finite), and `CreateObject` returns `OBJECT_INVALID` for such a position (creatures are not concerned). The engine and the client misbehave and can crash with objects outside the area.
+- A position text that cannot be read no longer moves the object. The error is logged.
+- Trigger geometry: refused (and logged) if the object is not a trigger, if there are fewer than 3 or more than 255 points, or if the points are invalid or duplicated.
+- Item properties: invalid subtypes are refused for the properties 16 to 19 and 65; the number of charges is limited to 255, an unknown base item is refused.
+- List system: an invalid value is now ignored and logged.
+- Many robustness fixes (NULL pointers, buffers, damage reduction arrays of an item, level statistics of multiclass characters).
+
 **v1.5.8 (2026/11/12, DLL, NSS and ini)**
 
 - Added `SetSEFForViewer_xpAM`, `ClearSEFForViewer_xpAM` and `ClearSEFForViewerById_xpAM`: a special effect (.sef) on a creature, an item, a placeable or a door, seen by one player only. The new ini option `SEFForViewer` (default 1) enables it.

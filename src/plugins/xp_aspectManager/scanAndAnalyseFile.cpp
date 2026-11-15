@@ -229,7 +229,7 @@ AppearanceListManagement::analyseSpecificIni()
 	while (getline(fileBuffer, line))
 	{
 		//line starting by # are commentary
-		if(line.size() >= 1 && line[0] != '#')
+		if(line.size() >= 4 && line[0] != '#')
 		{
 			//List the files to scan
 			std::string extension = line.substr(line.size()-4);
@@ -258,16 +258,44 @@ void AppearanceListManagement::Initialisation()
 	analyser2da();
 	if (bScanFile)
 	{
-		analyseSpecificIni();
+		try
+		{
+			analyseSpecificIni();
+		}
+		catch (...)
+		{
+			logger->Err("Invalid value while reading the administration file, the rest of the file is ignored");
+		}
 	}
 
 	isNewFile = !isSaveFileExist();
 
-	processSaveFile();
+	try
+	{
+		processSaveFile();
+	}
+	catch (...)
+	{
+		logger->Err("Invalid value in the save file, the rest of the file is ignored");
+	}
 	if (bScanFile)
 	{
-		processHak();
-		processZip();
+		try
+		{
+			processHak();
+		}
+		catch (...)
+		{
+			logger->Err("Invalid value while scanning the haks, the rest of the scan is ignored");
+		}
+		try
+		{
+			processZip();
+		}
+		catch (...)
+		{
+			logger->Err("Invalid value while scanning the zip files, the rest of the scan is ignored");
+		}
 		if (!isNewFile)
 		{
 			//Clean & Inform
@@ -408,6 +436,8 @@ bool AppearanceListManagement::processSaveFile()
 
 			while (getline(fileBuffer, line) && !error)
 			{
+				try
+				{
 				if (bFirstLine)
 				{
 					bFirstLine = false;
@@ -557,6 +587,12 @@ bool AppearanceListManagement::processSaveFile()
 						}
 					}
 				}
+				}
+				catch (const std::exception& e)
+				{
+					error = true;
+					log = "Error on the line " + line + " : " + e.what();
+				}
 			}
 			fileBuffer.close();
 		}
@@ -624,7 +660,14 @@ AppearanceListManagement::processHak()
 				if ( val[0] == 0xA0 && val[1] == 0x0F ) {
 					std::string nom(elemCour, 32);
 					std::transform(nom.begin(), nom.end(), nom.begin(), ::toupper);
-					parseFileName(nom);
+					try
+					{
+						parseFileName(nom);
+					}
+					catch (...)
+					{
+						logger->Err(("Invalid model number, file ignored : " + nom).c_str());
+					}
 				}
 			}
 			fileBuffer.close();
@@ -725,7 +768,14 @@ AppearanceListManagement::analyseZip(std::string zipPath)
 					nom = nom.erase(0, icoupe + 1);
 
 				std::transform(nom.begin(), nom.end(), nom.begin(), ::toupper);
-				parseFileName(nom);
+				try
+				{
+					parseFileName(nom);
+				}
+				catch (...)
+				{
+					logger->Err(("Invalid model number, file ignored : " + nom).c_str());
+				}
 			}
 		}
 	} else {

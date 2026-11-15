@@ -1937,6 +1937,11 @@ void testMessage(uint32_t oPC, uint32_t iObject)
 
 bool sendMusicMessage(int iType, int iOption, int iValue, int mustView)
 {
+	if (iType != 0 && iType != 1)
+		return false;
+	if (iType == 1 && (iOption < 0 || iOption > 2))
+		return false;
+
 	unsigned long Size= 0;
 	static unsigned char Data[0x20];
 	memset(Data, 0, sizeof(Data));

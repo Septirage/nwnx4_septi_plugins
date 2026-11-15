@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <string>
+#include <algorithm>
 #include "../../septutil/NwN2DataPos.h"
 #include "manageObject.h"
 #include <NWN2Lib/NWN2.h>
@@ -9,35 +10,55 @@
 
 //HP Stuff
 int GetHP(GameObject* Object) {
+	if (Object->GetObjectType() < 5)
+		return 0;
 	return *(int*)(((char*)Object) + AmCurrentHP);
 }
 
 void SetHP(GameObject* Object, int newHP) {
-	*(int*)(((char*)Object) + AmCurrentHP) = newHP & 0xFFFF;
+	if (Object->GetObjectType() < 5)
+		return;
+
+	*(int*)(((char*)Object) + AmCurrentHP) = std::clamp(newHP, (int)INT16_MIN, (int)INT16_MAX);
 }
 
 int GetMaxHP(GameObject* Object) {
+	if (Object->GetObjectType() < 5)
+		return 0;
 	return *(int*)(((char*)Object) + AmMaxHP);
 }
 
 void SetMaxHP(GameObject* Object, int newHP) {
-	*(int*)(((char*)Object) + AmMaxHP) = newHP & 0xFFFF;
+	if (Object->GetObjectType() < 5)
+		return;
+
+	*(int*)(((char*)Object) + AmMaxHP) = std::clamp(newHP, 0, (int)INT16_MAX);
 }
 
 int GetTempHP(GameObject* Object) {
+	if (Object->GetObjectType() < 5)
+		return 0;
 	return *(int*)(((char*)Object) + AmTempHP);
 }
 
 void SetTempHP(GameObject* Object, int newHP) {
-	*(int*)(((char*)Object) + AmTempHP) = newHP & 0xFFFF;
+	if (Object->GetObjectType() < 5)
+		return;
+
+	*(int*)(((char*)Object) + AmTempHP) = std::clamp(newHP, 0, (int)INT16_MAX);
 }
 
 int GetModMaxHP(GameObject* Object) {
+	if (Object->GetObjectType() < 5)
+		return 0;
 	return *(int*)(((char*)Object) + AmModMaxHP);
 }
 
 void SetModMaxHP(GameObject* Object, int newHP) {
-	*(int*)(((char*)Object) + AmModMaxHP) = newHP & 0xFFFF;
+	if (Object->GetObjectType() < 5)
+		return;
+	
+	*(int*)(((char*)Object) + AmModMaxHP) = std::clamp(newHP, (int)INT16_MIN, (int)INT16_MAX);
 }
 
 
@@ -146,6 +167,12 @@ void SetInventoryMaxSize(GameObject* Object, int iSize) {
 	//Change the MaxSize
 	if (invS != NULL)
 	{
+		int iLastUsed = -1;
+		for (uint32_t i = 0; i < invS->allocatedSize; i++)
+			if (invS->contentArray[i] != NWN::INVALIDOBJID)
+				iLastUsed = i;
+		if (iSize < iLastUsed + 1) iSize = iLastUsed + 1;
+		if (iSize < 1) iSize = 1;
 		invS->maxSize = iSize;
 	}
 }
@@ -261,7 +288,7 @@ int GetLoadScreenID(GameObject* Object) {
 	else if (iType == NWN::OBJECT_TYPE_TRIGGER)
 		return *(uint16_t*)((char*)Object + AmTrigLoadScreenID);
 	else if (iType == NWN::OBJECT_TYPE_AREA)
-		return *(uint16_t*)((char*)Object + AmAreaLoadScreenID);
+		return *(uint16_t*)((char*)Object->AsArea() + AmAreaLoadScreenID);
 
 	return 0;
 }
@@ -275,7 +302,7 @@ void SetLoadScreenID(GameObject* Object, int iValue) {
 	else if (iType == NWN::OBJECT_TYPE_TRIGGER)
 		*(uint16_t*)((char*)Object + AmTrigLoadScreenID)= shValue;
 	else if (iType == NWN::OBJECT_TYPE_AREA)
-		*(uint16_t*)((char*)Object + AmAreaLoadScreenID) = shValue;
+		*(uint16_t*)((char*)Object->AsArea() + AmAreaLoadScreenID) = shValue;
 }
 
  
@@ -611,7 +638,10 @@ void SetObjectVScroll(GameObject* Object, float fValue) {
 /* Trigger */
 
 int GetTriggerType(GameObject* Object) {
-	int iType = 0;
+	int iType = Object->GetObjectType();
+
+	if (iType != NWN::OBJECT_TYPE_TRIGGER)
+		return 0;
 
 	if (*(((uint8_t*)Object) + AmTrigTypeTransition) == 1)
 		return 1;
@@ -622,6 +652,11 @@ int GetTriggerType(GameObject* Object) {
 }
 
 void SetTriggerType(GameObject* Object, int iValue) {
+	int iType = Object->GetObjectType();
+
+	if (iType != NWN::OBJECT_TYPE_TRIGGER)
+		return;
+
 	//SetEverything to 0, then set the right value to 1
 	*(((uint8_t*)Object) + AmTrigTypeTransition) = 0;
 	*(((uint8_t*)Object) + AmTrigTypeTrap) = 0;

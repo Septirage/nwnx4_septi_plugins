@@ -2,6 +2,7 @@
 #include <NWN2Lib/NWN2.h>
 #include <NWN2Lib/NWN2Common.h>
 #include <misc/Patch.h>
+#include "messageManagement.h"
 #include "../../septutil/NwN2DataPos.h"
 #include "../../septutil/NwN2Utilities.h"
 
@@ -298,6 +299,9 @@ int GetItmDmgRedctPiercingSubType(char* ItemPtr, uint32_t iDmgRedctIdx, uint32_t
 
 void SetItmDmgRedctPiercingSubType(char* ItemPtr, uint32_t iDmgRedctIdx, uint32_t iPiercingIdx, int iSubType)
 {
+	if (iSubType < 0 || iSubType > 0xFF)
+		return;
+
 	if (iDmgRedctIdx < GetItemNumberOfDmgRedct(ItemPtr))
 	{
 		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
@@ -323,6 +327,8 @@ void AddDmgRedctPiercingType(char* ItemPtr, uint32_t iDmgRedctIdx, int iType, in
 		{
 			//Calculate Size
 			uint32_t iNewSize = myDmgRedcts[iDmgRedctIdx].uSizeArray * 2;
+			if(iNewSize == 0)
+				iNewSize = 0x10;
 			uint32_t iAllocationSize = iNewSize * sizeof(AmItmDmgReductionType);
 
 			uint32_t iOldSize = myDmgRedcts[iDmgRedctIdx].uSizeArray * sizeof(AmItmDmgReductionType);
@@ -331,6 +337,8 @@ void AddDmgRedctPiercingType(char* ItemPtr, uint32_t iDmgRedctIdx, int iType, in
 			NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
 			NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
 			char* NewDmgRedct = (char*)pHeap->Allocate(iAllocationSize);
+			if (NewDmgRedct == NULL)
+				return;
 			memset(NewDmgRedct, 0, iAllocationSize);
 
 			//Copy old one in the new one
@@ -342,7 +350,7 @@ void AddDmgRedctPiercingType(char* ItemPtr, uint32_t iDmgRedctIdx, int iType, in
 			myDmgRedcts[iDmgRedctIdx].uSizeArray = iNewSize;
 
 			//Free the old one
-			if (NWN2Heap_Deallocate)
+			if (iOldSize != 0 && NWN2Heap_Deallocate)
 				NWN2Heap_Deallocate( pOldDmgRdctType );
 		}
 
@@ -402,8 +410,11 @@ void AddDmgRedct(char* ItemPtr, int iAmount, int iUseOrLogic)
 		//Allocate new one
 		NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
 		NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
-		char* pNewDmgRect = (char*)pHeap->Allocate(newSize);
-		memset(pNewDmgRect, 0, newSize);
+		char* pNewDmgRect = (char*)pHeap->Allocate(newSize+4);
+		if (pNewDmgRect == NULL)
+			return;
+		memset(pNewDmgRect+4, 0, newSize);
+		*((uint32_t*)pNewDmgRect) = iArraySize*2;
 
 
 		//Copy old one in the new one
@@ -411,18 +422,18 @@ void AddDmgRedct(char* ItemPtr, int iAmount, int iUseOrLogic)
 		if (oldSize != 0)
 		{
 			pOldDmgRdct = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
-			memcpy(pNewDmgRect, pOldDmgRdct, oldSize);
+			memcpy(pNewDmgRect+4, pOldDmgRdct, oldSize);
 		}
 
 		//Make the switch
-		*(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr) = (AmItmDmgReduction*)pNewDmgRect;
+		*(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr) = (AmItmDmgReduction*)(pNewDmgRect+4);
 		*(uint32_t*)(ItemPtr + AmItmDamageReductionSizeArray) = iArraySize*2;
 
 		//Free the old one
 		if (oldSize != 0)
 		{
 			if (NWN2Heap_Deallocate)
-				NWN2Heap_Deallocate(pOldDmgRdct);
+				NWN2Heap_Deallocate((char*)pOldDmgRdct - 4);
 		}
 	}
 
@@ -451,7 +462,7 @@ void RemoveDmgRedct(char* ItemPtr, uint32_t iDmgRedctIdx)
 		//Free the DmgReductionType list.
 		AmItmDmgReduction* myDmgRedcts = *(AmItmDmgReduction**)(ItemPtr + AmItmDamageReductionPtr);
 		AmItmDmgReductionType* pOldDmgRdctType = (AmItmDmgReductionType*)(myDmgRedcts[iDmgRedctIdx].pDmgRedTypeList);
-		if (NWN2Heap_Deallocate)
+		if (pOldDmgRdctType != NULL && NWN2Heap_Deallocate)
 			NWN2Heap_Deallocate( pOldDmgRdctType );
 
 
@@ -492,18 +503,22 @@ void ChargesNumber(char* ItemPtr, int iCharges)
 {
 	if (iCharges < 0)
 		iCharges = 0;
+	//The save file stores the charges in a byte
+	if (iCharges > 255)
+		iCharges = 255;
 
 	int iPrevious =  *(int *)((int)ItemPtr + AmItmCharges);
 	*(uint32_t *)((int)ItemPtr + AmItmCharges) = iCharges;
 
 
 	int iNumberOfProp = *(int*)((int)ItemPtr + AmItmProperty0Nb);
-	if ((iPrevious < iCharges) && (0 < iNumberOfProp))
+	AmItmProperty* pProps = *(AmItmProperty**)((int)ItemPtr + AmItmProperty0Ptr);
+
+	if (pProps != NULL && (iPrevious < iCharges) && (0 < iNumberOfProp))
 	{
-		int iProp = 0;
 		for(int iProp=0; iProp < iNumberOfProp; iProp++)
 		{
-			AmItmProperty* myProperty = &(((AmItmProperty*)((int)ItemPtr + AmItmProperty0Ptr))[iProp]);
+			AmItmProperty* myProperty = &pProps[iProp];
 			int iTest = 0;
 			//If castspell property
 			if (myProperty->uPropertyName == 0xF)
@@ -539,6 +554,8 @@ void ChargesNumber(char* ItemPtr, int iCharges)
 
 
 void SetItemBaseItem(char* ItemPtr, int iValue) {
+	if (GetBaseItemFromId(iValue) == 0x0)
+		return;
 	*(uint32_t*)(ItemPtr + AmItmType) = iValue;
 }
 
@@ -838,6 +855,13 @@ void AddItemProperty(GameObject* pObject, char* pValue)
 	idProperty = subType = costTable = costValue = paramTable = paramValue = durationType = -1;
 	
 	if (!UnPackAddPropertyParams(sValue, idProperty, subType, costTable, costValue, paramTable, paramValue, durationType, fDuration))
+		return;
+
+	if (idProperty == 16 && (uint16_t)subType > 13)
+		return;
+	if ((idProperty == 17 || idProperty == 18 || idProperty == 19) && (uint8_t)paramValue > 13)
+		return;
+	if (idProperty == 65 && (uint16_t)subType > 8)
 		return;
 
 

@@ -112,7 +112,13 @@ void refreshObject(int nParam2, int nValue, int iOption)
 		NWN::OBJECT_TYPE tObjToRefresh = (NWN::OBJECT_TYPE)*((char*)ObjectToRefr + AmObjectType);
 
 		//For now.. Some object cannot be refreshed. Nothing impossible. Will come with time
-		if (tObjToRefresh == NWN::OBJECT_TYPE_AREA || tObjToRefresh == NWN::OBJECT_TYPE_CREATURE || tObjToRefresh == NWN::OBJECT_TYPE_ITEM || tObjToRefresh == NWN::OBJECT_TYPE_WAYPOINT)
+		//if (tObjToRefresh == NWN::OBJECT_TYPE_AREA || tObjToRefresh == NWN::OBJECT_TYPE_CREATURE || tObjToRefresh == NWN::OBJECT_TYPE_ITEM || tObjToRefresh == NWN::OBJECT_TYPE_WAYPOINT)
+		//	return; tObjToRefresh == NWN::OBJECT_TYPE_ITEM || 
+
+		if(!(tObjToRefresh == NWN::OBJECT_TYPE_TRIGGER || 
+			tObjToRefresh == NWN::OBJECT_TYPE_PLACEABLE || tObjToRefresh == NWN::OBJECT_TYPE_DOOR || 
+			tObjToRefresh == NWN::OBJECT_TYPE_AREAOFEFFECTOBJECT || tObjToRefresh == NWN::OBJECT_TYPE_LIGHT || 
+			tObjToRefresh == NWN::OBJECT_TYPE_PLACED_EFFECT))
 			return;
 		NWN::OBJECTID oArea1 = *(NWN::OBJECTID*)((char*)ObjectToRefr + AmCommonArea);
 		GameObject* ObjectToView;

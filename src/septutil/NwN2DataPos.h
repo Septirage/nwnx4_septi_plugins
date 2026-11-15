@@ -633,6 +633,12 @@ struct AmCrtClass
 #define AmTrigGeometryPtr		0x370
 #define AmTrigGeometryBufSize	0x374
 #define AmTrigGeometrySize2		0x378
+#define AmTrigIndexNb			0x384
+#define AmTrigIndexPtr			0x388
+#define AmTrigBBoxMinX			0x3E8
+#define AmTrigBBoxMaxX			0x3EC
+#define AmTrigBBoxMinY			0x3F0
+#define AmTrigBBoxMaxY			0x3F4
 
 #define AmTrigTypeTransition	0x3A4
 #define AmTrigPartyTransition	0x3A8

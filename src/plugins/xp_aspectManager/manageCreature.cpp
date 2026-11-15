@@ -299,7 +299,7 @@ void SetCreatureAC(GameObject* Object, int iAC, int iValue) {
 	char* ptrWork = creatureApparenceBlock((char*)Object);
 	ptrWork = (ptrWork + AmCrtABArmorTable);
 	if (iAC < 0 || iAC > 12)
-		iAC = 0;
+		return;
 	ptrWork = (ptrWork + iAC);
 
 	*(int8_t*)ptrWork = (int8_t)(iValue & 0xFF);
@@ -309,7 +309,7 @@ int GetCreatureAC(GameObject* Object, int iAC) {
 	char* ptrWork = creatureApparenceBlock((char*)Object);
 	ptrWork = (ptrWork + AmCrtABArmorTable);
 	if (iAC < 0 || iAC > 12)
-		iAC = 0;
+		return 0;
 	ptrWork = (ptrWork + iAC);
 
 	return *(int8_t*)ptrWork;

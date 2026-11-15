@@ -9,7 +9,9 @@ void ObjectSetPosition(int iObjectId, float fX, float fY, float fZ);
 void ObjectSetOrientation(int iObjectId, float fPos);
 void ObjectSetPositionAndOrientation(int iObjectId, float fX, float fY, float fZ, float fFacing);
 std::string TriggerGetGeometry(int iObjectId);
-void TriggerChangeGeometry(int iObjectId, std::vector<float>& vGeometry);
+extern bool g_bRefuseOutsideZone;
+void PatchCreateObjectZoneGuard();
+bool TriggerChangeGeometry(int iObjectId, std::vector<float>& vGeometry);
 
 
 #endif

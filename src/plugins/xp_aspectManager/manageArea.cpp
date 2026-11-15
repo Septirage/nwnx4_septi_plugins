@@ -29,12 +29,16 @@ int GetAreaFlag(char* areaPtr) {
 void SetCreatorID(char* areaPtr, int iValue)
 {
 	uint32_t areaIdBlock = *(uint32_t*)(areaPtr + AmAreaPtrBlockId);
+	if(!areaIdBlock)
+		return;
 	*(int32_t*)(areaIdBlock + AmAreaBlockIdCreatorID) = iValue;
 }
 
 int GetCreatorID(char* areaPtr)
 {
 	uint32_t areaIdBlock = *(uint32_t*)(areaPtr + AmAreaPtrBlockId);
+	if(!areaIdBlock)
+		return 0;
 	return *(int32_t*)(areaIdBlock + AmAreaBlockIdCreatorID);
 }
 

@@ -556,10 +556,17 @@ int RemoveFirstClass(int nParam2)
 	char* ptrAppBlock = creatureApparenceBlock((char*)Object);
 	char* ptrClass = ptrAppBlock + AmCrtAbClass0;
 	uint8_t NbClass = *(uint8_t*)(ptrAppBlock + AmCrtABNbClass);
-	if (NbClass <= 1)
+	if (NbClass <= 1 || NbClass > 4)
 	{
 		return 0;
 	}
+
+	char* listPtr = *(char**)(ptrAppBlock + AmCrtABLvlStatList);
+	uint32_t iLvlKeep = *(uint32_t*)(ptrAppBlock + AmCrtABLvlStatNb);
+
+	if (listPtr == NULL || iLvlKeep == 0)
+		return 0;
+
 	int iSizeClassKeep = AmCrtAbSizeClass * (NbClass - 1);
 	std::memcpy ( myClass, ptrClass+AmCrtAbSizeClass, iSizeClassKeep);
 
@@ -571,13 +578,6 @@ int RemoveFirstClass(int nParam2)
 	*(uint8_t*)(ptrAppBlock + 0x14) = NbClass - 1;
 
 	std::memcpy ( ptrClass, myClass, iSizeClassKeep+AmCrtAbSizeClass);
-
-	char* listPtr = *(char**)(ptrAppBlock + AmCrtABLvlStatList);
-	uint32_t iLvlKeep = *(uint32_t*)(ptrAppBlock + AmCrtABLvlStatNb);
-
-	//Should never happens
-	if (NbClass <= 1)
-		return 1;
 
 	iLvlKeep--;
 	*(uint32_t*)(ptrAppBlock + AmCrtABLvlStatNb) = iLvlKeep;
@@ -737,6 +737,17 @@ AspectManager::Init(char* nwnxhome)
 	}
 
 
+	int iRefuseOutside = 1;
+	config->Read("RefuseObjectsOutsideArea", &iRefuseOutside, 1);
+	g_bRefuseOutsideZone = (iRefuseOutside != 0);
+	logger->Info("* RefuseObjectsOutsideArea: %d", iRefuseOutside);
+	if (g_bRefuseOutsideZone)
+	{
+		//CreateObject outside the rectangle of the area : OBJECT_INVALID (the creatures are not touched)
+		PatchCreateObjectZoneGuard();
+		logger->Info("* CreateObject guard applied (objects outside the area are refused).");
+	}
+
 	int iUseListSyst = 1;
 	config->Read("UseListSystem", &iUseListSyst, 1);
 	bUseListSyst = (iUseListSyst != 0);
@@ -862,7 +873,14 @@ int AspectManager::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int n
 		if (!bUseListSyst) {
 			return 0;
 		}
-		iRet = ListSystemGetInt(stFunction.substr(S_LIST_SYSTEM.size()), sParam1, nParam2);
+		try
+		{
+			iRet = ListSystemGetInt(stFunction.substr(S_LIST_SYSTEM.size()), sParam1, nParam2);
+		}
+		catch (...)
+		{
+			logger->Err("List system: invalid value, GetInt ignored");
+		}
 	}
 	else if(stFunction == "area") {
 		iRet = AreaGetInt(sParam1, nParam2);
@@ -1030,7 +1048,15 @@ AspectManager::SetInt([[maybe_unused]] char* sFunction,
 		if (!bUseListSyst) {
 			return;
 		}
-		return ListSystemSetInt(stFunction.substr(S_LIST_SYSTEM.size()), sParam1, nParam2, nValue);
+		try
+		{
+			ListSystemSetInt(stFunction.substr(S_LIST_SYSTEM.size()), sParam1, nParam2, nValue);
+		}
+		catch (...)
+		{
+			logger->Err("List system: invalid value, SetInt ignored");
+		}
+		return;
 	}
 	else
 		ObjectSetInt(sFunction, nParam2, nValue);
@@ -1102,6 +1128,21 @@ AspectManager::SetFloat([[maybe_unused]] char* sFunction,
 
 }
 
+// Read nCount floats (separated by space).  return false if any error.
+static bool ParseFloats(const char* sText, int nCount, float* pOut)
+{
+	const char* p = sText;
+	for (int i = 0; i < nCount; i++)
+	{
+		char* pEnd = NULL;
+		pOut[i] = strtof(p, &pEnd);
+		if (pEnd == p)
+			return false;
+		p = pEnd;
+	}
+	return true;
+}
+
 bool parseGeometry(std::string sInputGeometry, std::vector<float>& vGeometry) {
 	std::istringstream iss(sInputGeometry);
 	int n;
@@ -1109,7 +1150,7 @@ bool parseGeometry(std::string sInputGeometry, std::vector<float>& vGeometry) {
 		return false;
 	}
 
-	if (n < 0 || n > 1000) {
+	if (n < 3 || n > 255) {		//the creation message sends the number of points on 8 bits
 		return false;
 	}
 
@@ -1134,25 +1175,18 @@ void AspectManager::SetString([[maybe_unused]] char* sFunction,
 	std::string stFunction(sFunction);
 
 	if (stFunction == "SetPositionAndFacing") {
-		char* szOrbits = sValue;
-		char* pEnd;
-		char* pEnd2;
-		float fX, fY, fZ, fFacing;
-		fX = strtof(szOrbits, &pEnd);
-		fY = strtof(pEnd, &pEnd2);
-		fZ = strtof(pEnd2, &pEnd);
-		fFacing = strtof(pEnd, NULL);
-		ObjectSetPositionAndOrientation(nParam2, fX, fY, fZ, fFacing);
+		float fVal[4];
+		if (ParseFloats(sValue, 4, fVal))
+			ObjectSetPositionAndOrientation(nParam2, fVal[0], fVal[1], fVal[2], fVal[3]);
+		else
+			logger->Err("SetPositionAndFacing_xpAM: the position text cannot be read, the object is not moved");
 	}
 	else if (stFunction == "SetPosition") {
-		char* szOrbits = sValue;
-		char* pEnd;
-		char* pEnd2;
-		float fX, fY, fZ;
-		fX = strtof(szOrbits, &pEnd);
-		fY = strtof(pEnd, &pEnd2);
-		fZ = strtof(pEnd2, NULL);
-		ObjectSetPosition(nParam2, fX, fY, fZ);
+		float fVal[3];
+		if (ParseFloats(sValue, 3, fVal))
+			ObjectSetPosition(nParam2, fVal[0], fVal[1], fVal[2]);
+		else
+			logger->Err("SetPosition_xpAM: the position text cannot be read, the object is not moved");
 	}
 	else if (stFunction == "Trigger") {
 		std::string sTrigFunc(sParam1);
@@ -1160,7 +1194,8 @@ void AspectManager::SetString([[maybe_unused]] char* sFunction,
 			std::string sInputGeometry(sValue);
 			std::vector<float> vGeometry;
 			if (parseGeometry(sInputGeometry, vGeometry)) {
-				TriggerChangeGeometry(nParam2, vGeometry);
+				if (!TriggerChangeGeometry(nParam2, vGeometry))
+					logger->Err("Trigger Geometry refused (not a trigger, invalid or duplicated points, fewer than 3 points, or allocation failure)");
 			} else {
 				//Error
 				logger->Err("Error when parsing the new Trigger Geometry");
@@ -1179,7 +1214,15 @@ void AspectManager::SetString([[maybe_unused]] char* sFunction,
 		if (!bUseListSyst) {
 			return;
 		}
-		return ListSystemSetString(stFunction.substr(S_LIST_SYSTEM.size()), sParam1, nParam2, sValue);
+		try
+		{
+			ListSystemSetString(stFunction.substr(S_LIST_SYSTEM.size()), sParam1, nParam2, sValue);
+		}
+		catch (...)
+		{
+			logger->Err("List system: invalid value, SetString ignored");
+		}
+		return;
 	}
 	else
 		ObjectSetString(sFunction, sParam1, nParam2, sValue);
@@ -1239,15 +1282,23 @@ AspectManager::GetString([[maybe_unused]] char* sFunction,
 		if (!bUseListSyst) {
 			return returnBuffer;
 		}
-		sRetVal = ListSystemGetString(stFunction.substr(S_LIST_SYSTEM.size()), sParam1, nParam2);
+		try
+		{
+			sRetVal = ListSystemGetString(stFunction.substr(S_LIST_SYSTEM.size()), sParam1, nParam2);
+		}
+		catch (...)
+		{
+			logger->Err("List system: invalid value, GetString ignored");
+			sRetVal = "";
+		}
 	} else {
 		sRetVal = ObjectGetString(stFunction, sParam1, nParam2);
 	}
 
 
 
-	logger->Trace(sRetVal.c_str());
-	sprintf_s(returnBuffer, MAX_BUFFER, sRetVal.c_str());
+	logger->Trace("%s", sRetVal.c_str());
+	snprintf(returnBuffer, MAX_BUFFER, "%s", sRetVal.c_str());
 
 	return returnBuffer;
 }

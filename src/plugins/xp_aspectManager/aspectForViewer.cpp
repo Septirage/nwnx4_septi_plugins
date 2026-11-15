@@ -137,6 +137,8 @@ int __fastcall PreparePlayerName(NWN::CNWSCreature *ptrCrea)
 
 	uint32_t playerID = pStructChanged->playerID;
 	CNetBigPlayerInfo* pPlayerInfo = GetCNetPlayerInfo(playerID);
+	if (pPlayerInfo == NULL)
+		return 0;
 
 	fakeCELocString[1] = (uint32_t) (pPlayerInfo->m_sPlayerName.m_sString);
 	fakeCELocString[2] = (uint32_t) (pPlayerInfo->m_sPlayerName.m_nBufferLength);
@@ -155,15 +157,15 @@ NWN::CExoString* __fastcall PreparePlayerFullName(NWN::CNWSCreatureStatsCore* pt
 
 	CNWSPlayerStruct* pStructChanged = GetPCBlockFromCreature(Object->GetObjectId());
 	NWN::CExoString* ptrExoStr2;
-	if (pStructChanged == NULL || pStructChanged->playerID > 0x60)
+	CNetBigPlayerInfo* pPlayerInfo = NULL;
+	if (pStructChanged != NULL && pStructChanged->playerID <= 0x60)
+		pPlayerInfo = GetCNetPlayerInfo(pStructChanged->playerID);
+	if (pPlayerInfo == NULL)
 	{
 		ptrExoStr2 = NWN2ReturnFullName(ptrCreaStat, ptrRes);
 	}
 	else
 	{
-		uint32_t playerID = pStructChanged->playerID;
-		CNetBigPlayerInfo* pPlayerInfo = GetCNetPlayerInfo(playerID);
-
 		fakeCELocString[1] = (uint32_t) (pPlayerInfo->m_sPlayerName.m_sString);
 		fakeCELocString[2] = (uint32_t) (pPlayerInfo->m_sPlayerName.m_nBufferLength);
 
