@@ -224,6 +224,21 @@ Example: a Sorcerer has 5 level 1 spells per day and a ring giving +1. Unequippi
 - 1: the number of available spells is reduced only if the new maximum is lower than it.
 - 2: the number of available spells is never reduced.
 
+#### FixSpellCountOverflow
+
+Default: 0.
+
+Fixes crashes/freezes or wrapped values when a class has 256 or more spell slots or known spells for one spell level.
+
+With the fix, nothing can go beyond 255 for a spell level of a class:
+
+- the number of spell slots (base number + bonus) is capped at 255;
+- the bonus slots and the maximum spells per day given by effects no longer wrap (0 minus 1 gave 255, 255 plus 1 gave 0): they stay between 0 and 255;
+- adding a known spell is refused when the class already knows 255 spells of this level (the same as for an invalid spell level: nothing is added, without error).
+
+The limit is per class and per spell level, not in total.
+Note that it's different from the fix of `xp_bugfix`, which handles the bug caused by having more than 255 spells in total.
+
 #### KeepLocalVarOnSplit
 
 Default: 0.
@@ -313,6 +328,30 @@ Without the fix, when a creature is not controlled anymore (for example when a D
 Default: 0.
 
 Without the fix, when a DM unpossesses a creature, the DM avatar comes back in the area but is still counted and returned by the limbo functions. With the fix, the avatar is removed from the limbo list.
+
+#### PatchRead2daNullGuard
+
+Default: 0.
+
+Without the patch, an item property whose cost table index does not exist in `iprp_costtable` makes the server read a 2DA through a NULL table and crash. With the patch, this reading no longer crashes.
+
+#### FixDamageBonusVsType
+
+Default: 0.
+
+Without the fix, the damage bonus of the item properties DamageBonusVsAlignmentGroup, VsRace and VsSpecificAlignment is always counted as Magical damage: the immunities, resistances and vulnerabilities to Magical apply, not those of the damage type of the property. With the fix, the bonus has the damage type of the property. A Bludgeoning, Piercing or Slashing type becomes physical damage: it is multiplied on a critical hit and reduced by the damage reduction.
+
+#### FixScriptDamageCritical
+
+Default: 0.
+
+Without the fix, on a critical hit, the game multiplies the damage bonus/malus of the first three effects of the list given by `EffectDamageIncrease` / `EffectDamageDecrease`, whatever their type, and not the following ones. The result depends on the order in which the effects were applied. With the fix, only the effects of a physical type (bludgeoning, piercing, slashing) are multiplied.
+
+#### FixDamageBonusAlignRemoval
+
+Default: 0.
+
+Without the fix, removing from an equipped item a property DamageBonusVsSpecificAlignment of subtype chaotic neutral never removes the bonus (it stays until the item is unequipped), and removing a DamageBonusVsAlignmentGroup of subtype lawful can remove another effect of the property (chaotic...) that has the same cost. With the fix, the right bonus is removed.
 
 ### Customizations
 

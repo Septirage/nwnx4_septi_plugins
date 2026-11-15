@@ -260,7 +260,7 @@ unsigned long ReturnItemPropertyFix = 0x005C7F4C;
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-	void PutNWNExoString(NWN::CExoString* pointedExoStr, char* sValue)
+	void PutNWNExoString(NWN::CExoString* pointedExoStr, char* sValueB)
 	{
 		if (pointedExoStr != NULL)
 		{
@@ -269,11 +269,14 @@ unsigned long ReturnItemPropertyFix = 0x005C7F4C;
 			CpyStr.m_nBufferLength = OutStr->m_nBufferLength;
 			CpyStr.m_sString = OutStr->m_sString;
 
+			const char* sValue = sValueB ? sValueB : "";
 			unsigned long length = strlen(sValue)+1;
 			NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
 			NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
-			char* strWanted = (char*)pHeap->Allocate(length+1);
-			sprintf_s(strWanted, length, sValue);
+			char* strWanted = (char*)pHeap->Allocate(length);
+			if(strWanted == NULL)
+				return;
+			memcpy(strWanted, sValue, length);
 			OutStr->m_sString = strWanted;
 			OutStr->m_nBufferLength = length;
 
@@ -291,6 +294,8 @@ unsigned long ReturnItemPropertyFix = 0x005C7F4C;
 	void __fastcall SetNameAreaFixed(uint8_t *areaPtr, NWN::CExoString* exoStrPtr)
 	{
 		uint8_t** prepareExoStr = *(uint8_t***)(areaPtr + 0xBC0);
+		if (prepareExoStr == NULL || *prepareExoStr == NULL)
+			return;
 		NWN::CExoString* myCurrentExoStr = (NWN::CExoString*) ((*prepareExoStr)+0x4);
 
 		PutNWNExoString(myCurrentExoStr, exoStrPtr->m_sString);
@@ -725,23 +730,6 @@ EnhancedFeatures::Init(char* nwnxhome)
 	if (!NWN2Heap_Deallocate)
 		logger->Info(  "* WARNING: Failed to locate NWN2_Heap::Deallocate."  );
 
-
-	//CustomValues
-	config->Read("CustomValuesNb", &iTest, 0);
-	if(iTest > 0)
-	{
-		initCustomValuesNumber(iTest);
-
-		std::string sCustomValueRuleFile = "";
-		config->Read("CustomValueRuleFile", &sCustomValueRuleFile, std::string(""));
-		if (sCustomValueRuleFile != "")
-		{
-			std::string nxhome(nwnxhome);
-			m_sCustomValueRuleFile = sCustomValueRuleFile;
-			initCustomValuesHooks(nxhome, sCustomValueRuleFile);
-		}
-	}
-
 	//AreaTypeBitX
 	{
 		int iBit = 0;
@@ -758,6 +746,22 @@ EnhancedFeatures::Init(char* nwnxhome)
 
 			uint32_t uMaskValue = (1 << iBit);
 			RuleParser::m_areaTypeMap[sAreaBit] = uMaskValue;
+		}
+	}
+
+	//CustomValues
+	config->Read("CustomValuesNb", &iTest, 0);
+	if(iTest > 0)
+	{
+		initCustomValuesNumber(iTest);
+
+		std::string sCustomValueRuleFile = "";
+		config->Read("CustomValueRuleFile", &sCustomValueRuleFile, std::string(""));
+		if (sCustomValueRuleFile != "")
+		{
+			std::string nxhome(nwnxhome);
+			m_sCustomValueRuleFile = sCustomValueRuleFile;
+			initCustomValuesHooks(nxhome, sCustomValueRuleFile);
 		}
 	}
 
@@ -996,7 +1000,7 @@ EnhancedFeatures::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nP
 
 	if (logger->Level() == LogLevel::trace)
 	{
-		logger->Trace(("EnhancedFeatures_GetInt(" + std::string(function) + "," + sParam1 + "," + std::to_string(nParam2) + ")").c_str());
+		logger->Trace("EnhancedFeatures_GetInt(%s,%s,%s)", std::string(function).c_str(), sParam1, std::to_string(nParam2).c_str());
 	}
 
 	static constexpr std::string_view sMagicPrefix        = "Magic|";
@@ -1043,7 +1047,7 @@ EnhancedFeatures::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nP
 		auto [ptr, ec] = std::from_chars(sIndex.data(), sIndex.data() + sIndex.size(), iIndex);
 		if (ec != std::errc{})
 		{
-			logger->Err(("EnhancedFeatures_GetInt: index CustomValue invalide '" + std::string(sIndex) + "'").c_str());
+			logger->Err("EnhancedFeatures_GetInt: index CustomValue invalide '%s'", std::string(sIndex).c_str());
 			return 0;
 		}
 		return GetCustomValue(nParam2, iIndex);
@@ -1078,7 +1082,7 @@ EnhancedFeatures::GetInt(char* sFunction, [[maybe_unused]] char* sParam1, int nP
 			}
 			if (!bOk)
 			{
-				logger->Err(("EnhancedFeatures_GetInt: SavingThrowVsType invalide '" + std::string(sParam1) + "'").c_str());
+				logger->Err("EnhancedFeatures_GetInt: SavingThrowVsType invalide '%s'", std::string(sParam1).c_str());
 				return 0;
 			}
 			return GetSavingThrowVsType(nParam2, iValues[0], iValues[1], iValues[2]);
@@ -1107,8 +1111,8 @@ void EnhancedFeatures::SetInt([[maybe_unused]] char* sFunction,
 {
 	if (logger->Level() == LogLevel::trace)
 	{
-		logger->Trace(("EnhancedFeatures_SetInt(" + std::string(sFunction) + "," + sParam1 + "," +
-			std::to_string(nParam2) + "," + std::to_string(nValue) + ")").c_str());
+		logger->Trace("EnhancedFeatures_SetInt(%s, %s, %s, %s)", std::string(sFunction).c_str(), sParam1,
+			std::to_string(nParam2).c_str(), std::to_string(nValue).c_str());
 	}
 
 	std::string_view function{sFunction};
@@ -1122,7 +1126,7 @@ void EnhancedFeatures::SetInt([[maybe_unused]] char* sFunction,
 		auto [ptr, ec] = std::from_chars(sIndex.data(), sIndex.data() + sIndex.size(), iIndex);
 		if (ec != std::errc{})
 		{
-			logger->Err(("EnhancedFeatures_SetInt: index CustomValue invalide '" + std::string(sIndex) + "'").c_str());
+			logger->Err("EnhancedFeatures_SetInt: index CustomValue invalide '%s'", std::string(sIndex).c_str());
 			return;
 		}
 
@@ -1217,7 +1221,7 @@ EnhancedFeatures::SetFloat([[maybe_unused]] char* sFunction,
 		std::string logTxt =
 			"EnhancedFeatures_SetFloat(" + function + "," + sParam1 + "," + std::to_string(nParam2) + "," + std::to_string(fValue) + ")";
 
-		logger->Trace(logTxt.c_str());
+		logger->Trace("%s", logTxt.c_str());
 	}
 
 
@@ -1256,7 +1260,9 @@ EnhancedFeatures::GetString([[maybe_unused]] char* sFunction,
 		std::to_string(nParam2) + ")";
 
 
-	return (ret.data());
+	static std::string sRetStatic;
+	sRetStatic = ret;
+	return sRetStatic.data();
 }
 
 

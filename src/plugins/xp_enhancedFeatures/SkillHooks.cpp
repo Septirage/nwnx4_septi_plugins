@@ -287,7 +287,7 @@ bool ParseRuleFeatOrAreaType(std::string sSkillFeatRuleX, int iRuleNumber, std::
 			sRuleType = "Area";
 		else
 			sRuleType = "Extra";
-		logger->Err("Error during parse of [%s] \"feat\" = %s : %s", sSkillFeatRuleX.c_str(),
+		logger->Err("Error during parse of [%s] \"%s\" = %s : %s", sSkillFeatRuleX.c_str(),
 			sRuleType.c_str(), sValue.c_str(), e.what());
 		logger->Info("Due to the Error, the complete rule will not be applied");
 		return false;

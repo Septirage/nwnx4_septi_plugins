@@ -106,6 +106,8 @@ int EvaluateCustomValueRules(GameObject* pCreature, int iIdx, std::unordered_map
 
 	char* pCreaBytes = (char*)pCreature;
 	int CreaPartPtr = *(int*)(pCreaBytes + AmCrtPtrAppBlock);
+	if (CreaPartPtr == 0)
+		return 0;
 
 	int areaType = 0;
 	{

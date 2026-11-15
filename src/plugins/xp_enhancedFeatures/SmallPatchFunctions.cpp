@@ -126,6 +126,31 @@ extern NWN2Heap_Deallocate_Proc NWN2Heap_Deallocate;
 #define OFFS_FIXPOWERCRITICALUNARMED	0x0059ec7e
 
 
+#define OFFS_FIXDMGBONUSTYPE_FORCE		0x006d788e
+#define OFFS_FIXDMGBONUSTYPE_APPLY		0x006d7878
+#define OFFS_FIXDMGBONUSTYPE_REMOVE		0x006d7b15
+
+#define OFFS_READ2DAINT_GUARD			0x0051a700
+#define OFFS_READ2DAFLOAT_GUARD			0x0051a4f0
+
+
+#define OFFS_FIXSCRIPTDMGCRIT_1			0x005f63ce
+#define OFFS_FIXSCRIPTDMGCRIT_2			0x005f6414
+#define OFFS_FIXSCRIPTDMGCRIT_3			0x005f6633
+#define OFFS_FIXSCRIPTDMGCRIT_4			0x005f667e
+
+
+#define OFFS_FIXDMGALIGNREMOVE_19		0x006d7e0e
+#define OFFS_FIXDMGALIGNREMOVE_17		0x006d7d03
+
+
+#define OFFS_SCO_BASEBONUS			0x005a936c
+#define OFFS_SCO_BONUSADD			0x005a4db3
+#define OFFS_SCO_MAXPERDAY			0x005a4e20
+#define OFFS_SCO_EFFSLOTS			0x005a4e61
+#define OFFS_SCO_KNOWNSPELL			0x0075bf19
+
+
 // mov edx,[eax+0x3c] (8b 50 3c) + push 1 (6a 01) = 5 bytes replaced
 #define OFFS_FIXTOUCHATTACKHITFLAG		0x00690be7
 unsigned long ReturnTouchAttackHitFlag = 0x00690bec;
@@ -173,6 +198,218 @@ __declspec(naked) void FixUncontrolledCreatureUpdate()
 
 	DoControlledCreaCompare:
 		JMP		dword ptr[CompareControlledCreaFlags]
+	}
+}
+
+
+unsigned long ReturnRead2daIntGuard = 0x0051a705;
+unsigned long ReturnRead2daFloatGuard = 0x0051a4f5;
+
+__declspec(naked) void Read2daIntNullGuard()
+{
+	__asm
+	{
+		TEST	ECX, ECX
+		JE		R2IGNullTable
+		MOV		EAX, dword ptr[ESP + 8]
+		PUSH	ESI
+		JMP		dword ptr[ReturnRead2daIntGuard]
+	R2IGNullTable:
+		MOV		EAX, dword ptr[ESP + 0xC]
+		TEST	EAX, EAX
+		JE		R2IGNoOut
+		MOV		dword ptr[EAX], 0
+	R2IGNoOut:
+		XOR		EAX, EAX
+		RET		0xC
+	}
+}
+
+__declspec(naked) void Read2daFloatNullGuard()
+{
+	__asm
+	{
+		TEST	ECX, ECX
+		JE		R2FGNullTable
+		MOV		EAX, dword ptr[ESP + 8]
+		PUSH	ESI
+		JMP		dword ptr[ReturnRead2daFloatGuard]
+	R2FGNullTable:
+		MOV		EAX, dword ptr[ESP + 0xC]
+		TEST	EAX, EAX
+		JE		R2FGNoOut
+		MOV		dword ptr[EAX], 0
+	R2FGNoOut:
+		XOR		EAX, EAX
+		RET		0xC
+	}
+}
+
+unsigned long ReturnSCOBaseBonus = 0x005a9371;
+
+__declspec(naked) void SCOBaseBonus()
+{
+	__asm
+	{
+		MOVZX	ECX, CL
+		ADD		EAX, ECX
+		CMP		EAX, 0xFF
+		JBE		SCOBaseBonusEnd
+		MOV		EAX, 0xFF
+	SCOBaseBonusEnd:
+		JMP		dword ptr[ReturnSCOBaseBonus]
+	}
+}
+
+unsigned long ReturnSCOBonusAdd = 0x005a4dba;
+
+__declspec(naked) void SCOBonusAdd()
+{
+	__asm
+	{
+		MOVSX	EDX, DL
+		PUSH	ECX
+		MOVZX	ECX, byte ptr[EAX + EBP + 0x10C]
+		ADD		ECX, EDX
+		JNS		SCOBonusAddPos
+		XOR		ECX, ECX
+	SCOBonusAddPos:
+		CMP		ECX, 0xFF
+		JBE		SCOBonusAddStore
+		MOV		ECX, 0xFF
+	SCOBonusAddStore:
+		MOV		byte ptr[EAX + EBP + 0x10C], CL
+		POP		ECX
+		JMP		dword ptr[ReturnSCOBonusAdd]
+	}
+}
+
+unsigned long ReturnSCOMaxPerDay = 0x005a4e27;
+
+__declspec(naked) void SCOMaxPerDay()
+{
+	__asm
+	{
+		TEST	EAX, EAX
+		JNS		SCOMaxPerDayPos
+		XOR		EAX, EAX
+		JMP		SCOMaxPerDayStore
+	SCOMaxPerDayPos:
+		CMP		EAX, 0xFF
+		JLE		SCOMaxPerDayStore
+		MOV		EAX, 0xFF
+	SCOMaxPerDayStore:
+		MOV		byte ptr[ECX + EDI + 0x222], AL
+		JMP		dword ptr[ReturnSCOMaxPerDay]
+	}
+}
+
+unsigned long ReturnSCOEffSlots = 0x005a4e6a;
+unsigned long SCOSetSlotNumberFct = 0x005a1de0;
+
+__declspec(naked) void SCOEffSlots()
+{
+	__asm
+	{
+		TEST	ESI, ESI
+		JNS		SCOEffSlotsPos
+		XOR		ESI, ESI
+		JMP		SCOEffSlotsCall
+	SCOEffSlotsPos:
+		CMP		ESI, 0xFF
+		JLE		SCOEffSlotsCall
+		MOV		ESI, 0xFF
+	SCOEffSlotsCall:
+		PUSH	ESI
+		PUSH	EBX
+		MOV		ECX, EBP
+		MOV		EAX, dword ptr[SCOSetSlotNumberFct]
+		CALL	EAX
+		JMP		dword ptr[ReturnSCOEffSlots]
+	}
+}
+
+unsigned long ReturnSCOKnownSpell = 0x0075bf1e;
+
+__declspec(naked) void SCOKnownSpell()
+{
+	__asm
+	{
+		CMP		dword ptr[ECX + 4], 0xFF
+		JL		SCOKnownSpellAdd
+		POP		ESI
+		XOR		EAX, EAX
+		RET		8
+	SCOKnownSpellAdd:
+		PUSH	0x00752bf0
+		JMP		dword ptr[ReturnSCOKnownSpell]
+	}
+}
+
+unsigned long ReturnFixDmgBonusTypeApply = 0x006d7890;
+unsigned long ReturnFixDmgBonusTypeRemove = 0x006d7b2f;
+
+__declspec(naked) void FixDmgBonusTypeApply()
+{
+	__asm
+	{
+		MOVZX	ECX, byte ptr[EDI + 9]
+		CMP		ECX, 2
+		JBE		FDBTANoShift
+		SUB		ECX, 2
+	FDBTANoShift:
+		CMP		ECX, 11
+		JA		FDBTAMagical
+		MOV		EAX, 1
+		SHL		EAX, CL
+		PUSH	EAX
+		JMP		dword ptr[ReturnFixDmgBonusTypeApply]
+	FDBTAMagical:
+		PUSH	8
+		JMP		dword ptr[ReturnFixDmgBonusTypeApply]
+	}
+}
+
+__declspec(naked) void FixDmgBonusTypeRemove()
+{
+	__asm
+	{
+		MOVZX	EAX, byte ptr[EBP + 9]
+		CMP		EAX, 2
+		JBE		FDBTRNoShift
+		SUB		EAX, 2
+	FDBTRNoShift:
+		CMP		EAX, 11
+		JBE		FDBTRStore
+		MOV		EAX, 3
+	FDBTRStore:
+		MOV		dword ptr[ESP + 0x14], EAX
+		JMP		dword ptr[ReturnFixDmgBonusTypeRemove]
+	}
+}
+
+unsigned long ReturnFixDmgAlignRemove17Five = 0x006d7d0d;
+unsigned long ReturnFixDmgAlignRemove17NoTest = 0x006d7e2e;
+unsigned long ReturnFixDmgAlignRemove17Test = 0x006d7d19;
+unsigned long GetEffectVariable_ = 0x006558e0;
+
+__declspec(naked) void FixDmgAlignRemove17()
+{
+	__asm
+	{
+		CMP		AX, 5
+		JE		FDAR17Five
+		CMP		AX, 2
+		JNE		FDAR17NoTest
+		PUSH	3
+		MOV		ECX, ESI
+		CALL	dword ptr[GetEffectVariable_]
+		CMP		EAX, 2
+		JMP		dword ptr[ReturnFixDmgAlignRemove17Test]
+	FDAR17Five:
+		JMP		dword ptr[ReturnFixDmgAlignRemove17Five]
+	FDAR17NoTest:
+		JMP		dword ptr[ReturnFixDmgAlignRemove17NoTest]
 	}
 }
 
@@ -1385,6 +1622,65 @@ __declspec(naked) void FixSetFirstNameCode()
 	}
 }
 
+
+Patch _PatchRead2daNullGuard[] =
+{
+	Patch(OFFS_READ2DAINT_GUARD, (char*)"\xe9\x00\x00\x00\x00", (int)5), //JMP (mov eax,[esp+8] + push esi)
+	Patch(OFFS_READ2DAINT_GUARD + 1, (relativefunc)Read2daIntNullGuard),
+
+	Patch(OFFS_READ2DAFLOAT_GUARD, (char*)"\xe9\x00\x00\x00\x00", (int)5), //JMP (mov eax,[esp+8] + push esi)
+	Patch(OFFS_READ2DAFLOAT_GUARD + 1, (relativefunc)Read2daFloatNullGuard),
+
+	Patch()
+};
+
+Patch* PatchRead2daNullGuard = _PatchRead2daNullGuard;
+
+
+Patch _PatchFixDmgBonusType[] =
+{
+	Patch(OFFS_FIXDMGBONUSTYPE_FORCE, (char*)"\xeb\xe8", (int)2), //JMP SHORT 0x006d7878 (push 8)
+
+	Patch(OFFS_FIXDMGBONUSTYPE_APPLY, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
+	Patch(OFFS_FIXDMGBONUSTYPE_APPLY + 1, (relativefunc)FixDmgBonusTypeApply),
+
+	Patch(OFFS_FIXDMGBONUSTYPE_REMOVE, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
+	Patch(OFFS_FIXDMGBONUSTYPE_REMOVE + 1, (relativefunc)FixDmgBonusTypeRemove),
+
+	Patch()
+};
+
+Patch* PatchFixDmgBonusType = _PatchFixDmgBonusType;
+
+
+Patch _PatchFixScriptDmgCritical[] =
+{
+	//Mov eax, [esp+0x28];  cmp eax, 0x2;  jle short loc_XXXX; cmp eax, 0x0C; je short loc_YYYY
+	Patch(OFFS_FIXSCRIPTDMGCRIT_1, (char*)"\x8b\x44\x24\x28\x83\xf8\x02\x7e\x0c\x83\xf8\x0c\x74\x07", (int)14),
+	Patch(OFFS_FIXSCRIPTDMGCRIT_2, (char*)"\x8b\x44\x24\x28\x83\xf8\x02\x7e\x0c\x83\xf8\x0c\x74\x07", (int)14),
+	Patch(OFFS_FIXSCRIPTDMGCRIT_3, (char*)"\x8b\x44\x24\x28\x83\xf8\x02\x7e\x0c\x83\xf8\x0c\x74\x07", (int)14),
+	Patch(OFFS_FIXSCRIPTDMGCRIT_4, (char*)"\x8b\x44\x24\x28\x83\xf8\x02\x7e\x0c\x83\xf8\x0c\x74\x07", (int)14),
+
+	Patch()
+};
+
+Patch* PatchFixScriptDmgCritical = _PatchFixScriptDmgCritical;
+
+
+Patch _PatchFixDmgAlignRemove[] =
+{
+	Patch(OFFS_FIXDMGALIGNREMOVE_19, (char*)"\x66\x83\x7d\x02\x07\x0f\x1f\x40\x00", (int)9),
+
+	Patch(OFFS_FIXDMGALIGNREMOVE_17, (char*)"\xe9\x00\x00\x00\x00\x90\x90\x90\x90\x90", (int)10), //JMP relay + 5 NOP (cmp ax,5 ; jne 0x6d7e2e)
+	Patch(OFFS_FIXDMGALIGNREMOVE_17 + 1, (relativefunc)FixDmgAlignRemove17),
+
+	Patch()
+};
+
+Patch* PatchFixDmgAlignRemove = _PatchFixDmgAlignRemove;
+
+
+
 Patch _FixSetFirstName[] =
 {
 	Patch(OFFS_FixSetFirstName, (char*)"\xe9\x00\x00\x00\x00\x90", (int)6),
@@ -1479,6 +1775,28 @@ Patch _FixRemainingSpellOnBonusLoss[] =
 };
 
 Patch* FixRemainingSpellOnBonusLoss = _FixRemainingSpellOnBonusLoss;
+
+Patch _FixSpellCountOverflow[] =
+{
+	Patch(OFFS_SCO_BASEBONUS, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(OFFS_SCO_BASEBONUS + 1, (relativefunc)SCOBaseBonus),
+
+	Patch(OFFS_SCO_BONUSADD, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
+	Patch(OFFS_SCO_BONUSADD + 1, (relativefunc)SCOBonusAdd),
+
+	Patch(OFFS_SCO_MAXPERDAY, (char*)"\xe9\x00\x00\x00\x00\x90\x90", (int)7),
+	Patch(OFFS_SCO_MAXPERDAY + 1, (relativefunc)SCOMaxPerDay),
+
+	Patch(OFFS_SCO_EFFSLOTS, (char*)"\xe9\x00\x00\x00\x00\x90\x90\x90\x90", (int)9),
+	Patch(OFFS_SCO_EFFSLOTS + 1, (relativefunc)SCOEffSlots),
+
+	Patch(OFFS_SCO_KNOWNSPELL, (char*)"\xe9\x00\x00\x00\x00", (int)5),
+	Patch(OFFS_SCO_KNOWNSPELL + 1, (relativefunc)SCOKnownSpell),
+
+	Patch()
+};
+
+Patch* FixSpellCountOverflow = _FixSpellCountOverflow;
 
 
 
@@ -1809,6 +2127,17 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		}
 	}
 
+	config->Read("FixSpellCountOverflow", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixSpellCountOverflow");
+		i = 0;
+		while (FixSpellCountOverflow[i].Apply())
+		{
+			i++;
+		}
+	}
+
 	config->Read("FixCalcSafeLocation", &iTest, 0);
 	if (iTest == 1)
 	{
@@ -2033,6 +2362,50 @@ bool SmallPatchFunctions(SimpleIniConfig* config)
 		logger->Info("* FixTouchAttackHitFlag");
 		i = 0;
 		while (PatchFixTouchAttackHitFlag[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("PatchRead2daNullGuard", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* PatchRead2daNullGuard");
+		i = 0;
+		while (PatchRead2daNullGuard[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixDamageBonusVsType", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixDamageBonusVsType");
+		i = 0;
+		while (PatchFixDmgBonusType[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixScriptDamageCritical", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixScriptDamageCritical");
+		i = 0;
+		while (PatchFixScriptDmgCritical[i].Apply())
+		{
+			i++;
+		}
+	}
+
+	config->Read("FixDamageBonusAlignRemoval", &iTest, 0);
+	if (iTest == 1)
+	{
+		logger->Info("* FixDamageBonusAlignRemoval");
+		i = 0;
+		while (PatchFixDmgAlignRemove[i].Apply())
 		{
 			i++;
 		}

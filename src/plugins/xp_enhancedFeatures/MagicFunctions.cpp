@@ -165,7 +165,7 @@ void SetMemorizableSpellNumber(int oCreature, int nClassType, int nSpellLevel, i
 	if (myClass == nullptr)
 		return;
 
-	if (nSpellLevel >= 10 || nSpellLevel < 0 || iNumber < 0)
+	if (nSpellLevel >= 10 || nSpellLevel < 0 || iNumber < 0 || iNumber > 255)
 		return;
 
 	//Need to remove memorized spells
@@ -194,6 +194,7 @@ void SetMemorizableSpellNumber(int oCreature, int nClassType, int nSpellLevel, i
 		if (myClass->MemorizedSpells[nSpellLevel].size < iNumber)
 		{
 			int iSize = myClass->MemorizedSpells[nSpellLevel].size;
+			int iOldNb = myClass->MemorizedSpells[nSpellLevel].NbSpellsSlot;
 			int iNewSize = iSize;
 			//Empty list: doubling 0 never ends
 			if (iNewSize <= 0)
@@ -207,11 +208,13 @@ void SetMemorizableSpellNumber(int oCreature, int nClassType, int nSpellLevel, i
 			NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
 			NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
 			AmCrtClassSpellMemorized** lSpellMemorized = (AmCrtClassSpellMemorized**)pHeap->Allocate(0x4*iNewSize);
+			if(lSpellMemorized == NULL)
+				return;
 
 			//Copy the old array in the new one
 			for (int i = 0; i < iNewSize; i++)
 			{
-				if (i < iSize) {
+				if (i < iOldNb) {
 					lSpellMemorized[i] = myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[i];
 					myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[i] = 0;
 				}
@@ -221,7 +224,7 @@ void SetMemorizableSpellNumber(int oCreature, int nClassType, int nSpellLevel, i
 			//Deallocate old one
 			AmCrtClassSpellMemorized** lOldSpellMemorized = myClass->MemorizedSpells[nSpellLevel].lSpellMemorized;
 			myClass->MemorizedSpells[nSpellLevel].lSpellMemorized = lSpellMemorized;
-			if (NWN2Heap_Deallocate)
+			if (lOldSpellMemorized != NULL && NWN2Heap_Deallocate)
 				NWN2Heap_Deallocate( lOldSpellMemorized );
 
 			//Don't forget to set the old size
@@ -247,6 +250,10 @@ void SetNumberOfSpellUsesLeft(int oCreature, int nClassType, int nSpellLevel, in
 		return;
 
 	if (nSpellLevel >= 10 || nSpellLevel < 0)
+		return;
+
+	//The field is a uint8 in the engine
+	if (nNumber < 0 || nNumber > 255)
 		return;
 
 	myClass->SpellPerDaysLeft[nSpellLevel] = nNumber;
@@ -319,6 +326,10 @@ void SetNumberOfBonusSpell(int oCreature, int nClassType, int nSpellLevel, int n
 	if (nSpellLevel >= 10 || nSpellLevel < 0)
 		return;
 
+	//The field is a uint8 in the engine
+	if (nNumber < 0 || nNumber > 255)
+		return;
+
 	myClass->BonusSpell[nSpellLevel] = nNumber;
 }
 
@@ -342,6 +353,9 @@ void SetMemorizedSpell(int oCreature, int nClassType, int nSpellLevel, int nInde
 			NWN2_HeapMgr *pHeapMgr = NWN2_HeapMgr::Instance();
 			NWN2_Heap *pHeap = pHeapMgr->GetDefaultHeap();
 			mySpell = (AmCrtClassSpellMemorized*)pHeap->Allocate(0x10);
+			if (mySpell == NULL)
+				return;
+			memset(mySpell, 0, 0x10);
 			myClass->MemorizedSpells[nSpellLevel].lSpellMemorized[nIndex] = mySpell;
 		}
 

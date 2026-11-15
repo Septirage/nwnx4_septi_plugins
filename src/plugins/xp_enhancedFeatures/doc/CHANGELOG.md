@@ -1,5 +1,16 @@
 # Changelog
 
+**v1.2.2 (2026/11/15, DLL and ini)**
+
+- Added `FixSpellCountOverflow` : option to keep the number of spell slots and of known spells of a (class, spell level) under 256 (see the guide).
+- Added `PatchRead2daNullGuard` : option so that reading a 2DA through a NULL table (an item property whose cost table does not exist in `iprp_costtable`) no longer crashes the server.
+- Added `FixDamageBonusVsType` : option so that the damage bonus of the item properties DamageBonusVsAlignmentGroup, VsRace and VsSpecificAlignment has the damage type of the property.
+- Added `FixScriptDamageCritical` : option so that the critical multiplier of the damage given by script effects depends on the damage type, not on the order of the effects.
+- Added `FixDamageBonusAlignRemoval` : option to fix the removal of the alignment damage bonus of an equipped item.
+- `SetMemorizableSpellNumber_EFF`, `SetNumberOfSpellUsesLeft_EFF` and `SetNumberOfBonusSpell_EFF` refuse a number above 255.
+- The functions that set the time refuse an hour outside 0-23 and an object that is not an area.
+- Many robustness fixes (NULL pointers, strings returned to the scripts, logs).
+
 **v1.2.1 (2026/11/12, DLL, NSS and ini)**
 
 - Add script `GlobalOnDestroyScript`, called just before the real destruction of an object (`GlobalOnDestroyObjectTypes` gives the types of objects). The new function `GetDestroyedLocation_EFF` gives the location of the destroyed object.

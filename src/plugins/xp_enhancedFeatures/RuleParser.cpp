@@ -141,7 +141,7 @@ std::vector<Token> tokenize(const std::string& expression, RuleType cRuleType, b
 			char c = token[i];
 
 			//Just to detect and manage possible case of '<=' and '>=' in case of 
-			if (c == '<' || c == '>') {
+			if (c == '<' || c == '>' || c == '!' || c == '=') {
 				if (!currentToken.empty()) {
 					processCurrentToken(currentToken, tokens, cRuleType, bManageRule);
 					currentToken.clear();

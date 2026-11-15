@@ -292,7 +292,7 @@ int GetIntSneakAttackConditions(int attackerID, const char* sParams)
 	//2 or 3 values, nothing after
 	if (!bOk || !bEnd || iNbValues < 2)
 	{
-		logger->Err(("EnhancedFeatures_GetInt: SneakAttackConditions invalide '" + std::string(sParams) + "'").c_str());
+		logger->Err("EnhancedFeatures_GetInt: SneakAttackConditions invalide '%s'", std::string(sParams).c_str());
 		return 0;
 	}
 

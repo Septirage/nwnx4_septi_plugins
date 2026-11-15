@@ -121,6 +121,9 @@ void SetHourForPlayer(int nTarget, int iHour)
 	if (uPlayerID == NWN::PLAYERID_INVALIDID)
 		return;
 
+	if (iHour < 0 || iHour > 23)
+		return;
+
 	byte bHour,bPeriod;
 
 	if (!PrepareTimePeriod(iHour, bHour, bPeriod))
@@ -143,6 +146,19 @@ void SetHourForArea(int nArea, int iHour)
 	{
 		areaHour.erase(nArea);
 		return;
+	}
+
+	if (iHour < 0 || iHour > 23)
+		return;
+
+	{
+		NWN::OBJECTID oArea = (NWN::OBJECTID)nArea;
+		if ((oArea & NWN::INVALIDOBJID) != 0)
+			oArea &= ~(NWN::LISTTYPE_MASK);
+		GameObjectManager m_ObjectManager;
+		GameObject* pArea = m_ObjectManager.GetGameObject(oArea);
+		if (pArea == NULL || pArea->GetObjectType() != NWN::OBJECT_TYPE_AREA)
+			return;
 	}
 
 	byte bHour,bPeriod;
